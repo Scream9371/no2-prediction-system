@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 从环境变量获取配置
-API_HOST = os.getenv("HF_API_HOST", "api.qweather.com")
+API_HOST = os.getenv("HF_API_HOST")
 PRIVATE_KEY = os.getenv("HF_PRIVATE_KEY")
 PROJECT_ID = os.getenv("HF_PROJECT_ID")
 KEY_ID = os.getenv("HF_KEY_ID")
@@ -32,7 +32,7 @@ def generate_jwt_token():
     )
 
     # 调试输出
-    print("生成的JWT:", token)
+    # print("生成的JWT:", token)
     return token
 
 
