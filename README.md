@@ -19,7 +19,7 @@ no2-prediction-system/
 │   ├── __init__.py
 │   ├── settings.py
 │   ├── database.py
-│   └── paths.py
+│   └── paths.py                # data文件夹关键路径常量
 │
 ├── database/                   # 数据库相关
 │   ├── __init__.py
