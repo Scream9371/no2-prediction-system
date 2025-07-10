@@ -31,8 +31,8 @@ def generate_jwt_token():
         headers={"alg": "EdDSA", "kid": KEY_ID},
     )
 
-    # 调试输出（生产环境应移除）
-    # print("生成的JWT:", token)
+    # 调试输出
+    print("生成的JWT:", token)
     return token
 
 
