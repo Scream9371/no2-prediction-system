@@ -27,13 +27,13 @@ def generate_jwt_token():
             "exp": int(time.time()) + 900,
             "sub": PROJECT_ID,
         },
-        key=PROJECT_ID,
+        key=PRIVATE_KEY,
         algorithm="EdDSA",
         headers={"alg": "EdDSA", "kid": KEY_ID},
     )
 
     # 调试输出
-    print("生成的JWT:", token)
+    # print("生成的JWT:", token)
     return token
 
 
@@ -70,7 +70,7 @@ def get_air_quality(city_id, date):
 
 if __name__ == "__main__":
     # 清远
-    city_id, date = 101281301, 20250705
+    city_id, date = 101281301, 20250709
 
     # 获取数据
     result = get_air_quality(city_id, date)
