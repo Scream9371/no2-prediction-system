@@ -100,6 +100,7 @@ no2-prediction-system/
 │       └── test_web.py
 │
 ├── .env                        # 环境变量（API密钥、数据库等）
+├── .gitignore                  # git忽略
 ├── requirements.txt
 └── README.md
 ```
