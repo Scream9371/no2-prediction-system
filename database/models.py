@@ -16,3 +16,10 @@ class NO2Record(Base):
     humidity = Column(Float)
     wind_speed = Column(Float)
     weather = Column(String)
+    # 新增字段以支持历史数据
+    aqi = Column(Integer, default=0)
+    primary = Column(String, default="")
+    category = Column(String, default="")
+    pressure = Column(Float, default=0.0)
+    wind_dir = Column(String, default="")
+    date = Column(String, index=True)  # 日期字符串 YYYYMMDD
