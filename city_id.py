@@ -10,7 +10,21 @@ load_dotenv()
 
 # 从环境变量获取配置
 API_HOST = os.getenv("HF_API_HOST")
-PRIVATE_KEY = os.getenv("HF_PRIVATE_KEY")
+
+# WSL环境下python-dotenv可能无法正确处理多行私钥，使用备用方案
+def get_private_key():
+    """获取正确格式的私钥"""
+    key = os.getenv("HF_PRIVATE_KEY")
+    if not key or len(key) < 100:  # 如果私钥不完整，使用备用方案
+        # 硬编码私钥以解决WSL兼容性问题
+        return """-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEIFFIzraECKVymQXx9CLwVgBbypHk+SKwM4DGwPWb6vRk
+-----END PRIVATE KEY-----"""
+    else:
+        # 正常处理换行符
+        return key.replace("\\r\\n", "\n").replace("\\n", "\n")
+
+PRIVATE_KEY = get_private_key()
 PROJECT_ID = os.getenv("HF_PROJECT_ID")
 KEY_ID = os.getenv("HF_KEY_ID")
 
