@@ -1,52 +1,18 @@
-import os
-import time
-
-import jwt
 import requests
-from dotenv import load_dotenv
-
-# 加载环境变量，用于记录ID以及密钥信息
-load_dotenv()
-
-# 从环境变量获取配置
-API_HOST = os.getenv("HF_API_HOST")
-PRIVATE_KEY = os.getenv("HF_PRIVATE_KEY")
-PROJECT_ID = os.getenv("HF_PROJECT_ID")
-KEY_ID = os.getenv("HF_KEY_ID")
-
-
-def generate_jwt_token():
-    """
-    生成JWT令牌
-    """
-    # 生成JWT
-    token = jwt.encode(
-        payload={
-            "iat": int(time.time()) - 30,
-            "exp": int(time.time()) + 900,
-            "sub": PROJECT_ID,
-        },
-        key=PRIVATE_KEY,
-        algorithm="EdDSA",
-        headers={"alg": "EdDSA", "kid": KEY_ID},
-    )
-
-    # 调试输出
-    # print("生成的JWT:", token)
-    return token
+from utils.auth import generate_jwt_token, get_heweather_config
 
 
 def get_city_id(city_name):
     """
-    获取空气质量数据
-    :param lat: 纬度
-    :param lng: 经度
+    获取城市ID
+    :param city_name: 城市名称
     """
     # 生成认证令牌
     token = generate_jwt_token()
+    config = get_heweather_config()
 
     # 构造API URL（按照文档格式）
-    url = f"https://{API_HOST}/geo/v2/city/lookup?location={city_name}"
+    url = f"https://{config['api_host']}/geo/v2/city/lookup?location={city_name}"
 
     # 设置请求头（按照文档格式）
     headers = {"Authorization": f"Bearer {token}", "Accept-Encoding": "gzip"}

@@ -1,34 +1,19 @@
 import requests
-import time
-import jwt
 from datetime import datetime, timedelta
-from config.settings import settings
+from utils.auth import generate_jwt_token, get_heweather_config
 
 class HeWeatherClient:
     def __init__(self):
-        self.api_host = settings.HF_API_HOST
-        self.private_key = settings.HF_PRIVATE_KEY
-        self.project_id = settings.HF_PROJECT_ID
-        self.key_id = settings.HF_KEY_ID
+        self.config = get_heweather_config()
 
     def generate_jwt_token(self):
         """生成JWT令牌"""
-        token = jwt.encode(
-            payload={
-                "iat": int(time.time()) - 30,
-                "exp": int(time.time()) + 900,
-                "sub": self.project_id,
-            },
-            key=self.private_key,
-            algorithm="EdDSA",
-            headers={"alg": "EdDSA", "kid": self.key_id},
-        )
-        return token
+        return generate_jwt_token()
 
     def get_city_id(self, city_name):
         """获取城市ID"""
         token = self.generate_jwt_token()
-        url = f"https://{self.api_host}/geo/v2/city/lookup?location={city_name}"
+        url = f"https://{self.config['api_host']}/geo/v2/city/lookup?location={city_name}"
         headers = {"Authorization": f"Bearer {token}", "Accept-Encoding": "gzip"}
         
         try:
@@ -46,7 +31,7 @@ class HeWeatherClient:
     def get_historical_air_quality(self, city_id, date):
         """获取历史空气质量数据"""
         token = self.generate_jwt_token()
-        url = f"https://{self.api_host}/v7/historical/air?location={city_id}&date={date}"
+        url = f"https://{self.config['api_host']}/v7/historical/air?location={city_id}&date={date}"
         headers = {"Authorization": f"Bearer {token}", "Accept-Encoding": "gzip"}
         
         try:
@@ -66,7 +51,7 @@ class HeWeatherClient:
     def get_historical_weather(self, city_id, date):
         """获取历史天气数据"""
         token = self.generate_jwt_token()
-        url = f"https://{self.api_host}/v7/historical/weather?location={city_id}&date={date}"
+        url = f"https://{self.config['api_host']}/v7/historical/weather?location={city_id}&date={date}"
         headers = {"Authorization": f"Bearer {token}", "Accept-Encoding": "gzip"}
         
         try:
