@@ -2,3 +2,16 @@ CLAUDE.md
 .env
 ed25519-public.pem
 ed25519-private.pem
+
+# Python字节码
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# 虚拟环境
+.venv/
+venv/
+ENV/

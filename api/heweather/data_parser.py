@@ -4,14 +4,23 @@ def parse_air_quality(data):
     """解析当前空气质量数据（向后兼容）"""
     if data.get("code") != "200":
         return None
-    now = data.get("now", {})
+    
+    air_hourly = data.get("airHourly", [])
+    if not air_hourly:
+        return None
+    
+    # 取最新的一个小时数据作为当前数据
+    latest = air_hourly[-1]
     return {
-        "no2": float(now.get("no2", 0)),
-        "pm25": float(now.get("pm2p5", 0)),
-        "temperature": float(now.get("temp", 0)),
-        "humidity": float(now.get("humidity", 0)),
-        "wind_speed": float(now.get("windSpeed", 0)),
-        "weather": now.get("category", ""),
+        "no2": float(latest.get("no2", 0)),
+        "pm25": float(latest.get("pm2p5", 0)),
+        "aqi": int(latest.get("aqi", 0)),
+        "category": latest.get("category", ""),
+        "primary": latest.get("primary", ""),
+        "so2": float(latest.get("so2", 0)),
+        "co": float(latest.get("co", 0)),
+        "o3": float(latest.get("o3", 0)),
+        "pm10": float(latest.get("pm10", 0)),
     }
 
 def parse_historical_air_quality(data):
@@ -31,10 +40,18 @@ def parse_historical_air_quality(data):
     # 计算平均值
     no2_sum = sum(float(record.get("no2", 0)) for record in air_hourly)
     pm25_sum = sum(float(record.get("pm2p5", 0)) for record in air_hourly)
+    pm10_sum = sum(float(record.get("pm10", 0)) for record in air_hourly)
+    so2_sum = sum(float(record.get("so2", 0)) for record in air_hourly)
+    co_sum = sum(float(record.get("co", 0)) for record in air_hourly)
+    o3_sum = sum(float(record.get("o3", 0)) for record in air_hourly)
     
     return {
         "no2": round(no2_sum / total_records, 2),
         "pm25": round(pm25_sum / total_records, 2),
+        "pm10": round(pm10_sum / total_records, 2),
+        "so2": round(so2_sum / total_records, 2),
+        "co": round(co_sum / total_records, 2),
+        "o3": round(o3_sum / total_records, 2),
         "aqi": int(air_hourly[0].get("aqi", 0)),  # 使用第一个小时的AQI
         "primary": air_hourly[0].get("primary", ""),
         "category": air_hourly[0].get("category", ""),
