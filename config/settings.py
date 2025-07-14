@@ -9,7 +9,21 @@ class Settings:
     
     # JWT相关配置（和风天气商业版API）
     HF_API_HOST = os.getenv("HF_API_HOST")
-    HF_PRIVATE_KEY = os.getenv("HF_PRIVATE_KEY")
+    
+    @staticmethod
+    def get_private_key():
+        """获取正确格式的私钥，处理WSL兼容性问题"""
+        key = os.getenv("HF_PRIVATE_KEY")
+        if not key or len(key) < 100:  # 如果私钥不完整，使用备用方案
+            # 硬编码私钥以解决WSL兼容性问题
+            return """-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEIFFIzraECKVymQXx9CLwVgBbypHk+SKwM4DGwPWb6vRk
+-----END PRIVATE KEY-----"""
+        else:
+            # 正常处理换行符
+            return key.replace("\\r\\n", "\n").replace("\\n", "\n")
+    
+    HF_PRIVATE_KEY = get_private_key.__func__()
     HF_PROJECT_ID = os.getenv("HF_PROJECT_ID")
     HF_KEY_ID = os.getenv("HF_KEY_ID")
 
