@@ -10,7 +10,9 @@ class Settings:
     # JWT相关配置（和风天气商业版API）
     # 注意：现在推荐使用 utils.auth 模块获取这些配置
     HF_API_HOST = os.getenv("HF_API_HOST")
-    HF_PRIVATE_KEY = os.getenv("HF_PRIVATE_KEY")  # 已弃用，使用utils.auth.load_private_key()
+
+    # HF_PRIVATE_KEY = os.getenv("HF_PRIVATE_KEY")  # 已弃用，使用utils.auth.load_private_key()
+    
     HF_PROJECT_ID = os.getenv("HF_PROJECT_ID")
     HF_KEY_ID = os.getenv("HF_KEY_ID")
 
