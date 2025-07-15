@@ -133,6 +133,8 @@ no2-prediction-system/
       DATABASE_URL=mysql+pymysql://<username>:<your_password>.@localhost:3306/<database>  # MySQL数据库地址
       ```
 
+   > 提示：ed25519密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
+
 3. **初始化数据库**
    ```bash
    python scripts/setup_database.py
