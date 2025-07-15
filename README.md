@@ -123,7 +123,15 @@ no2-prediction-system/
    ```
 
 2. **配置环境变量**
-   - 复制`.env.example`为`.env`，填写和风天气API密钥、数据库连接等信息。
+   - 在根目录下创建`.env`存储环境变量，填写和风天气API密钥、数据库连接等信息。
+   - `.env`所需变量信息如下
+      ``` env
+      HF_API_HOST=your_api_host  # 和风天气个人账号的API HOST
+      HF_PRIVATE_KEY_FILE=ed25519-private.pem  # ed25519私钥路径，放在根目录
+      HF_PROJECT_ID=your_project_id  # 和风天气项目ID
+      HF_KEY_ID=your_credential_id  # 和风天气凭据ID
+      DATABASE_URL=mysql+pymysql://<username>:<your_password>.@localhost:3306/<database>  # MySQL数据库地址
+      ```
 
 3. **初始化数据库**
    ```bash
