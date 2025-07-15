@@ -1,5 +1,7 @@
 CLAUDE.md
 .env
+
+# ed25519密钥
 ed25519-public.pem
 ed25519-private.pem
 
