@@ -32,14 +32,14 @@ class HeWeatherClient:
             print(f"API请求失败: {str(e)}")
             return None
 
-    def get_city_info(self, city_name: str) -> dict:  # 更正方法名
-        """获取城市信息"""
+    def get_city_id(self, city_name: str) -> str:
+        """获取城市ID"""
         data = self._make_request(
-            "/geo/v2/city/lookup",  # 修正为正确的endpoint
+            "/geo/v2/city/lookup",
             {"location": city_name},
         )
         if data and data.get("location"):
-            return data["location"][0]
+            return data["location"][0].get("id")
         return None
 
     def _is_valid_historical_date(self, date_str: str) -> bool:
@@ -91,7 +91,7 @@ class HeWeatherClient:
             date_str = date.strftime("%Y%m%d")
 
             # 获取空气质量数据
-            air_data = self.get_historical_air_quality(city_id, date_str)
+            air_data = self.get_historical_air(city_id, date_str)
 
             # 获取天气数据
             weather_data = self.get_historical_weather(city_id, date_str)
@@ -116,4 +116,4 @@ class HeWeatherClient:
     def get_air_quality(self, city_id):
         """获取当前空气质量数据（向后兼容）"""
         date_str = datetime.now().strftime("%Y%m%d")
-        return self.get_historical_air_quality(city_id, date_str)
+        return self.get_historical_air(city_id, date_str)
