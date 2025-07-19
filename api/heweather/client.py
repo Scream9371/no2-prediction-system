@@ -112,8 +112,3 @@ class HeWeatherClient:
 
         return results
 
-    # 保持向后兼容性
-    def get_air_quality(self, city_id):
-        """获取当前空气质量数据（向后兼容）"""
-        date_str = datetime.now().strftime("%Y%m%d")
-        return self.get_historical_air(city_id, date_str)
