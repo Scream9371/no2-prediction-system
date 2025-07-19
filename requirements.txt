@@ -12,6 +12,7 @@ Flask==3.1.1
 fonttools==4.58.5
 greenlet==3.2.3
 idna==3.10
+iniconfig==2.1.0
 itsdangerous==2.2.0
 Jinja2==3.1.6
 joblib==1.5.1
@@ -22,11 +23,15 @@ numpy==2.3.1
 packaging==25.0
 pandas==2.3.1
 pillow==11.3.0
+pluggy==1.6.0
 pycparser==2.22
 pydantic==2.11.7
 pydantic_core==2.33.2
+Pygments==2.19.2
 PyJWT==2.10.1
+PyMySQL==1.1.1
 pyparsing==3.2.3
+pytest==8.4.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 pytz==2025.2
@@ -35,6 +40,7 @@ scikit-learn==1.7.0
 scipy==1.16.0
 six==1.17.0
 SQLAlchemy==2.0.41
+SQLAlchemy-Utils==0.41.2
 threadpoolctl==3.6.0
 typing-inspection==0.4.1
 typing_extensions==4.14.1
