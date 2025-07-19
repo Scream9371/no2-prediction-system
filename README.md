@@ -107,12 +107,12 @@ no2-prediction-system/
 
 ## 3. 实现说明
 
-- **API采集**：`api/heweather/client.py`已实现获取城市ID和近十天空气质量数据的API请求，密钥等配置在`.env`。
+- **API采集**：`api/heweather/client.py`已实现获取城市ID和过去十天空气质量数据的API请求，密钥等配置在`.env`。
 - **数据入库**：采集到的数据通过`database/crud.py`写入数据库，结构定义见`database/models.py`。
+- **数据采集**：`api/schedules/data_collector.py`采集过去十天的历史数据。
 - **特征工程与标准化**：`ml/src/data_processing.py`负责数据清洗、特征提取和标准化，标准化器缓存于`data/ml_cache/scalers/`。
 - **模型训练与预测**：`ml/src/train.py`训练模型，`ml/src/predict.py`用于预测未来24小时NO₂浓度及置信区间。
 - **模型评估与重训**：`ml/src/evaluate.py`评估预测准确率，`ml/src/retrain.py`在准确率低于阈值时自动重训。
-- **定时任务**：`api/schedules/data_collector.py`定时采集数据，`api/schedules/monitor.py`定时监控准确率。
 - **前端可视化**：`web/app.py`为Flask主程序，`web/routes/`定义路由，`web/utils/visualization.py`生成预测折线图，前端页面见`web/templates/`。
 
 ## 4. 使用方法
@@ -140,7 +140,7 @@ no2-prediction-system/
    python scripts/setup_database.py
    ```
 
-4. **采集历史和实时数据**
+4. **采集历史数据**
    ```bash
    python scripts/run_data_collector.py
    ```
