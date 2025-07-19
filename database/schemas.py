@@ -14,6 +14,3 @@ class NO2RecordSchema(BaseModel):
 
     class Config:
         from_attributes = True  # 新版pydantic推荐使用from_attributes替代orm_mode
-
-    class Config:
-        orm_mode = True
