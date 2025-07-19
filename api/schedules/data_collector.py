@@ -37,19 +37,27 @@ def collect_current_data():
                 print(f"无法获取城市 {city} 的ID，跳过")
                 continue
 
-            # 获取当前数据
-            current_date = datetime.now().strftime("%Y%m%d")
-            air_data = client.get_historical_air_quality(city_id, current_date)
+            # 获取昨天的数据（和风天气API限制）
+            yesterday = datetime.now() - timedelta(days=1)
+            current_date = yesterday.strftime("%Y%m%d")
+            air_data = client.get_historical_air(city_id, current_date)
             weather_data = client.get_historical_weather(city_id, current_date)
 
             if air_data and weather_data:
-                parsed_data = parse_combined_data(
+                parsed_data_list = parse_combined_data(
                     air_data, weather_data, city_id, city, current_date
                 )
 
-                if parsed_data:
-                    create_no2_record(db, parsed_data)
-                    print(f"成功收集 {city} 的数据")
+                if parsed_data_list:
+                    # 保存所有小时的数据
+                    saved_count = 0
+                    for hourly_data in parsed_data_list:
+                        try:
+                            create_no2_record(db, hourly_data, city)
+                            saved_count += 1
+                        except Exception as e:
+                            print(f"保存 {city} 一小时数据失败: {str(e)}")
+                    print(f"成功收集 {city} 的 {saved_count} 小时数据")
                 else:
                     print(f"解析 {city} 的数据失败")
             else:
@@ -79,25 +87,32 @@ def collect_historical_data(days=10):
                 print(f"无法获取城市 {city} 的ID，跳过")
                 continue
 
-            # 收集过去指定天数的数据
-            for i in range(days):
+            # 收集过去指定天数的数据（从最早日期开始，按时间顺序）
+            for i in range(days, 0, -1):  # 从10天前开始，到昨天结束，按时间顺序
                 date = datetime.now() - timedelta(days=i)
                 date_str = date.strftime("%Y%m%d")
 
                 print(f"  收集 {city} {date_str} 的数据...")
 
                 # 获取历史数据
-                air_data = client.get_historical_air_quality(city_id, date_str)
+                air_data = client.get_historical_air(city_id, date_str)
                 weather_data = client.get_historical_weather(city_id, date_str)
 
                 if air_data and weather_data:
-                    parsed_data = parse_combined_data(
+                    parsed_data_list = parse_combined_data(
                         air_data, weather_data, city_id, city, date_str
                     )
 
-                    if parsed_data:
-                        create_no2_record(db, parsed_data)
-                        print(f"    成功收集 {city} {date_str} 的数据")
+                    if parsed_data_list:
+                        # 保存所有小时的数据
+                        saved_count = 0
+                        for hourly_data in parsed_data_list:
+                            try:
+                                create_no2_record(db, hourly_data, city)
+                                saved_count += 1
+                            except Exception as e:
+                                print(f"    保存 {city} {date_str} 一小时数据失败: {str(e)}")
+                        print(f"    成功收集 {city} {date_str} 的 {saved_count} 小时数据")
                     else:
                         print(f"    解析 {city} {date_str} 的数据失败")
                 else:
@@ -128,49 +143,6 @@ def collect_and_store_historical():
     print("历史数据收集完成")
 
 
-def collect_historical_data():
-    """采集过去10天的历史数据"""
-    client = HeWeatherClient()
-    db = next(get_db())
-
-    # 大湾区城市列表
-    cities = [
-        "广州",
-        "深圳",
-        "珠海",
-        "佛山",
-        "惠州",
-        "东莞",
-        "中山",
-        "江门",
-        "肇庆",
-        "香港",
-        "澳门",
-    ]
-
-    # 获取过去10天的日期列表
-    end_date = datetime.now()
-    dates = [(end_date - timedelta(days=x)).strftime("%Y%m%d") for x in range(10)]
-
-    try:
-        for city in cities:
-            # 获取城市ID并缓存,避免重复请求
-            city_id = client.get_city_id(city)
-
-            for date in dates:
-                weather_data = client.get_historical_weather(city_id, date)
-                air_data = client.get_historical_air(city_id, date)
-
-                # TODO: 解析数据并保存到对应的数据表
-                # 根据城市名选择对应的数据表模型
-                # ...
-
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise e
-    finally:
-        db.close()
 
 
 if __name__ == "__main__":
