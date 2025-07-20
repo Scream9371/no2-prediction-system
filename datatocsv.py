@@ -1,12 +1,7 @@
 import os
 import csv
-import sys
 from datetime import datetime
 import pandas as pd
-
-# 添加项目根目录到Python路径
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 from database.crud import CITY_MODEL_MAP
 from database.db import get_db
 

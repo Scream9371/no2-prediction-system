@@ -4,14 +4,8 @@ NO2预测系统的测试示例
 """
 
 import pytest
-import sys
-import os
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
-
-# 添加项目根目录到Python路径
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 from api.heweather.data_parser import parse_combined_data
 from database.crud import CITY_MODEL_MAP
 
