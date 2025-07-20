@@ -7,13 +7,10 @@ import os
 import argparse
 from datetime import datetime
 
-# 添加项目根目录到路径
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
-
-from ml.src.data_loader import load_data_from_mysql, get_supported_cities
-from ml.src.data_processing import prepare_nc_cqr_data
-from ml.src.train import train_full_pipeline, load_model
-from ml.src.predict import predict_with_saved_model, visualize_predictions, export_predictions_to_csv
+from .data_loader import load_data_from_mysql, get_supported_cities
+from .data_processing import prepare_nc_cqr_data
+from .train import train_full_pipeline, load_model
+from .predict import predict_with_saved_model, visualize_predictions, export_predictions_to_csv
 
 
 def train_mode(city: str = 'dongguan', **kwargs):
@@ -42,7 +39,7 @@ def predict_mode(city: str = 'dongguan', steps: int = 24, save_chart: bool = Fal
     
     try:
         # 检查模型是否存在
-        model_path = f"ml/models/trained/{city}_nc_cqr_model.pth"
+        model_path = f"ml/models/{city}_nc_cqr_model.pth"
         if not os.path.exists(model_path):
             print(f"模型文件不存在: {model_path}")
             print("请先运行训练模式创建模型")
@@ -52,7 +49,6 @@ def predict_mode(city: str = 'dongguan', steps: int = 24, save_chart: bool = Fal
         predictions = predict_with_saved_model(city, steps=steps)
         
         # 获取历史数据用于可视化（使用数据库中所有240小时数据）
-        from ml.src.data_loader import load_data_from_mysql
         history = load_data_from_mysql(city)
         
         # 可视化结果
@@ -91,7 +87,7 @@ def evaluate_mode(city: str = 'dongguan'):
         df = load_data_from_mysql(city)
         X, y, scalers = prepare_nc_cqr_data(df)
         
-        model_path = f"ml/models/trained/{city}_nc_cqr_model.pth"
+        model_path = f"ml/models/{city}_nc_cqr_model.pth"
         model, Q, _ = load_model(model_path)
         
         # 使用最后30%数据进行评估
@@ -99,7 +95,7 @@ def evaluate_mode(city: str = 'dongguan'):
         X_test = X[-test_size:]
         y_test = y[-test_size:]
         
-        from ml.src.train import evaluate_model
+        from .train import evaluate_model
         eval_results = evaluate_model(model, X_test, y_test, Q)
         
         print(f"\n=== 评估结果 ===")
