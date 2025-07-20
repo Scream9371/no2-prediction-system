@@ -8,9 +8,10 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Microsoft YaHei", sans-serif;
-            background: url('https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920') 
-                        no-repeat center center fixed; 
             background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -194,6 +195,56 @@
             }
         }
         
+        // 城市背景图片映射
+        function getCityBackgroundImage(city) {
+    const cityImages = {
+        '广州': 'https://images.unsplash.com/photo-1544594376-0a9a6ae2c997?q=80&w=1803&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+        '深圳': 'https://images.unsplash.com/photo-1609515602438-31b5b4362d52?q=80&w=2069&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+        '珠海': 'https://images.unsplash.com/photo-1666960325075-2dd9a901423c?q=80&w=1932&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+        '佛山': '佛山.png',
+        '惠州': '惠州.png', 
+        '东莞': '东莞.png',
+        '中山': '中山.jpg',
+        '江门': '江门.jpg',
+        '肇庆': '肇庆.png',
+        '香港特别行政区': 'https://plus.unsplash.com/premium_photo-1661887277173-f996f36b8fb2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+        '澳门特别行政区': 'https://images.unsplash.com/photo-1675102128521-b4ab17e003b0?q=80&w=1090&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+    };
+    
+    const normalizedCityNames = {
+        '广州': '广州',
+        '广州市': '广州',
+        '深圳': '深圳',
+        '深圳市': '深圳',
+        '珠海': '珠海',
+        '珠海市': '珠海',
+        '佛山': '佛山',
+        '佛山市': '佛山',
+        '惠州': '惠州',
+        '惠州市': '惠州',
+        '东莞': '东莞',
+        '东莞市': '东莞',
+        '中山': '中山',
+        '中山市': '中山',
+        '江门': '江门',
+        '江门市': '江门',
+        '肇庆': '肇庆',
+        '肇庆市': '肇庆',
+        '香港': '香港特别行政区',
+        '香港特别行政区': '香港特别行政区',
+        '澳门': '澳门特别行政区',
+        '澳门特别行政区': '澳门特别行政区'
+    };
+    
+    const normalizedCity = normalizedCityNames[city] || city;
+    
+    if (cityImages[normalizedCity]) {
+        return cityImages[normalizedCity];
+    }
+    
+    return 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920';
+}
+        
         // 生成模拟数据
         function generateMockData(city) {
             const now = new Date();
@@ -209,7 +260,9 @@
                 '东莞': 55,
                 '中山': 42,
                 '江门': 38,
-                '肇庆': 30
+                '肇庆': 30,
+                '香港特别行政区': 48,
+                '澳门特别行政区': 43
             };
             
             const baseValue = cityBaseValue[city] || 45;
@@ -328,6 +381,9 @@
         window.addEventListener('load', () => {
             const city = getUrlParameter('city') || '广州';
             
+            // 设置城市背景图片
+            document.body.style.backgroundImage = `url('${getCityBackgroundImage(city)}')`;
+            
             // 使用模拟数据
             const mockData = generateMockData(city);
             
@@ -353,4 +409,4 @@
         });
     </script>
 </body>
-</html>    
+</html>
