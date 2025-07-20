@@ -1,10 +1,356 @@
-{% extends 'base.html' %}
-{% block content %}
-<h2>城市NO₂预测结果</h2>
-<div id="chart">
-    <!-- 这里将插入预测折线图 -->
-</div>
-<script>
-    // 可用AJAX获取数据并渲染图表
-</script>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>城市NO₂浓度详情</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background: url('https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920') 
+                        no-repeat center center fixed; 
+            background-size: cover;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 0;
+        }
+        
+        .card {
+            width: 90%;
+            max-width: 1000px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 2rem;
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
+            transition: background 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #555;
+        }
+        
+        #chartCanvas {
+            width: 100%;
+            height: 400px;
+            margin: 2rem 0;
+        }
+        
+        .recommendations {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+        
+        .recommendations h3 {
+            margin-bottom: 1rem;
+        }
+        
+        .recommendations ul {
+            list-style-position: inside;
+        }
+        
+        .recommendations li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">返回首页</a>
+    
+    <div class="card">
+        <div class="header">
+            <h1 id="cityName">城市名称</h1>
+            <p id="updateTime">更新时间：2023-01-01 12:00</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="currentValue">-</div>
+                <div class="stat-label">当前NO₂浓度 (μg/m³)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgValue">-</div>
+                <div class="stat-label">24小时平均浓度 (μg/m³)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="qualityLevel">-</div>
+                <div class="stat-label">空气质量等级</div>
+            </div>
+        </div>
+        
+        <canvas id="chartCanvas"></canvas>
+        
+        <div class="recommendations">
+            <h3>健康建议</h3>
+            <ul id="recommendationsList">
+                <!-- 动态生成内容 -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let chartInstance = null;
+        
+        // 解析URL参数获取城市名
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+        
+        // 获取空气质量等级和建议
+        function getAirQualityInfo(value) {
+            if (value < 40) {
+                return {
+                    level: '优',
+                    color: 'green',
+                    recommendations: [
+                        '空气质量令人满意，基本无空气污染',
+                        '各类人群可正常活动'
+                    ]
+                };
+            } else if (value < 80) {
+                return {
+                    level: '良',
+                    color: 'yellow',
+                    recommendations: [
+                        '空气质量可接受，但某些污染物可能对极少数异常敏感人群健康有较弱影响',
+                        '极少数异常敏感人群应减少户外活动'
+                    ]
+                };
+            } else if (value < 180) {
+                return {
+                    level: '轻度污染',
+                    color: 'orange',
+                    recommendations: [
+                        '易感人群症状有轻度加剧，健康人群出现刺激症状',
+                        '儿童、老年人及心脏病、呼吸系统疾病患者应减少长时间、高强度的户外锻炼'
+                    ]
+                };
+            } else if (value < 280) {
+                return {
+                    level: '中度污染',
+                    color: 'red',
+                    recommendations: [
+                        '进一步加剧易感人群症状，可能对健康人群心脏、呼吸系统有影响',
+                        '儿童、老年人及心脏病、呼吸系统疾病患者避免长时间、高强度的户外锻炼，一般人群适量减少户外运动'
+                    ]
+                };
+            } else {
+                return {
+                    level: '重度污染',
+                    color: 'purple',
+                    recommendations: [
+                        '心脏病和肺病患者症状显著加剧，运动耐受力降低，健康人群普遍出现症状',
+                        '儿童、老年人和心脏病、肺病患者应停留在室内，停止户外运动，一般人群减少户外运动'
+                    ]
+                };
+            }
+        }
+        
+        // 生成模拟数据
+        function generateMockData(city) {
+            const now = new Date();
+            const updateTime = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            // 不同城市设置不同的基础浓度
+            const cityBaseValue = {
+                '广州': 50,
+                '深圳': 45,
+                '珠海': 35,
+                '佛山': 60,
+                '惠州': 40,
+                '东莞': 55,
+                '中山': 42,
+                '江门': 38,
+                '肇庆': 30
+            };
+            
+            const baseValue = cityBaseValue[city] || 45;
+            
+            // 生成24小时数据点
+            const times = [];
+            const values = [];
+            const low = [];
+            const high = [];
+            
+            for (let i = 0; i < 24; i++) {
+                const hour = i.toString().padStart(2, '0') + ':00';
+                times.push(hour);
+                
+                // 随机波动
+                const randomFactor = Math.sin(i * 0.2) * 10 + Math.random() * 15;
+                const value = baseValue + randomFactor;
+                
+                values.push(Math.round(value));
+                low.push(Math.round(value - 15));
+                high.push(Math.round(value + 15));
+            }
+            
+            const currentValue = values[values.length - 1];
+            const avgValue = Math.round(values.reduce((sum, val) => sum + val, 0) / values.length);
+            const airQuality = getAirQualityInfo(currentValue);
+            
+            return {
+                city,
+                updateTime,
+                times,
+                values,
+                low,
+                high,
+                currentValue,
+                avgValue,
+                airQuality
+            };
+        }
+        
+        // 渲染图表
+        function renderChart(data) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.times,
+                    datasets: [
+                        {
+                            label: 'NO₂浓度 (μg/m³)',
+                            data: data.values,
+                            borderColor: 'rgba(33, 150, 243, 1)',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 5,
+                            pointBackgroundColor: 'white',
+                            pointBorderColor: 'rgba(33, 150, 243, 1)'
+                        },
+                        {
+                            label: '预测区间下限',
+                            data: data.low,
+                            borderColor: 'rgba(255, 152, 0, 0.2)',
+                            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                            fill: true,
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            pointRadius: 0,
+                            order: 1
+                        },
+                        {
+                            label: '预测区间上限',
+                            data: data.high,
+                            borderColor: 'rgba(255, 152, 0, 0.2)',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            pointRadius: 0,
+                            order: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'NO₂浓度（μg/m³）' },
+                            grid: { color: '#eee' }
+                        },
+                        x: {
+                            title: { display: true, text: '时间' },
+                            grid: { display: false },
+                            ticks: {
+                                maxTicksLimit: 12 // 限制X轴标签数量
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 页面加载时执行
+        window.addEventListener('load', () => {
+            const city = getUrlParameter('city') || '广州';
+            
+            // 使用模拟数据
+            const mockData = generateMockData(city);
+            
+            // 更新页面内容
+            document.getElementById('cityName').textContent = `${mockData.city} NO₂浓度详情`;
+            document.getElementById('updateTime').textContent = `更新时间：${mockData.updateTime}`;
+            document.getElementById('currentValue').textContent = mockData.currentValue;
+            document.getElementById('avgValue').textContent = mockData.avgValue;
+            document.getElementById('qualityLevel').textContent = mockData.airQuality.level;
+            document.getElementById('qualityLevel').style.color = mockData.airQuality.color;
+            
+            // 渲染健康建议
+            const recommendationsList = document.getElementById('recommendationsList');
+            recommendationsList.innerHTML = '';
+            mockData.airQuality.recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.textContent = rec;
+                recommendationsList.appendChild(li);
+            });
+            
+            // 渲染图表
+            renderChart(mockData);
+        });
+    </script>
+</body>
+</html>    
