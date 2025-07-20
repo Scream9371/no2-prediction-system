@@ -6,8 +6,7 @@
 - **主要功能**：
   - **数据采集**：通过和风天气API自动获取城市ID及近十天的空气质量和气象数据，存入数据库。
   - **数据处理**：对历史数据进行清洗、特征工程和标准化，为模型训练和预测做准备。
-  - **模型训练与预测**：基于历史数据训练时间序列模型（如LSTM/RandomForest），用近十天数据预测未来24小时NO₂浓度及置信区间。
-  - **模型评估与自动重训**：新NO₂数据到来时自动评估预测准确率，低于阈值则自动重训模型。
+  - **模型训练与预测**：基于历史数据训练时间序列模型NC-CQR，用近十天数据预测未来24小时NO₂浓度及置信区间。
   - **前端可视化**：Flask后端接口，前端实时展示预测折线图和区间。
   - **定时任务**：定时采集数据、监控模型准确率并自动触发重训。
 
@@ -107,12 +106,12 @@ no2-prediction-system/
 
 ## 3. 实现说明
 
-- **API采集**：`api/heweather/client.py`已实现获取城市ID和过去十天空气质量数据的API请求，密钥等配置在`.env`。
+- **API采集**：`api/heweather/client.py`定义获取城市ID和历史十天天气及空气质量数据的API客户端，密钥等配置在`.env`。
 - **数据入库**：采集到的数据通过`database/crud.py`写入数据库，结构定义见`database/models.py`。
 - **数据采集**：`api/schedules/data_collector.py`采集过去十天的历史数据。
 - **特征工程与标准化**：`ml/src/data_processing.py`负责数据清洗、特征提取和标准化，标准化器缓存于`data/ml_cache/scalers/`。
 - **模型训练与预测**：`ml/src/train.py`训练模型，`ml/src/predict.py`用于预测未来24小时NO₂浓度及置信区间。
-- **模型评估与重训**：`ml/src/evaluate.py`评估预测准确率，`ml/src/retrain.py`在准确率低于阈值时自动重训。
+- **模型评估**：`ml/src/evaluate.py`评估预测准确率。
 - **前端可视化**：`web/app.py`为Flask主程序，`web/routes/`定义路由，`web/utils/visualization.py`生成预测折线图，前端页面见`web/templates/`。
 
 ## 4. 使用方法
@@ -162,5 +161,26 @@ no2-prediction-system/
 ## 5. 其他说明
 
 - **测试**：运行`pytest tests/`进行单元和集成测试。
-- **模型与数据缓存**：所有模型、标准化器和特征工程结果均缓存于`data/ml_cache/`，便于快速预测和重训。
+- **模型手动训练**：进入项目根目录运行NC-CQR算法控制脚本，可对模型进行精细化调整
+   ```bash
+   python -m ml.src.control -h            # 查看脚本使用帮助
+   ```
+   运行模式: train(训练), predict(预测), evaluate(评估)
+
+   | 选项 | 说明 |
+   | --- | --- |
+   |-h, --help | show this help message and exit |
+   |--city CITY | 城市名称 (默认: dongguan) |
+   |--steps STEPS | 预测步数(小时) (默认: 24) |
+   |--epochs EPOCHS | 训练轮数 (默认: 150) |
+   |--batch-size BATCH_SIZE | 批次大小 (默认: 32) |
+   |--learning-rate LEARNING_RATE | 学习率 (默认: 1e-3) |
+   |--save-chart | 保存预测图表 |
+   |--list-cities | 列出支持的城市 |
+
+   使用举例：
+   ```bash
+   python -m ml.src.control train --city dongguan --step 12   # 训练模型预测东莞城市未来12小时的NO₂浓度
+   ```
+- **模型与数据缓存**：所有模型存储在`ml/models/`中，所有标准化器和特征工程结果均缓存于`data/ml_cache/`，便于快速预测和重训。
 - **可扩展性**：支持添加新城市、切换模型、调整预测区间等。

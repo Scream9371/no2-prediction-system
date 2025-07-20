@@ -3,14 +3,9 @@
 """
 import pandas as pd
 import os
-import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-from typing import Optional
-
-# 添加项目根目录到路径
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from database.models import (
     GuangzhouNO2Record, ShenzhenNO2Record, ZhuhaiNO2Record, FoshanNO2Record,
     HuizhouNO2Record, DongguanNO2Record, ZhongshanNO2Record, JiangmenNO2Record,

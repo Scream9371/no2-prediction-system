@@ -13,15 +13,15 @@ def test_client_initialization(client):
     assert client.api_host is not None
 
 
-def test_get_city_info(client):  # 更正方法名
+def test_get_city_id(client):  # 更正方法名
     """测试获取城市信息"""
     city_name = "广州"
-    city_info = client.get_city_info(city_name)
+    city_id = client.get_city_id(city_name)
 
-    assert city_info is not None
-    assert "id" in city_info
-    assert "lat" in city_info
-    assert "lon" in city_info
+    assert city_id is not None
+    assert "id" in city_id
+    assert "lat" in city_id
+    assert "lon" in city_id
 
 
 def test_get_historical_weather(client):
