@@ -1,15 +1,312 @@
-{% extends 'base.html' %}
-{% block content %}
-<h2>请选择城市查看NO₂预测</h2>
-<ul>
-    <li><a href="/city/101280101">广州</a></li>
-    <li><a href="/city/101280601">深圳</a></li>
-    <li><a href="/city/101280701">珠海</a></li>
-    <li><a href="/city/101280800">佛山</a></li>
-    <li><a href="/city/101280300">惠州</a></li>
-    <li><a href="/city/101281601">东莞</a></li>
-    <li><a href="/city/101281701">中山</a></li>
-    <li><a href="/city/101281101">江门</a></li>
-    <li><a href="/city/101280901">肇庆</a></li>
-</ul>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>大湾区NO₂浓度预测</title>
+    <!-- 引入Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ========== 全局样式：背景 & 布局 ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background: url('image.png') 
+                        no-repeat center center fixed; 
+            background-size: cover;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ========== 透明卡片：还原参考图风格 ========== */
+        .card {
+            width: 80%;
+            max-width: 800px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        /* ========== 搜索区域 ========== */
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 1rem 0 2rem;
+            position: relative; /* 为下拉列表提供定位参考 */
+        }
+        #cityInput {
+            padding: 0.8rem 1rem;
+            border: none;
+            border-radius: 8px;
+            outline: none;
+            font-size: 1rem;
+            width: 60%;
+            max-width: 300px;
+        }
+        #searchBtn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #searchBtn:hover {
+            background: #45a049;
+        }
+
+        /* 城市下拉列表样式 */
+        .city-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            max-width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            display: none;
+        }
+        .city-dropdown.active {
+            display: block;
+        }
+        .city-item {
+            padding: 0.8rem 1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .city-item:hover {
+            background: #f0f0f0;
+        }
+
+        /* ========== 图表容器 ========== */
+        #chartCanvas {
+            width: 100%;
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>大湾区NO₂浓度预测</h1>
+        
+        <!-- 搜索框 -->
+        <div class="search-bar">
+            <input type="text" id="cityInput" placeholder="输入大湾区城市名（如：广州、深圳）">
+            <button id="searchBtn">查询</button>
+            <!-- 城市下拉列表 -->
+            <div class="city-dropdown" id="cityDropdown"></div>
+        </div>
+        
+        <!-- Chart.js 画布 -->
+        <canvas id="chartCanvas"></canvas>
+    </div>
+
+    <script>
+        let chartInstance = null; // 存储图表实例
+        
+        // 大湾区城市列表（含编码）
+        const bayAreaCities = [
+            { name: '广州市', code: '101280101' },
+            { name: '深圳市', code: '101280601' },
+            { name: '佛山市', code: '101280800' },
+            { name: '东莞市', code: '101281601' },
+            { name: '中山市', code: '101281701' },
+            { name: '珠海市', code: '101280701' },
+            { name: '江门市', code: '101281101' },
+            { name: '肇庆市', code: '101280901' },
+            { name: '惠州市', code: '101280301' },
+            { name: '香港特别行政区', code: '101320101' },
+            { name: '澳门特别行政区', code: '101330101' }
+        ];
+
+        // 显示城市下拉列表
+        function showCityDropdown(inputValue) {
+            const dropdown = document.getElementById('cityDropdown');
+            dropdown.innerHTML = '';
+            const input = inputValue.trim().toLowerCase();
+
+            // 过滤匹配的城市（输入为空时显示所有城市）
+            const filtered = input ? 
+                bayAreaCities.filter(city => {
+                    const fullName = city.name.toLowerCase();
+                    const shortName = fullName.replace('市', '').replace('特别行政区', '');
+                    return fullName.includes(input) || shortName.includes(input);
+                }) : 
+                [...bayAreaCities]; // 输入为空时返回全部城市
+
+            // 生成下拉项
+            filtered.forEach(city => {
+                const shortName = city.name.replace('市', '').replace('特别行政区', '');
+                const item = document.createElement('div');
+                item.className = 'city-item';
+                item.textContent = shortName;
+                item.addEventListener('click', () => {
+                    document.getElementById('cityInput').value = shortName;
+                    dropdown.classList.remove('active');
+                });
+                dropdown.appendChild(item);
+            });
+
+            // 显示下拉列表
+            dropdown.classList.add('active');
+        }
+
+        // 隐藏城市下拉列表
+        function hideCityDropdown() {
+            document.getElementById('cityDropdown').classList.remove('active');
+        }
+
+        // 验证并搜索城市（修改：错误提示改为弹窗）
+        function searchCity(cityName) {
+            if (!cityName.trim()) {
+                alert('请输入城市名！');
+                return;
+            }
+
+            // 验证是否为大湾区城市
+            const normalizedInput = cityName.toLowerCase();
+            const matchedCity = bayAreaCities.find(city => {
+                const fullMatch = city.name.toLowerCase() === normalizedInput;
+                const shortMatch = city.name.toLowerCase().replace('市', '').replace('特别行政区', '') === normalizedInput;
+                return fullMatch || shortMatch;
+            });
+
+            if (matchedCity) {
+                // 跳转到子页面（携带完整城市名）
+                window.open(`city.html?city=${encodeURIComponent(matchedCity.name)}`, '_blank');
+            } else {
+                // 改为弹窗提示
+                alert('该城市不在大湾区范围');
+                // 清空输入框便于重新输入
+                document.getElementById('cityInput').value = '';
+            }
+        }
+
+        // 绘制图表
+        function renderChart(data) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.times,
+                    datasets: [
+                        {
+                            label: 'NO₂预测值（μg/m³）',
+                            data: data.values,
+                            borderColor: 'rgba(33, 150, 243, 1)',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 5,
+                            pointBackgroundColor: 'white',
+                            pointBorderColor: 'rgba(33, 150, 243, 1)'
+                        },
+                        {
+                            label: '预测区间（下限）',
+                            data: data.low,
+                            borderColor: 'rgba(255, 152, 0, 0.2)',
+                            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                            fill: true,
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            pointRadius: 0,
+                            order: 1
+                        },
+                        {
+                            label: '预测区间（上限）',
+                            data: data.high,
+                            borderColor: 'rgba(255, 152, 0, 0.2)',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            pointRadius: 0,
+                            order: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'NO₂浓度（μg/m³）' },
+                            grid: { color: '#eee' }
+                        },
+                        x: {
+                            title: { display: true, text: '时间' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // 事件监听
+        document.addEventListener('DOMContentLoaded', () => {
+            // 搜索按钮点击
+            document.getElementById('searchBtn').addEventListener('click', () => {
+                const city = document.getElementById('cityInput').value;
+                searchCity(city);
+            });
+
+            // 输入框事件
+            const input = document.getElementById('cityInput');
+            input.addEventListener('input', (e) => {
+                showCityDropdown(e.target.value);
+            });
+            input.addEventListener('focus', () => {
+                showCityDropdown(''); // 输入为空时显示所有城市
+            });
+
+            // 回车搜索
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchCity(input.value);
+                    hideCityDropdown();
+                }
+            });
+
+            // 点击其他区域关闭下拉
+            document.addEventListener('click', (e) => {
+                const dropdown = document.getElementById('cityDropdown');
+                const input = document.getElementById('cityInput');
+                if (!dropdown.contains(e.target) && !input.contains(e.target)) {
+                    hideCityDropdown();
+                }
+            });
+
+            // 初始化示例图表
+            renderChart({
+                times: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '23:59'],
+                values: [45, 40, 55, 60, 58, 52, 48],
+                low: [35, 30, 45, 50, 48, 42, 38],
+                high: [55, 50, 65, 70, 68, 62, 58]
+            });
+        });
+    </script>
+</body>
+</html>

@@ -136,12 +136,12 @@ no2-prediction-system/
 
 3. **初始化数据库**
    ```bash
-   python -m scripts.setup_database
+   python  -m scripts.setup_database
    ```
 
 4. **采集历史数据**
    ```bash
-   python -m scripts.run_data_collector
+   python -m scripts.run_data_collector 
    ```
 
 5. **训练模型**
@@ -151,7 +151,7 @@ no2-prediction-system/
 
 6. **启动Web前端**
    ```bash
-   python -m web.app
+   python -m web.app.py
    ```
    访问 http://localhost:5000 查看预测结果和可视化图表。
 
@@ -161,7 +161,7 @@ no2-prediction-system/
 ## 5. 其他说明
 
 - **测试**：运行`pytest tests/`进行单元和集成测试。
-- **模型手动训练**：进入项目根目录运行NC-CQR算法控制脚本，可对模型进行精细化调整
+- **模型手动训练**：进入项目根目录运行NC-CQR算法控制脚本，可对模型进行精细化调整。
    ```bash
    python -m ml.src.control -h            # 查看脚本使用帮助
    ```
