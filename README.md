@@ -136,27 +136,27 @@ no2-prediction-system/
 
 3. **初始化数据库**
    ```bash
-   python scripts/setup_database.py
+   python -m scripts.setup_database
    ```
 
 4. **采集历史数据**
    ```bash
-   python scripts/run_data_collector.py
+   python -m scripts.run_data_collector
    ```
 
 5. **训练模型**
    ```bash
-   python scripts/run_pipeline.py
+   python -m scripts.run_pipeline
    ```
 
 6. **启动Web前端**
    ```bash
-   python web/app.py
+   python -m web.app
    ```
    访问 http://localhost:5000 查看预测结果和可视化图表。
 
 7. **自动化运行**
-   - 可用crontab或Windows任务计划定时运行`scripts/run_data_collector.py`和`scripts/run_pipeline.py`，实现数据自动采集与模型自动更新。
+   - 可用crontab或Windows任务计划定时运行`python -m scripts.run_data_collector`和`python -m scripts.run_pipeline`，实现数据自动采集与模型自动更新。
 
 ## 5. 其他说明
 
