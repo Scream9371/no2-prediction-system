@@ -130,6 +130,7 @@ no2-prediction-system/
       HF_PROJECT_ID=your_project_id  # 和风天气项目ID
       HF_KEY_ID=your_credential_id  # 和风天气凭据ID
       DATABASE_URL=mysql+pymysql://<username>:<your_password>.@localhost:3306/<database>  # MySQL数据库地址
+     BACKEND_BASE_URL=http://localhost:5000  # 本地开发环境 
       ```
 
    > 提示：ed25519密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
