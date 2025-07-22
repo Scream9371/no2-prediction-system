@@ -67,18 +67,18 @@ no2-prediction-system/
 │
 ├── web/
 │   ├── __init__.py
-│   ├── app.py
+│   ├── app.py             #Web 应用入口
 │   ├── routes/
 │   │   ├── __init__.py
-│   │   ├── main_routes.py
-│   │   └── api_routes.py
+│   │   ├── main_routes.py #主页面路由
+│   │   └── api_routes.py  #API 接口实现 
 │   ├── static/
 │   │   ├── css/
 │   │   ├── js/
 │   │   └── images/
 │   ├── templates/
-│   │   ├── base.html
-│   │   ├── index.html
+│   │   ├── images.png
+│   │   ├── index.html     #主页模板
 │   │   └── city.html
 │   └── utils/
 │       ├── __init__.py
@@ -130,6 +130,7 @@ no2-prediction-system/
       HF_PROJECT_ID=your_project_id  # 和风天气项目ID
       HF_KEY_ID=your_credential_id  # 和风天气凭据ID
       DATABASE_URL=mysql+pymysql://<username>:<your_password>.@localhost:3306/<database>  # MySQL数据库地址
+     BACKEND_BASE_URL=http://localhost:5000  # 本地开发环境 
       ```
 
    > 提示：ed25519密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
@@ -149,11 +150,48 @@ no2-prediction-system/
    python -m scripts.run_pipeline
    ```
 
-6. **启动Web前端**
-   ```bash
-   python -m web.app.py
-   ```
-   访问 http://localhost:5000 查看预测结果和可视化图表。
+6. **启动Web系统**
+
+   - **后端服务启动**  
+     执行以下命令启动后端服务：  
+     ```bash
+     python -m web.app
+     ```  
+     成功启动后，终端将输出类似以下信息：  
+     ```bash
+     * Serving Flask app 'app'
+     * Debug mode: on
+     * Running on http://127.0.0.1:5000
+     Press CTRL+C to quit
+     * Restarting with stat
+     * Debugger is active!
+     * Debugger PIN: 274-107-827
+     ```  
+     上述输出表明：Flask应用已在本地5000端口成功启动，处于开发模式。  
+     可通过访问 [http://127.0.0.1:5000](http://127.0.0.1:5000) 查看预测结果和可视化图表。
+
+
+   - **Web系统构成**  
+     - 前端页面：基于HTML、CSS和JavaScript实现，使用Chart.js进行数据可视化  
+     - 后端服务：基于Flask框架开发，提供数据接口和页面路由  
+     - 核心接口：  
+       - 城市列表接口：`/api/cities` - 获取所有支持的城市信息  
+       - 预测接口：`/api/predict/no2/<city_id>` - 获取指定城市的NO₂预测数据  
+       - 历史数据接口：`/api/no2/<city_id>` - 获取指定城市的历史NO₂数据  
+
+
+   - **访问方式**  
+     打开浏览器访问[http://127.0.0.1:5000](http://127.0.0.1:5000)即可使用系统，操作流程如下：  
+     - 在搜索框输入城市名（如"广州"、"深圳"），从下拉列表选择目标城市  
+     - 系统将自动加载并展示该城市未来24小时的NO₂浓度预测结果  
+     - 图表中包含预测值曲线和95%置信区间  
+
+
+   - **Web系统功能说明**  
+     - 城市搜索：支持模糊查询，快速定位大湾区城市  
+     - 数据可视化：通过折线图直观展示NO₂浓度预测趋势  
+     - 预测详情：显示未来24小时每小时的预测值及置信区间  
+     - 城市切换：可通过搜索框快速切换不同城市查看预测结果
 
 7. **自动化运行**
    - 可用crontab或Windows任务计划定时运行`python -m scripts.run_data_collector`和`python -m scripts.run_pipeline`，实现数据自动采集与模型自动更新。

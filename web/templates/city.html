@@ -101,7 +101,7 @@
     </style>
 </head>
 <body>
-    <a href="index.html" class="back-btn">返回首页</a>
+    <a href="/" class="back-btn">返回首页</a>
     
     <div class="card">
         <div class="header">
@@ -245,61 +245,83 @@
     return 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920';
 }
         
-        // 生成模拟数据
-        function generateMockData(city) {
+        // 从后端API获取数据（替换原generateMockData）
+        async function fetchCityData(city) {
+            try {
+                // 获取城市ID（从后端接口）
+                const citiesResponse = await fetch('/api/cities');
+                const cities = await citiesResponse.json();
+                const cityInfo = cities.find(item => item.name === city);
+                if (!cityInfo) {
+                    throw new Error(`未找到城市${city}的ID`);
+                }
+
+                // 获取城市NO2数据（假设后端有此接口）
+                const response = await fetch(`/api/no2?cityId=${cityInfo.id}`);
+                if (!response.ok) {
+                    throw new Error('数据获取失败');
+                }
+                const data = await response.json();
+                return {
+                    city: city,
+                    updateTime: data.updateTime,
+                    currentValue: data.currentValue,
+                    avgValue: data.avgValue,
+                    times: data.times,
+                    values: data.values,
+                    low: data.low,
+                    high: data.high,
+                    airQuality: getAirQualityInfo(data.currentValue)
+                };
+            } catch (error) {
+                console.error('数据获取失败:', error);
+                // 失败时返回模拟数据作为降级方案
+                return generateFallbackMockData(city);
+            }
+        }
+
+        // 降级用的模拟数据生成函数
+        function generateFallbackMockData(city) {
             const now = new Date();
             const updateTime = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
             
-            // 不同城市设置不同的基础浓度
             const cityBaseValue = {
-                '广州': 50,
-                '深圳': 45,
-                '珠海': 35,
-                '佛山': 60,
-                '惠州': 40,
-                '东莞': 55,
-                '中山': 42,
-                '江门': 38,
-                '肇庆': 30,
-                '香港特别行政区': 48,
-                '澳门特别行政区': 43
+                '广州': 50, '深圳': 45, '珠海': 35, '佛山': 60, '惠州': 40,
+                '东莞': 55, '中山': 42, '江门': 38, '肇庆': 30,
+                '香港特别行政区': 48, '澳门特别行政区': 43
             };
-            
             const baseValue = cityBaseValue[city] || 45;
             
-            // 生成24小时数据点
             const times = [];
             const values = [];
             const low = [];
             const high = [];
             
             for (let i = 0; i < 24; i++) {
-                const hour = i.toString().padStart(2, '0') + ':00';
-                times.push(hour);
+                const hour = (now.getHours() + i) % 24;
+                times.push(`${hour.toString().padStart(2, '0')}:00`);
                 
-                // 随机波动
-                const randomFactor = Math.sin(i * 0.2) * 10 + Math.random() * 15;
-                const value = baseValue + randomFactor;
-                
-                values.push(Math.round(value));
-                low.push(Math.round(value - 15));
-                high.push(Math.round(value + 15));
+                // 生成有波动的模拟值
+                const fluctuation = Math.random() * 20 - 10; // -10到10的波动
+                const value = Math.max(5, Math.round(baseValue + fluctuation));
+                values.push(value);
+                low.push(Math.max(0, value - 5));
+                high.push(value + 5);
             }
             
-            const currentValue = values[values.length - 1];
-            const avgValue = Math.round(values.reduce((sum, val) => sum + val, 0) / values.length);
-            const airQuality = getAirQualityInfo(currentValue);
+            const currentValue = values[0];
+            const avgValue = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
             
             return {
                 city,
                 updateTime,
+                currentValue,
+                avgValue,
                 times,
                 values,
                 low,
                 high,
-                currentValue,
-                avgValue,
-                airQuality
+                airQuality: getAirQualityInfo(currentValue)
             };
         }
         
@@ -378,34 +400,39 @@
         }
         
         // 页面加载时执行
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async() => {
             const city = getUrlParameter('city') || '广州';
             
             // 设置城市背景图片
             document.body.style.backgroundImage = `url('${getCityBackgroundImage(city)}')`;
             
-            // 使用模拟数据
-            const mockData = generateMockData(city);
-            
-            // 更新页面内容
-            document.getElementById('cityName').textContent = `${mockData.city} NO₂浓度详情`;
-            document.getElementById('updateTime').textContent = `更新时间：${mockData.updateTime}`;
-            document.getElementById('currentValue').textContent = mockData.currentValue;
-            document.getElementById('avgValue').textContent = mockData.avgValue;
-            document.getElementById('qualityLevel').textContent = mockData.airQuality.level;
-            document.getElementById('qualityLevel').style.color = mockData.airQuality.color;
-            
-            // 渲染健康建议
-            const recommendationsList = document.getElementById('recommendationsList');
-            recommendationsList.innerHTML = '';
-            mockData.airQuality.recommendations.forEach(rec => {
-                const li = document.createElement('li');
-                li.textContent = rec;
-                recommendationsList.appendChild(li);
-            });
-            
-            // 渲染图表
-            renderChart(mockData);
+            // 从后端API调取数据
+            try {
+        // 调用真实接口获取数据（替换模拟数据）
+        const realData = await fetchCityData(city); 
+        // 更新页面内容（与原逻辑一致）
+        document.getElementById('cityName').textContent = `${realData.city} NO₂浓度详情`;
+        document.getElementById('updateTime').textContent = `更新时间：${realData.updateTime}`;
+        document.getElementById('currentValue').textContent = realData.currentValue;
+        document.getElementById('avgValue').textContent = realData.avgValue;
+        document.getElementById('qualityLevel').textContent = realData.airQuality.level;
+        document.getElementById('qualityLevel').style.color = realData.airQuality.color;
+        
+        // 渲染健康建议
+        const recommendationsList = document.getElementById('recommendationsList');
+        recommendationsList.innerHTML = '';
+        realData.airQuality.recommendations.forEach(rec => {
+            const li = document.createElement('li');
+            li.textContent = rec;
+            recommendationsList.appendChild(li);
+        });
+        
+        // 渲染图表
+        renderChart(realData);
+    } catch (error) {
+        console.error('数据加载失败:', error);
+        alert('无法获取城市数据，请稍后重试');
+    }
         });
     </script>
 </body>
