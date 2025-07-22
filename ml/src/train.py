@@ -243,16 +243,18 @@ def load_model(model_path: str = "ml/models/nc_cqr_model.pth") -> Tuple[nn.Modul
 
 
 def train_full_pipeline(city: str = 'dongguan', 
-                       test_size: float = 0.3,
-                       calib_ratio: float = 0.67,
+                       train_ratio: float = 0.4,
+                       calib_ratio: float = 0.4, 
+                       test_ratio: float = 0.2,
                        **train_kwargs) -> Tuple[nn.Module, float, Dict, Dict]:
     """
-    完整的NC-CQR训练流程
+    完整的NC-CQR训练流程 - 使用标准40%-40%-20%数据集划分
     
     Args:
         city (str): 城市名称
-        test_size (float): 测试集比例
-        calib_ratio (float): 校准集占临时数据的比例
+        train_ratio (float): 训练集比例 (默认: 0.4)
+        calib_ratio (float): 校准集比例 (默认: 0.4)
+        test_ratio (float): 测试集比例 (默认: 0.2)
         **train_kwargs: 训练参数
         
     Returns:
@@ -260,19 +262,31 @@ def train_full_pipeline(city: str = 'dongguan',
     """
     print(f"=== 开始{city}市NC-CQR模型训练 ===")
     
+    # 验证比例参数
+    if abs(train_ratio + calib_ratio + test_ratio - 1.0) > 1e-6:
+        raise ValueError(f"数据集比例之和必须为1.0，当前为{train_ratio + calib_ratio + test_ratio}")
+    
     # 1. 加载数据
     df = load_data_from_mysql(city)
     
     # 2. 数据预处理
     X, y, scalers = prepare_nc_cqr_data(df)
     
-    # 3. 数据集划分
-    X_train, X_temp, y_train, y_temp = train_test_split(
-        X, y, test_size=test_size, shuffle=False
-    )
-    X_calib, X_test, y_calib, y_test = train_test_split(
-        X_temp, y_temp, test_size=1-calib_ratio, shuffle=False
-    )
+    # 3. NC-CQR标准数据集划分：40%训练，40%校准，20%测试
+    n_samples = len(X)
+    n_train = int(n_samples * train_ratio)
+    n_calib = int(n_samples * calib_ratio)
+    n_test = n_samples - n_train - n_calib  # 剩余部分作为测试集
+    
+    # 按时间顺序划分
+    X_train = X[:n_train]
+    y_train = y[:n_train]
+    
+    X_calib = X[n_train:n_train + n_calib]
+    y_calib = y[n_train:n_train + n_calib]
+    
+    X_test = X[n_train + n_calib:]
+    y_test = y[n_train + n_calib:]
     
     print(f"数据划分结果：")
     print(f"- 训练集：{len(X_train)}条 ({len(X_train)/len(X)*100:.1f}%)")
