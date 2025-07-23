@@ -205,16 +205,16 @@ no2-prediction-system/
    ```
    运行模式: train(训练), predict(预测), evaluate(评估)
 
-   | 选项 | 说明 |
-   | --- | --- |
-   |-h, --help | show this help message and exit |
-   |--city CITY | 城市名称 (默认: dongguan) |
-   |--steps STEPS | 预测步数(小时) (默认: 24) |
-   |--epochs EPOCHS | 训练轮数 (默认: 150) |
-   |--batch-size BATCH_SIZE | 批次大小 (默认: 32) |
-   |--learning-rate LEARNING_RATE | 学习率 (默认: 1e-3) |
-   |--save-chart | 保存预测图表 |
-   |--list-cities | 列出支持的城市 |
+   | 选项                            | 说明                              |
+   |-------------------------------|---------------------------------|
+   | -h, --help                    | show this help message and exit |
+   | --city CITY                   | 城市名称 (默认: dongguan)             |
+   | --steps STEPS                 | 预测步数(小时) (默认: 24)               |
+   | --epochs EPOCHS               | 训练轮数 (默认: 150)                  |
+   | --batch-size BATCH_SIZE       | 批次大小 (默认: 32)                   |
+   | --learning-rate LEARNING_RATE | 学习率 (默认: 1e-3)                  |
+   | --save-chart                  | 保存预测图表                          |
+   | --list-cities                 | 列出支持的城市                         |
 
    使用举例：
    ```bash
