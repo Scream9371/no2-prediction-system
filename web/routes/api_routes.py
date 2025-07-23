@@ -6,28 +6,15 @@ from database.crud import get_no2_records
 # 导入需要的模块（如预测、评估逻辑）
 from ml.src.control import predict_mode, evaluate_mode, get_supported_cities
 
+# 导入城市配置模块
+from config.cities import get_city_name, is_supported_city, get_all_cities
 
 api_bp = Blueprint("api", __name__)
 
-# 城市ID到名称的映射表（与get_cities接口保持一致）
-CITY_ID_TO_NAME = {
-    "101280101": "广州",
-    "101280601": "深圳",
-    "101280701": "珠海",
-    "101280800": "佛山",
-    "101280301": "惠州",
-    "101281601": "东莞",
-    "101281701": "中山",
-    "101281101": "江门",
-    "101280901": "肇庆",
-    "101320101": "香港特别行政区",  
-    "101330101": "澳门特别行政区"   
-}
-
 @api_bp.route("/api/no2/<city_id>")
 def get_no2(city_id):
-    #  转换城市ID为名称
-    city_name = CITY_ID_TO_NAME.get(city_id)
+    # 转换城市ID为名称
+    city_name = get_city_name(city_id)
     if not city_name:
         return jsonify({"error": "无效的城市ID"}), 400  # 处理无效ID
     db_gen = get_db()
@@ -39,7 +26,7 @@ def get_no2(city_id):
 # 预测接口
 @api_bp.route("/api/predict/no2/<city_id>")
 def predict_no2(city_id):
-    if city_id not in get_supported_cities():
+    if not is_supported_city(city_id):
         return jsonify({"error": "不支持的城市"}), 400
     try:
         prediction = predict_mode(city=city_id, steps=24)
@@ -50,19 +37,7 @@ def predict_no2(city_id):
 # 城市列表接口
 @api_bp.route("/api/cities")
 def get_cities():
-    cities = [
-    {"id": "101280101", "name": "广州"},
-    {"id": "101280601", "name": "深圳"},
-    {"id": "101280701", "name": "珠海"},
-    {"id": "101280800", "name": "佛山"},
-    {"id": "101280301", "name": "惠州"},
-    {"id": "101281601", "name": "东莞"},
-    {"id": "101281701", "name": "中山"},
-    {"id": "101281101", "name": "江门"},
-    {"id": "101280901", "name": "肇庆"},
-    {"id": "101320101", "name": "香港特别行政区"},
-    {"id": "101330101", "name": "澳门特别行政区"}
-]
+    return jsonify(get_all_cities())
 
 # NO2数据接口
 @api_bp.route("/api/no2")
@@ -83,5 +58,3 @@ def get_no2_data():
         "low": [50, 52, 49],                   # 下限
         "high": [62, 64, 61]                   # 上限
     })
-
-    return jsonify(cities)
