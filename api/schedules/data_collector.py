@@ -98,15 +98,15 @@ def collect_historical_data(days=10):
                     )
 
                     if parsed_data_list:
-                        # 保存所有小时的数据
-                        saved_count = 0
+                        # 保存所有小时的数据（create_no2_record已包含防重复逻辑）
+                        processed_count = 0
                         for hourly_data in parsed_data_list:
                             try:
                                 create_no2_record(db, hourly_data, city)
-                                saved_count += 1
+                                processed_count += 1
                             except Exception as e:
                                 print(f"    保存 {city} {date_str} 一小时数据失败: {str(e)}")
-                        print(f"    成功收集 {city} {date_str} 的 {saved_count} 小时数据")
+                        print(f"    处理 {city} {date_str} 的 {processed_count} 小时数据（自动跳过重复记录）")
                     else:
                         print(f"    解析 {city} {date_str} 的数据失败")
                 else:
