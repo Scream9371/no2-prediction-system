@@ -275,56 +275,10 @@
                 };
             } catch (error) {
                 console.error('数据获取失败:', error);
-                // 失败时返回模拟数据作为降级方案
-                return generateFallbackMockData(city);
+                throw error;
             }
         }
 
-        // 降级用的模拟数据生成函数
-        function generateFallbackMockData(city) {
-            const now = new Date();
-            const updateTime = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-            
-            const cityBaseValue = {
-                '广州': 50, '深圳': 45, '珠海': 35, '佛山': 60, '惠州': 40,
-                '东莞': 55, '中山': 42, '江门': 38, '肇庆': 30,
-                '香港特别行政区': 48, '澳门特别行政区': 43
-            };
-            const baseValue = cityBaseValue[city] || 45;
-            
-            const times = [];
-            const values = [];
-            const low = [];
-            const high = [];
-            
-            for (let i = 0; i < 24; i++) {
-                const hour = (now.getHours() + i) % 24;
-                times.push(`${hour.toString().padStart(2, '0')}:00`);
-                
-                // 生成有波动的模拟值
-                const fluctuation = Math.random() * 20 - 10; // -10到10的波动
-                const value = Math.max(5, Math.round(baseValue + fluctuation));
-                values.push(value);
-                low.push(Math.max(0, value - 5));
-                high.push(value + 5);
-            }
-            
-            const currentValue = values[0];
-            const avgValue = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-            
-            return {
-                city,
-                updateTime,
-                currentValue,
-                avgValue,
-                times,
-                values,
-                low,
-                high,
-                airQuality: getAirQualityInfo(currentValue)
-            };
-        }
-        
         // 渲染图表
         function renderChart(data) {
             const ctx = document.getElementById('chartCanvas').getContext('2d');
