@@ -256,12 +256,23 @@
                     throw new Error(`未找到城市${city}的ID`);
                 }
 
-                // 获取城市NO2数据（假设后端有此接口）
-                const response = await fetch(`/api/no2?cityId=${cityInfo.id}`);
+                // 获取城市NO2预测数据
+                const response = await fetch(`/api/predict/no2/${cityInfo.id}`);
                 if (!response.ok) {
-                    throw new Error('数据获取失败');
+                    throw new Error('预测数据获取失败');
                 }
                 const data = await response.json();
+                
+                // 检查是否有警告信息
+                if (data.warning) {
+                    console.warn('预测数据警告:', data.warning);
+                    // 在页面上显示警告
+                    const warningElement = document.createElement('div');
+                    warningElement.style.cssText = 'background: rgba(255, 193, 7, 0.8); color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 14px;';
+                    warningElement.innerHTML = `⚠️ <strong>警告：</strong>${data.warning}`;
+                    document.querySelector('.card').insertBefore(warningElement, document.querySelector('.header'));
+                }
+                
                 return {
                     city: city,
                     updateTime: data.updateTime,
