@@ -9,6 +9,33 @@ from ml.src.control import predict_mode, evaluate_mode, get_supported_cities
 # 导入城市配置模块
 from config.cities import get_city_name, is_supported_city, get_all_cities
 
+# 中文城市名到英文城市名的映射（用于模型文件路径）
+CHINESE_TO_ENGLISH_CITY_MAP = {
+    "广州": "guangzhou",
+    "深圳": "shenzhen", 
+    "珠海": "zhuhai",
+    "佛山": "foshan",
+    "惠州": "huizhou",
+    "东莞": "dongguan",
+    "中山": "zhongshan",
+    "江门": "jiangmen",
+    "肇庆": "zhaoqing",
+    "香港特别行政区": "hongkong",
+    "澳门特别行政区": "macao"
+}
+
+def get_english_city_name(chinese_name: str) -> str:
+    """
+    将中文城市名转换为英文城市名（用于模型文件路径）
+    
+    Args:
+        chinese_name (str): 中文城市名
+        
+    Returns:
+        str: 英文城市名，如果找不到则返回原名称
+    """
+    return CHINESE_TO_ENGLISH_CITY_MAP.get(chinese_name, chinese_name)
+
 api_bp = Blueprint("api", __name__)
 
 @api_bp.route("/api/no2/<city_id>")
@@ -51,16 +78,18 @@ def predict_no2(city_id):
     try:
         # 获取城市名称用于预测
         city_name = get_city_name(city_id)
+        # 转换为英文城市名（用于模型文件路径）
+        english_city_name = get_english_city_name(city_name)
         
         # 检查模型是否存在（优先使用训练管道模型）
         import os
         from config.paths import get_latest_model_path, get_control_model_path
         
         # 先尝试训练管道的最新模型
-        model_path = get_latest_model_path(city_name)
+        model_path = get_latest_model_path(english_city_name)
         if not os.path.exists(model_path):
             # 如果训练管道模型不存在，尝试控制脚本模型
-            model_path = get_control_model_path(city_name)
+            model_path = get_control_model_path(english_city_name)
         
         if not os.path.exists(model_path):
             # 如果模型不存在，返回示例数据并提示用户
@@ -86,7 +115,7 @@ def predict_no2(city_id):
                 "warning": f"模型文件不存在 ({model_path})，显示的是示例数据。请先训练模型。"
             })
         
-        predictions_df = predict_mode(city=city_name, steps=24)
+        predictions_df = predict_mode(city=english_city_name, steps=24)
         
         # 将DataFrame转换为前端需要的JSON格式
         if predictions_df is not None and hasattr(predictions_df, 'empty') and not predictions_df.empty:
