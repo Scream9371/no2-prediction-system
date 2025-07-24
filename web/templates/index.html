@@ -116,20 +116,25 @@
     <script>
         let chartInstance = null; // 存储图表实例
 
-        // 大湾区城市列表（含编码）
-        const bayAreaCities = [
-            { name: '广州市', code: '101280101' },
-            { name: '深圳市', code: '101280601' },
-            { name: '佛山市', code: '101280800' },
-            { name: '东莞市', code: '101281601' },
-            { name: '中山市', code: '101281701' },
-            { name: '珠海市', code: '101280701' },
-            { name: '江门市', code: '101281101' },
-            { name: '肇庆市', code: '101280901' },
-            { name: '惠州市', code: '101280301' },
-            { name: '香港特别行政区', code: '101320101' },
-            { name: '澳门特别行政区', code: '101330101' }
-        ];
+        // 大湾区城市列表 - 从后端API动态获取
+        let bayAreaCities = [];
+
+        // 初始化城市列表：从后端API获取统一的城市映射
+        async function initializeCities() {
+            try {
+                const response = await fetch('/api/cities');
+                const cities = await response.json();
+                // 将后端的 {id, name} 格式转换为前端使用的格式
+                bayAreaCities = cities.map(city => ({
+                    name: city.name,
+                    code: city.id  // 保持兼容性，将 id 映射到 code
+                }));
+                console.log('城市列表初始化成功:', bayAreaCities);
+            } catch (error) {
+                console.error('初始化城市列表失败:', error);
+                // 如果API调用失败，使用默认城市列表作为备选
+            }
+        }
 
         // 显示城市下拉列表
         function showCityDropdown(inputValue) {
@@ -266,7 +271,9 @@
         }
 
         // 事件监听
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 初始化城市列表
+            await initializeCities();
             // 搜索按钮点击
             document.getElementById('searchBtn').addEventListener('click', () => {
                 const city = document.getElementById('cityInput').value;
