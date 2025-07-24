@@ -11,7 +11,7 @@ import os
 import matplotlib.pyplot as plt
 from .train import QuantileNet, load_model
 from .data_loader import get_latest_data
-from .data_processing import load_scalers
+from .data_processing import load_scalers_for_pipeline, load_scalers_for_control
 
 
 # 设置中文显示
@@ -123,9 +123,16 @@ def predict_with_saved_model(
     Returns:
         pd.DataFrame: 预测结果
     """
-    # 确定模型路径
+    # 确定模型路径（优先使用训练管道模型）
     if model_path is None:
-        model_path = f"ml/models/trained/{city}_nc_cqr_model.pth"
+        from config.paths import get_latest_model_path, get_control_model_path
+        # 先尝试训练管道的最新模型
+        pipeline_model_path = get_latest_model_path(city)
+        if os.path.exists(pipeline_model_path):
+            model_path = pipeline_model_path
+        else:
+            # 如果训练管道模型不存在，使用控制脚本模型
+            model_path = get_control_model_path(city)
     
     # 加载模型
     model, Q, scalers = load_model(model_path)
@@ -193,39 +200,6 @@ def visualize_predictions(
         print(f"图表已保存到: {save_path}")
     
     plt.show()
-
-
-def batch_predict_cities(
-    cities: list = None,
-    steps: int = 24
-) -> Dict[str, pd.DataFrame]:
-    """
-    批量预测多个城市的NO2浓度
-    
-    Args:
-        cities (list): 城市列表，如果为None则预测所有支持的城市
-        steps (int): 预测步数
-        
-    Returns:
-        Dict[str, pd.DataFrame]: 各城市的预测结果
-    """
-    if cities is None:
-        from .data_loader import get_supported_cities
-        cities = get_supported_cities()
-    
-    results = {}
-    
-    for city in cities:
-        try:
-            print(f"正在预测 {city} 的NO2浓度...")
-            predictions = predict_with_saved_model(city, steps=steps)
-            results[city] = predictions
-            print(f"{city} 预测完成")
-        except Exception as e:
-            print(f"{city} 预测失败: {str(e)}")
-            results[city] = None
-    
-    return results
 
 
 def export_predictions_to_csv(
