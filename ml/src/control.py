@@ -8,7 +8,7 @@ import argparse
 from datetime import datetime
 
 from .data_loader import load_data_from_mysql, get_supported_cities
-from .data_processing import prepare_nc_cqr_data
+from .data_processing import prepare_nc_cqr_data, save_scalers_for_control
 from .train import train_full_pipeline, load_model, save_model
 from .predict import predict_with_saved_model, visualize_predictions, export_predictions_to_csv
 
@@ -20,8 +20,12 @@ def train_mode(city: str = 'dongguan', **kwargs):
     try:
         model, Q, scalers, eval_results = train_full_pipeline(city, **kwargs)
         
+        # 保存控制脚本专用的标准化器
+        save_scalers_for_control(scalers, city)
+        
         # 保存模型到outputs/models/
-        model_path = f"outputs/models/{city}_nc_cqr_model.pth"
+        from config.paths import get_control_model_path
+        model_path = get_control_model_path(city)
         save_model(model, Q, scalers, model_path)
         
         print(f"\n=== 训练完成 ===")
@@ -42,10 +46,11 @@ def predict_mode(city: str = 'dongguan', steps: int = 24, save_chart: bool = Fal
     print(f"=== NC-CQR预测模式 - {city} ===")
     
     try:
-        # 检查模型是否存在
-        model_path = f"ml/models/{city}_nc_cqr_model.pth"
+        # 检查控制脚本模型是否存在
+        from config.paths import get_control_model_path
+        model_path = get_control_model_path(city)
         if not os.path.exists(model_path):
-            print(f"模型文件不存在: {model_path}")
+            print(f"控制脚本模型文件不存在: {model_path}")
             print("请先运行训练模式创建模型")
             return False
         
@@ -91,7 +96,8 @@ def evaluate_mode(city: str = 'dongguan'):
         df = load_data_from_mysql(city)
         X, y, scalers = prepare_nc_cqr_data(df)
         
-        model_path = f"ml/models/{city}_nc_cqr_model.pth"
+        from config.paths import get_control_model_path
+        model_path = get_control_model_path(city)
         model, Q, _ = load_model(model_path)
         
         # 使用最后30%数据进行评估
