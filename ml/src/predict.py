@@ -130,9 +130,21 @@ def predict_with_saved_model(
         pipeline_model_path = get_latest_model_path(city)
         if os.path.exists(pipeline_model_path):
             model_path = pipeline_model_path
+            print(f"使用训练管道模型: {model_path}")
         else:
-            # 如果训练管道模型不存在，使用控制脚本模型
-            model_path = get_control_model_path(city)
+            # 如果训练管道模型不存在，检查控制脚本模型
+            control_model_path = get_control_model_path(city)
+            if os.path.exists(control_model_path):
+                model_path = control_model_path
+                print(f"使用控制脚本模型: {model_path}")
+            else:
+                # 两个模型都不存在
+                raise FileNotFoundError(
+                    f"城市 {city} 的模型文件不存在:\n"
+                    f"  训练管道模型: {pipeline_model_path}\n"
+                    f"  控制脚本模型: {control_model_path}\n"
+                    f"请先运行训练管道 'python -m scripts.run_pipeline' 或控制脚本训练模式"
+                )
     
     # 加载模型
     model, Q, scalers = load_model(model_path)
