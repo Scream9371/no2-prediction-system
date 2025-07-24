@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, send_from_directory
 from config.cities import get_city_id
+import os
 
 main_bp = Blueprint("main", __name__)
 
@@ -25,3 +26,11 @@ def city_html():
         city_id = "101280101"  # 默认广州
     # 复用原有的city视图函数逻辑
     return render_template("city.html", city_id=city_id)
+
+
+# Favicon 路由
+@main_bp.route("/favicon.ico")
+def favicon():
+    # 返回一个简单的响应，避免404错误
+    # 实际项目中可以返回真正的favicon文件
+    return "", 204
