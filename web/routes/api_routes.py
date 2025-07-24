@@ -17,11 +17,31 @@ def get_no2(city_id):
     city_name = get_city_name(city_id)
     if not city_name:
         return jsonify({"error": "无效的城市ID"}), 400  # 处理无效ID
-    db_gen = get_db()
-    db = next(db_gen)
-    records = get_no2_records(db, city_id)
-    db.close()
-    return jsonify([r.__dict__ for r in records])
+    
+    try:
+        db_gen = get_db()
+        db = next(db_gen)
+        # 修复：使用城市名称而非城市ID
+        records = get_no2_records(db, city_name)
+        db.close()
+        
+        # 转换记录为字典列表
+        result = []
+        for record in records:
+            record_dict = {}
+            for column in record.__table__.columns:
+                value = getattr(record, column.name)
+                # 处理datetime对象
+                if isinstance(value, datetime.datetime):
+                    record_dict[column.name] = value.isoformat()
+                else:
+                    record_dict[column.name] = value
+            result.append(record_dict)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": f"获取历史数据失败: {str(e)}"}), 500
 
 # 预测接口
 @api_bp.route("/api/predict/no2/<city_id>")
@@ -29,32 +49,69 @@ def predict_no2(city_id):
     if not is_supported_city(city_id):
         return jsonify({"error": "不支持的城市"}), 400
     try:
-        prediction = predict_mode(city=city_id, steps=24)
-        return jsonify(prediction)
+        # 获取城市名称用于预测
+        city_name = get_city_name(city_id)
+        
+        # 检查模型是否存在
+        import os
+        model_path = f"ml/models/{city_name}_nc_cqr_model.pth"
+        if not os.path.exists(model_path):
+            # 如果模型不存在，返回示例数据并提示用户
+            import datetime
+            current_time = datetime.datetime.now()
+            times = [(current_time + datetime.timedelta(hours=i)).strftime("%H:%M") for i in range(24)]
+            
+            # 生成示例预测数据
+            import random
+            base_value = random.uniform(30, 80)
+            values = [round(base_value + random.uniform(-5, 5), 1) for _ in range(24)]
+            low = [round(v - 10, 1) for v in values]
+            high = [round(v + 10, 1) for v in values]
+            
+            return jsonify({
+                "updateTime": current_time.strftime("%Y-%m-%d %H:%M"),
+                "currentValue": values[0],
+                "avgValue": round(sum(values) / len(values), 1),
+                "times": times,
+                "values": values,
+                "low": low,
+                "high": high,
+                "warning": f"模型文件不存在 ({model_path})，显示的是示例数据。请先训练模型。"
+            })
+        
+        predictions_df = predict_mode(city=city_name, steps=24)
+        
+        # 将DataFrame转换为前端需要的JSON格式
+        if predictions_df is not None and hasattr(predictions_df, 'empty') and not predictions_df.empty:
+            # 生成时间标签（未来24小时）
+            import datetime
+            current_time = datetime.datetime.now()
+            times = [(current_time + datetime.timedelta(hours=i)).strftime("%H:%M") for i in range(24)]
+            
+            # 提取预测数据
+            values = predictions_df['prediction'].tolist()[:24]
+            low = predictions_df['lower_bound'].tolist()[:24]
+            high = predictions_df['upper_bound'].tolist()[:24]
+            
+            current_value = values[0] if values else 0
+            avg_value = sum(values) / len(values) if values else 0
+            
+            return jsonify({
+                "updateTime": current_time.strftime("%Y-%m-%d %H:%M"),
+                "currentValue": round(current_value, 1),
+                "avgValue": round(avg_value, 1),
+                "times": times,
+                "values": [round(v, 1) for v in values],
+                "low": [round(l, 1) for l in low],
+                "high": [round(h, 1) for h in high]
+            })
+        else:
+            return jsonify({"error": "无法获取预测数据，请检查模型和数据"}), 500
+            
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"预测失败: {str(e)}"}), 500
 
 # 城市列表接口
 @api_bp.route("/api/cities")
 def get_cities():
     return jsonify(get_all_cities())
-
-# NO2数据接口
-@api_bp.route("/api/no2")
-def get_no2_data():
-    city_id = request.args.get('cityId')
-    if not city_id:
-        return jsonify({"error": "缺少cityId参数"}), 400
-    
-    # 此处应从数据库或模型获取真实数据，以下为示例
-    # 实际应用中需替换为真实数据查询逻辑
-    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    return jsonify({
-        "updateTime": current_time,
-        "currentValue": 56,  # 示例值
-        "avgValue": 52,      # 示例值
-        "times": ["00:00", "01:00", "02:00"],  # 未来24小时时间
-        "values": [56, 58, 55],                # 预测值
-        "low": [50, 52, 49],                   # 下限
-        "high": [62, 64, 61]                   # 上限
-    })
