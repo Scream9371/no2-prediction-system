@@ -245,13 +245,30 @@
     return 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920';
 }
         
-        // 从后端API获取数据（替换原generateMockData）
+        // 从后端API获取数据，利用统一的城市映射
         async function fetchCityData(city) {
             try {
-                // 获取城市ID（从后端接口）
+                // 获取统一的城市映射（从后端接口）
                 const citiesResponse = await fetch('/api/cities');
                 const cities = await citiesResponse.json();
-                const cityInfo = cities.find(item => item.name === city);
+                
+                // 使用后端统一的城市映射查找匹配的城市
+                // 支持多种匹配方式：完整名称匹配、部分匹配等
+                const cityInfo = cities.find(item => {
+                    // 精确匹配
+                    if (item.name === city) return true;
+                    
+                    // 支持带"市"后缀的匹配：如"东莞市" 匹配 "东莞"
+                    if (city.endsWith('市') && item.name === city.slice(0, -1)) return true;
+                    if (city.endsWith('特别行政区') && item.name === city.slice(0, -5)) return true;
+                    
+                    // 支持不带后缀的匹配：如"东莞" 匹配 "东莞市" （虽然后端应该是标准格式）
+                    if (item.name.endsWith('市') && item.name.slice(0, -1) === city) return true;
+                    if (item.name.endsWith('特别行政区') && item.name.slice(0, -5) === city) return true;
+                    
+                    return false;
+                });
+                
                 if (!cityInfo) {
                     throw new Error(`未找到城市${city}的ID`);
                 }
