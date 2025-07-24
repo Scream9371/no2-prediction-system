@@ -135,22 +135,28 @@ no2-prediction-system/
 
    > 提示：ed25519密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
 
-3. **初始化数据库**
+3. 启动 MySQL 服务
+    ```bash
+    net start mysql80      # mysql80替换成你的MySQL服务名称
+    ```
+
+4. **初始化数据库**
    ```bash
    python  -m scripts.setup_database
    ```
+   > 注意！此操作会清除数据库中所有数据表以重新创建，你的数据库中的所有数据会被清除，建议在执行此操作前先对原数据进行备份。
 
-4. **采集历史数据**
+5. **采集历史数据**
    ```bash
    python -m scripts.run_data_collector
    ```
 
-5. **训练模型**
+6. **训练模型**
    ```bash
    python -m scripts.run_pipeline
    ```
 
-6. **启动Web系统**
+7. **启动Web系统**
 
    - **后端服务启动**  
      执行以下命令启动后端服务：  
@@ -190,32 +196,36 @@ no2-prediction-system/
      - 预测详情：显示未来24小时每小时的预测值及置信区间  
      - 城市切换：可通过搜索框快速切换不同城市查看预测结果
 
-7. **自动化运行**
+8. **自动化运行**
    - 可用crontab或Windows任务计划定时运行`python -m scripts.run_data_collector`和`python -m scripts.run_pipeline`，实现数据自动采集与模型自动更新。
 
 ## 5. 其他说明
 
+- **数据备份**：备份数据到[`data/backup`](data/backup)
+    ```bash
+    python -m scripts.run_databackup         # 备份数据库数据到CSV文件
+    ```
 - **测试**：运行`pytest tests/`进行单元和集成测试。
 - **模型手动训练**：进入项目根目录运行NC-CQR算法控制脚本，可对模型进行精细化调整。
-   ```bash
-   python -m ml.src.control -h            # 查看脚本使用帮助
-   ```
-   运行模式: train(训练), predict(预测), evaluate(评估)
-
-   | 选项                            | 说明                              |
-   |-------------------------------|---------------------------------|
-   | -h, --help                    | show this help message and exit |
-   | --city CITY                   | 城市名称 (默认: dongguan)             |
-   | --steps STEPS                 | 预测步数(小时) (默认: 24)               |
-   | --epochs EPOCHS               | 训练轮数 (默认: 150)                  |
-   | --batch-size BATCH_SIZE       | 批次大小 (默认: 32)                   |
-   | --learning-rate LEARNING_RATE | 学习率 (默认: 1e-3)                  |
-   | --save-chart                  | 保存预测图表                          |
-   | --list-cities                 | 列出支持的城市                         |
-
-   使用举例：
-   ```bash
-   python -m ml.src.control train --city dongguan --step 12   # 训练模型预测东莞城市未来12小时的NO₂浓度
-   ```
+    ```bash
+    python -m ml.src.control -h            # 查看脚本使用帮助
+    ```
+    运行模式: train(训练), predict(预测), evaluate(评估)
+    
+    | 选项                            | 说明                              |
+    |-------------------------------|---------------------------------|
+    | -h, --help                    | show this help message and exit |
+    | --city CITY                   | 城市名称 (默认: dongguan)             |
+    | --steps STEPS                 | 预测步数(小时) (默认: 24)               |
+    | --epochs EPOCHS               | 训练轮数 (默认: 150)                  |
+    | --batch-size BATCH_SIZE       | 批次大小 (默认: 32)                   |
+    | --learning-rate LEARNING_RATE | 学习率 (默认: 1e-3)                  |
+    | --save-chart                  | 保存预测图表                          |
+    | --list-cities                 | 列出支持的城市                         |
+    
+    使用举例：
+    ```bash
+    python -m ml.src.control train --city dongguan --step 12   # 训练模型预测东莞城市未来12小时的NO₂浓度
+    ```
 - **模型与数据缓存**：所有模型存储在`ml/models/`中，所有标准化器和特征工程结果均缓存于`data/ml_cache/`，便于快速预测和重训。
 - **可扩展性**：支持添加新城市、切换模型、调整预测区间等。
