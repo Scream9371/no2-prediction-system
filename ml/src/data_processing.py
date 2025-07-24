@@ -118,9 +118,57 @@ def create_lag_features(series: pd.Series, lags: list = [1, 2]) -> pd.DataFrame:
     return lag_features
 
 
+def save_scalers_for_pipeline(scalers: Dict, city: str) -> str:
+    """
+    保存训练管道的标准化器（按城市分离）
+    
+    Args:
+        scalers (Dict): 标准化器字典
+        city (str): 城市名称
+        
+    Returns:
+        str: 保存路径
+    """
+    from config.paths import get_pipeline_scaler_path, ensure_directories
+    
+    ensure_directories()
+    scaler_path = get_pipeline_scaler_path(city)
+    
+    # 原子性操作：先写临时文件，再重命名
+    temp_path = scaler_path + ".tmp"
+    joblib.dump(scalers, temp_path)
+    os.rename(temp_path, scaler_path)
+    
+    return scaler_path
+
+
+def save_scalers_for_control(scalers: Dict, city: str) -> str:
+    """
+    保存控制脚本的标准化器（按城市分离）
+    
+    Args:
+        scalers (Dict): 标准化器字典
+        city (str): 城市名称
+        
+    Returns:
+        str: 保存路径
+    """
+    from config.paths import get_control_scaler_path, ensure_directories
+    
+    ensure_directories()
+    scaler_path = get_control_scaler_path(city)
+    
+    # 原子性操作：先写临时文件，再重命名
+    temp_path = scaler_path + ".tmp"
+    joblib.dump(scalers, temp_path)
+    os.rename(temp_path, scaler_path)
+    
+    return scaler_path
+
+
 def save_scalers(scalers: Dict, cache_dir: str = "data/ml_cache") -> str:
     """
-    保存标准化器
+    保存标准化器（兼容旧接口）
     
     Args:
         scalers (Dict): 标准化器字典
@@ -135,9 +183,47 @@ def save_scalers(scalers: Dict, cache_dir: str = "data/ml_cache") -> str:
     return scaler_path
 
 
+def load_scalers_for_pipeline(city: str) -> Dict:
+    """
+    加载训练管道的标准化器（按城市分离）
+    
+    Args:
+        city (str): 城市名称
+        
+    Returns:
+        Dict: 标准化器字典
+    """
+    from config.paths import get_pipeline_scaler_path
+    
+    scaler_path = get_pipeline_scaler_path(city)
+    if not os.path.exists(scaler_path):
+        raise FileNotFoundError(f"训练管道标准化器文件未找到: {scaler_path}")
+    
+    return joblib.load(scaler_path)
+
+
+def load_scalers_for_control(city: str) -> Dict:
+    """
+    加载控制脚本的标准化器（按城市分离）
+    
+    Args:
+        city (str): 城市名称
+        
+    Returns:
+        Dict: 标准化器字典
+    """
+    from config.paths import get_control_scaler_path
+    
+    scaler_path = get_control_scaler_path(city)
+    if not os.path.exists(scaler_path):
+        raise FileNotFoundError(f"控制脚本标准化器文件未找到: {scaler_path}")
+    
+    return joblib.load(scaler_path)
+
+
 def load_scalers(cache_dir: str = "data/ml_cache") -> Dict:
     """
-    加载标准化器
+    加载标准化器（兼容旧接口）
     
     Args:
         cache_dir (str): 缓存目录
