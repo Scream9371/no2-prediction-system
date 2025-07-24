@@ -9,7 +9,7 @@ from datetime import datetime
 
 from .data_loader import load_data_from_mysql, get_supported_cities
 from .data_processing import prepare_nc_cqr_data
-from .train import train_full_pipeline, load_model
+from .train import train_full_pipeline, load_model, save_model
 from .predict import predict_with_saved_model, visualize_predictions, export_predictions_to_csv
 
 
@@ -19,6 +19,10 @@ def train_mode(city: str = 'dongguan', **kwargs):
     
     try:
         model, Q, scalers, eval_results = train_full_pipeline(city, **kwargs)
+        
+        # 保存模型到outputs/models/
+        model_path = f"outputs/models/{city}_nc_cqr_model.pth"
+        save_model(model, Q, scalers, model_path)
         
         print(f"\n=== 训练完成 ===")
         print(f"城市: {city}")
@@ -71,7 +75,7 @@ def predict_mode(city: str = 'dongguan', steps: int = 24, save_chart: bool = Fal
         print(f"预测结果:")
         print(predictions.head())
         
-        return True
+        return predictions
         
     except Exception as e:
         print(f"预测失败: {str(e)}")
@@ -194,7 +198,7 @@ def run_demo():
         print("评估失败，退出演示")
         return
     
-    print("\n🎉 演示完成！")
+    print("\n演示完成！")
 
 
 if __name__ == "__main__":
