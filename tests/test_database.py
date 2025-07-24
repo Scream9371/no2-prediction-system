@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 from sqlalchemy.orm import Session
-from database.db import get_db
+from database.session import get_db
 from database.models import *
 
 
