@@ -48,8 +48,7 @@ def backup_city_data_to_csv(city_name, model_class):
         os.makedirs(backup_dir, exist_ok=True)
 
         # 定义CSV文件名和字段
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        csv_file = f"{backup_dir}/{city_name}_backup_{timestamp}.csv"
+        csv_file = f"{backup_dir}/{city_name}_backup.csv"
         fieldnames = [
             "observation_time",
             "no2_concentration",
