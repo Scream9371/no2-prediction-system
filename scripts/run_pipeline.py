@@ -9,7 +9,6 @@
 - 每日模型版本控制，按日期保存模型文件
 - 防重复训练机制，同一天多次执行只训练缺失的模型
 - 自动清理旧模型文件，节省存储空间
-- 生成详细的训练报告
 
 典型用法：
     python -m scripts.run_pipeline
@@ -38,7 +37,8 @@ def get_daily_model_path(city: str, date_str: str = None) -> str:
     if date_str is None:
         date_str = datetime.now().strftime("%Y%m%d")
     
-    return f"ml/models/{city}_nc_cqr_model_{date_str}.pth"
+    from config.paths import get_daily_model_path as config_get_daily_model_path
+    return config_get_daily_model_path(city, date_str)
 
 
 def get_latest_model_path(city: str) -> str:
@@ -51,7 +51,8 @@ def get_latest_model_path(city: str) -> str:
     Returns:
         str: 符号链接路径
     """
-    return f"ml/models/{city}_nc_cqr_model.pth"
+    from config.paths import get_latest_model_path as config_get_latest_model_path
+    return config_get_latest_model_path(city)
 
 
 def is_model_trained_today(city: str) -> bool:
@@ -120,7 +121,7 @@ def train_city_with_version_control(city: str, **train_kwargs) -> bool:
     
     # 临时修改train_mode以保存到带日期的路径
     today_str = datetime.now().strftime("%Y%m%d")
-    original_model_path = f"ml/models/{city}_nc_cqr_model.pth"
+    original_model_path = get_latest_model_path(city)
     daily_model_path = get_daily_model_path(city, today_str)
     
     try:
@@ -230,7 +231,8 @@ def cleanup_old_models(days_to_keep: int = 7):
     """
     print(f"开始清理 {days_to_keep} 天前的旧模型...")
     
-    models_dir = "ml/models"
+    from config.paths import DAILY_MODELS_DIR
+    models_dir = DAILY_MODELS_DIR
     if not os.path.exists(models_dir):
         return
     
@@ -314,31 +316,6 @@ def main():
             
             if results["failed"]:
                 print(f"    {len(results['failed'])} 个城市处理失败，请检查日志")
-                
-            # 生成训练报告
-            os.makedirs("reports", exist_ok=True)
-            report_path = f"reports/training_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-            
-            with open(report_path, 'w', encoding='utf-8') as f:
-                f.write(f"NO2预测模型训练报告\\n")
-                f.write(f"{'='*50}\\n")
-                f.write(f"执行时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n")
-                f.write(f"总城市数: {results['total_cities']}\\n")
-                f.write(f"新训练成功数: {len(results['successful'])}\\n")
-                f.write(f"跳过训练数: {len(results['skipped'])}\\n")
-                f.write(f"训练失败数: {len(results['failed'])}\\n")
-                f.write(f"执行耗时: {results['duration']}\\n\\n")
-                
-                if results['successful']:
-                    f.write(f"新训练城市列表:\\n{chr(10).join(results['successful'])}\\n\\n")
-                    
-                if results['skipped']:
-                    f.write(f"跳过训练城市列表:\\n{chr(10).join(results['skipped'])}\\n\\n")
-                    
-                if results['failed']:
-                    f.write(f"训练失败城市列表:\\n{chr(10).join(results['failed'])}\\n")
-            
-            print(f"训练报告已保存: {report_path}")
         else:
             print(f"\\n训练管道执行失败！")
             print("所有城市模型处理都失败了")
