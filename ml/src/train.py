@@ -186,7 +186,7 @@ def evaluate_model(model: nn.Module, X_test: np.ndarray, y_test: np.ndarray, Q: 
 
 
 def save_model(model: nn.Module, Q: float, scalers: Dict, 
-               model_path: str = "ml/models/nc_cqr_model.pth") -> str:
+               model_path: str) -> str:
     """
     保存NC-CQR模型
     
@@ -216,7 +216,7 @@ def save_model(model: nn.Module, Q: float, scalers: Dict,
     return model_path
 
 
-def load_model(model_path: str = "ml/models/nc_cqr_model.pth") -> Tuple[nn.Module, float, Dict]:
+def load_model(model_path: str) -> Tuple[nn.Module, float, Dict]:
     """
     加载NC-CQR模型
     
@@ -304,11 +304,7 @@ def train_full_pipeline(city: str = 'dongguan',
     print(f"测试集覆盖率：{eval_results['coverage']:.1%}")
     print(f"平均预测区间宽度：{eval_results['avg_interval_width']:.2f}")
     
-    # 6. 保存模型
-    model_path = f"ml/models/{city}_nc_cqr_model.pth"
-    save_model(model, Q, scalers, model_path)
-    
-    # 7. 保存标准化器
+    # 6. 保存标准化器（模型保存由调用方决定）
     save_scalers(scalers, "data/ml_cache")
     
     return model, Q, scalers, eval_results
