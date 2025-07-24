@@ -46,15 +46,7 @@ def predict_mode(city: str = 'dongguan', steps: int = 24, save_chart: bool = Fal
     print(f"=== NC-CQR预测模式 - {city} ===")
     
     try:
-        # 检查控制脚本模型是否存在
-        from config.paths import get_control_model_path
-        model_path = get_control_model_path(city)
-        if not os.path.exists(model_path):
-            print(f"控制脚本模型文件不存在: {model_path}")
-            print("请先运行训练模式创建模型")
-            return False
-        
-        # 进行预测
+        # 进行预测（predict_with_saved_model会智能选择模型路径）
         predictions = predict_with_saved_model(city, steps=steps)
         
         # 获取历史数据用于可视化（使用数据库中所有240小时数据）
