@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from typing import Tuple, Dict
 import os
 from .data_loader import load_data_from_mysql
-from .data_processing import prepare_nc_cqr_data, save_scalers
+from .data_processing import prepare_nc_cqr_data, save_scalers_for_pipeline
 
 
 class QuantileNet(nn.Module):
@@ -304,7 +304,7 @@ def train_full_pipeline(city: str = 'dongguan',
     print(f"测试集覆盖率：{eval_results['coverage']:.1%}")
     print(f"平均预测区间宽度：{eval_results['avg_interval_width']:.2f}")
     
-    # 6. 保存标准化器（模型保存由调用方决定）
-    save_scalers(scalers, "data/ml_cache")
+    # 6. 保存标准化器（按城市分离存储）
+    save_scalers_for_pipeline(scalers, city)
     
     return model, Q, scalers, eval_results
