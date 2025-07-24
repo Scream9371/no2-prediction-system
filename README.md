@@ -109,10 +109,10 @@ no2-prediction-system/
 - **API采集**：[`api/heweather/client.py`](api/heweather/client.py)定义获取城市ID和历史十天天气及空气质量数据的API客户端，密钥等配置在[`.env`](.env)。
 - **数据入库**：采集到的数据通过[`database/crud.py`](database/crud.py)写入数据库，结构定义见[`database/models.py`](database/models.py)。
 - **数据采集**：[`api/schedules/data_collector.py`](api/schedules/data_collector.py)采集过去十天的历史数据。
-- **特征工程与标准化**：[`ml/src/data_processing.py`](ml/src/data_processing.py)负责数据清洗、特征提取和标准化，标准化器缓存于[`data/ml_cache/scalers/`](data/ml_cache/scalers/)。
+- **特征工程与标准化**：[`ml/src/data_processing.py`](ml/src/data_processing.py)负责数据清洗、特征提取和标准化，标准化器缓存于[`data/ml_cache`](data/ml_cache)。
 - **模型训练与预测**：[`ml/src/train.py`](ml/src/train.py)训练模型，[`ml/src/predict.py`](ml/src/predict.py)用于预测未来24小时NO₂浓度及置信区间。
 - **模型评估**：[`ml/src/evaluate.py`](ml/src/evaluate.py)评估预测准确率。
-- **前端可视化**：[`web/app.py`](web/app.py)为Flask主程序，[`web/routes/`](web/routes/)定义路由，[`web/utils/visualization.py`](web/utils/visualization.py)生成预测折线图，前端页面见[`web/templates/`](web/templates/)。
+- **前端可视化**：[`web/app.py`](web/app.py)为Flask主程序，[`web/routes`](web/routes)定义路由，[`web/utils/visualization.py`](web/utils/visualization.py)生成预测折线图，前端页面见[`web/templates`](web/templates)。
 
 ## 4. 使用方法
 
@@ -227,5 +227,5 @@ no2-prediction-system/
     ```bash
     python -m ml.src.control train --city dongguan --step 12   # 训练模型预测东莞城市未来12小时的NO₂浓度
     ```
-- **模型与数据缓存**：所有模型存储在[`ml/models/`](ml/models/)中，所有标准化器和特征工程结果均缓存于[`data/ml_cache/`](data/ml_cache/)，便于快速预测和重训。
+- **模型与数据缓存**：所有模型存储在[`ml/models`](ml/models)中，所有标准化器和特征工程结果均缓存于[`data/ml_cache`](data/ml_cache)，便于快速预测和重训。
 - **可扩展性**：支持添加新城市、切换模型、调整预测区间等。
