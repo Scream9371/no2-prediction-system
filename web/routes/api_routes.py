@@ -52,9 +52,16 @@ def predict_no2(city_id):
         # 获取城市名称用于预测
         city_name = get_city_name(city_id)
         
-        # 检查模型是否存在
+        # 检查模型是否存在（优先使用训练管道模型）
         import os
-        model_path = f"ml/models/{city_name}_nc_cqr_model.pth"
+        from config.paths import get_latest_model_path, get_control_model_path
+        
+        # 先尝试训练管道的最新模型
+        model_path = get_latest_model_path(city_name)
+        if not os.path.exists(model_path):
+            # 如果训练管道模型不存在，尝试控制脚本模型
+            model_path = get_control_model_path(city_name)
+        
         if not os.path.exists(model_path):
             # 如果模型不存在，返回示例数据并提示用户
             import datetime
