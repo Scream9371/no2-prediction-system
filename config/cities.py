@@ -101,26 +101,3 @@ def is_supported_city(city_id: str) -> bool:
         bool: 是否支持该城市
     """
     return city_id in _city_id_cache
-
-
-def refresh_city_mappings() -> bool:
-    """
-    刷新城市ID映射（重新从API获取）
-    
-    Returns:
-        bool: 刷新是否成功
-    """
-    global _city_id_cache, _name_to_id_cache
-    _city_id_cache.clear()
-    _name_to_id_cache.clear()
-    return init_city_mappings()
-
-
-def get_supported_city_names() -> list:
-    """
-    获取支持的城市名称列表
-    
-    Returns:
-        list: 城市名称列表
-    """
-    return GREATER_BAY_AREA_CITIES.copy()
