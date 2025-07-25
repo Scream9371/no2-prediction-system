@@ -1,13 +1,11 @@
 import datetime
-from flask import Blueprint, jsonify, request
-from database.session import get_db
-from database.crud import get_no2_records
 
-# 导入需要的模块（如预测、评估逻辑）
-from ml.src.control import predict_mode, evaluate_mode, get_supported_cities
+from flask import Blueprint, jsonify
 
-# 导入城市配置模块
 from config.cities import get_city_name, is_supported_city, get_all_cities
+from database.crud import get_no2_records
+from database.session import get_db
+from ml.src.control import predict_mode
 
 # 中文城市名到英文城市名的映射（用于模型文件路径）
 CHINESE_TO_ENGLISH_CITY_MAP = {
@@ -33,6 +31,12 @@ def get_english_city_name(chinese_name: str) -> str:
         
     Returns:
         str: 英文城市名，如果找不到则返回原名称
+        
+    Example:
+        >>> get_english_city_name("广州")
+        'guangzhou'
+        >>> get_english_city_name("未知城市") 
+        '未知城市'
     """
     return CHINESE_TO_ENGLISH_CITY_MAP.get(chinese_name, chinese_name)
 
@@ -40,6 +44,31 @@ api_bp = Blueprint("api", __name__)
 
 @api_bp.route("/api/no2/<city_id>")
 def get_no2(city_id):
+    """
+    获取指定城市的历史NO₂浓度数据
+    
+    Args:
+        city_id (str): 城市ID，从URL路径中获取
+        
+    Returns:
+        JSON: 历史NO₂数据列表，每条记录包含：
+            - observation_time: 观测时间 (ISO格式字符串)
+            - no2_concentration: NO₂浓度 (μg/m³)
+            - temperature: 气温 (摄氏度)
+            - humidity: 相对湿度 (百分比)
+            - wind_speed: 风速 (公里/小时)
+            - wind_direction: 风向 (360角度)
+            - pressure: 大气压 (百帕)
+            
+    HTTP状态码:
+        200: 成功返回数据
+        400: 无效的城市ID
+        500: 服务器内部错误
+        
+    示例:
+        GET /api/no2/101280800
+        返回: [{"observation_time": "2025-07-25T00:00:00", "no2_concentration": 25.6, ...}, ...]
+    """
     # 转换城市ID为名称
     city_name = get_city_name(city_id)
     if not city_name:
@@ -70,9 +99,49 @@ def get_no2(city_id):
     except Exception as e:
         return jsonify({"error": f"获取历史数据失败: {str(e)}"}), 500
 
-# 预测接口
 @api_bp.route("/api/predict/no2/<city_id>")
 def predict_no2(city_id):
+    """
+    获取指定城市未来24小时的NO₂浓度预测数据
+    
+    这是核心预测API，使用训练好的NC-CQR模型预测城市未来24小时的NO₂浓度及95%置信区间。
+    
+    Args:
+        city_id (str): 城市ID，从URL路径中获取
+        
+    Returns:
+        JSON: 预测数据，包含以下字段：
+            - updateTime (str): 更新时间，格式 "YYYY-MM-DD HH:MM"
+            - currentValue (float): 当前预测值 (μg/m³)
+            - avgValue (float): 24小时平均预测值 (μg/m³)
+            - times (list): 24个时间点，格式 ["HH:MM", ...]，基于实际预测时间
+            - values (list): 24个预测值 (μg/m³)
+            - low (list): 24个置信区间下限值 (μg/m³)
+            - high (list): 24个置信区间上限值 (μg/m³)
+            - warning (str, 可选): 当模型不存在时的警告信息
+            
+    模型选择策略:
+        1. 优先使用训练管道的最新模型 (ml/models/latest/)
+        2. 备选控制脚本模型 (outputs/models/)
+        3. 模型不存在时返回示例数据并显示警告
+        
+    HTTP状态码:
+        200: 成功返回预测数据
+        400: 不支持的城市ID
+        500: 预测过程出错
+        
+    示例:
+        GET /api/predict/no2/101280800
+        返回: {
+            "updateTime": "2025-07-25 12:00",
+            "currentValue": 25.6,
+            "avgValue": 23.4,
+            "times": ["00:00", "01:00", ..., "23:00"],
+            "values": [25.6, 24.3, ..., 26.8],
+            "low": [19.2, 18.1, ..., 20.4],
+            "high": [32.0, 30.5, ..., 33.2]
+        }
+    """
     if not is_supported_city(city_id):
         return jsonify({"error": "不支持的城市"}), 400
     try:
@@ -150,7 +219,32 @@ def predict_no2(city_id):
     except Exception as e:
         return jsonify({"error": f"预测失败: {str(e)}"}), 500
 
-# 城市列表接口
 @api_bp.route("/api/cities")
 def get_cities():
+    """
+    获取所有支持的城市列表
+    
+    返回大湾区所有支持预测的城市信息，包括城市ID和中文名称。
+    前端使用此接口获取城市映射关系，用于城市搜索和ID转换。
+    
+    Returns:
+        JSON: 城市信息列表，每个城市包含：
+            - id (str): 城市ID，用于其他API调用
+            - name (str): 城市中文名称
+            
+    HTTP状态码:
+        200: 成功返回城市列表
+        
+    示例:
+        GET /api/cities
+        返回: [
+            {"id": "101280101", "name": "广州"},
+            {"id": "101280601", "name": "深圳"},
+            {"id": "101280800", "name": "佛山"},
+            ...
+        ]
+        
+    支持的城市:
+        广州、深圳、珠海、佛山、惠州、东莞、中山、江门、肇庆、香港特别行政区、澳门特别行政区
+    """
     return jsonify(get_all_cities())
