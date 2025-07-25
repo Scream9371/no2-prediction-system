@@ -137,6 +137,10 @@ def save_scalers_for_pipeline(scalers: Dict, city: str) -> str:
     # 原子性操作：先写临时文件，再重命名
     temp_path = scaler_path + ".tmp"
     joblib.dump(scalers, temp_path)
+    
+    # Windows系统需要先删除目标文件
+    if os.path.exists(scaler_path):
+        os.remove(scaler_path)
     os.rename(temp_path, scaler_path)
     
     return scaler_path
@@ -161,25 +165,12 @@ def save_scalers_for_control(scalers: Dict, city: str) -> str:
     # 原子性操作：先写临时文件，再重命名
     temp_path = scaler_path + ".tmp"
     joblib.dump(scalers, temp_path)
+    
+    # Windows系统需要先删除目标文件
+    if os.path.exists(scaler_path):
+        os.remove(scaler_path)
     os.rename(temp_path, scaler_path)
     
-    return scaler_path
-
-
-def save_scalers(scalers: Dict, cache_dir: str = "data/ml_cache") -> str:
-    """
-    保存标准化器（兼容旧接口）
-    
-    Args:
-        scalers (Dict): 标准化器字典
-        cache_dir (str): 缓存目录
-        
-    Returns:
-        str: 保存路径
-    """
-    os.makedirs(cache_dir, exist_ok=True)
-    scaler_path = os.path.join(cache_dir, "nc_cqr_scalers.pkl")
-    joblib.dump(scalers, scaler_path)
     return scaler_path
 
 
@@ -217,23 +208,6 @@ def load_scalers_for_control(city: str) -> Dict:
     scaler_path = get_control_scaler_path(city)
     if not os.path.exists(scaler_path):
         raise FileNotFoundError(f"控制脚本标准化器文件未找到: {scaler_path}")
-    
-    return joblib.load(scaler_path)
-
-
-def load_scalers(cache_dir: str = "data/ml_cache") -> Dict:
-    """
-    加载标准化器（兼容旧接口）
-    
-    Args:
-        cache_dir (str): 缓存目录
-        
-    Returns:
-        Dict: 标准化器字典
-    """
-    scaler_path = os.path.join(cache_dir, "nc_cqr_scalers.pkl")
-    if not os.path.exists(scaler_path):
-        raise FileNotFoundError(f"标准化器文件未找到: {scaler_path}")
     
     return joblib.load(scaler_path)
 
