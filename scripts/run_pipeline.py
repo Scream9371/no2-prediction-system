@@ -125,8 +125,6 @@ def train_city_with_version_control(city: str, **train_kwargs) -> bool:
     daily_model_path = get_daily_model_path(city, today_str)
     
     try:
-        print(f"开始训练 {city} 模型...")
-        
         # 直接调用训练流程，不预先保存模型
         model, Q, scalers, eval_results = train_full_pipeline(city=city, **train_kwargs)
         
@@ -277,7 +275,7 @@ def show_model_status():
         latest_exists = os.path.exists(latest_path)
         daily_exists = os.path.exists(daily_path)
         
-        status = "✅" if daily_exists else ("⚠️" if latest_exists else "❌")
+        status = "[OK]" if daily_exists else ("[WARN]" if latest_exists else "[FAIL]")
         
         print(f"{status} {city:15} | 今日模型: {'存在' if daily_exists else '不存在':6} | 最新模型: {'存在' if latest_exists else '不存在'}")
 
