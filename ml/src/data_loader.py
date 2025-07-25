@@ -6,6 +6,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 from database.models import (
     GuangzhouNO2Record, ShenzhenNO2Record, ZhuhaiNO2Record, FoshanNO2Record,
     HuizhouNO2Record, DongguanNO2Record, ZhongshanNO2Record, JiangmenNO2Record,
@@ -63,8 +64,13 @@ def load_data_from_mysql(city: str = 'dongguan') -> pd.DataFrame:
         # 获取对应城市的模型类
         model_class = CITY_MODEL_MAP[city]
         
-        # 查询数据
-        query = session.query(model_class).order_by(model_class.observation_time)
+        # 计算30天前的时间点
+        cutoff_time = datetime.now() - timedelta(days=30)
+        
+        # 查询最近30天(720小时)的数据
+        query = session.query(model_class).filter(
+            model_class.observation_time >= cutoff_time
+        ).order_by(model_class.observation_time)
         records = query.all()
         
         if not records:
@@ -84,7 +90,7 @@ def load_data_from_mysql(city: str = 'dongguan') -> pd.DataFrame:
             })
         
         df = pd.DataFrame(data)
-        print(f"成功从数据库加载 {len(df)} 条{city}NO2记录")
+        print(f"成功从数据库加载 {len(df)} 条{city}NO2记录 (30天滑窗)")
         return df
         
     except Exception as e:
