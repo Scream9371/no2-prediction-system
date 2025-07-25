@@ -55,15 +55,15 @@ def predict_mode(city: str = 'dongguan', steps: int = 24, save_chart: bool = Fal
         # 可视化结果
         save_path = None
         if save_chart:
-            project_root = os.path.join(os.path.dirname(__file__), '../../..')
-            save_path = os.path.join(project_root, f"outputs/predictions/{city}_nc_cqr_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
+            from config.paths import BASE_DIR
+            save_path = os.path.join(BASE_DIR, "outputs", "predictions", f"{city}_nc_cqr_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
         
         visualize_predictions(history, predictions, save_path=save_path)
         
         # 导出预测结果
-        project_root = os.path.join(os.path.dirname(__file__), '../../..')
-        csv_path = os.path.join(project_root, f"outputs/predictions/{city}_nc_cqr_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+        from config.paths import BASE_DIR
+        csv_path = os.path.join(BASE_DIR, "outputs", "predictions", f"{city}_nc_cqr_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
         export_predictions_to_csv(predictions, csv_path, city)
         
         print(f"\n=== 预测完成 ===")
@@ -157,11 +157,12 @@ def main():
             learning_rate=args.learning_rate
         )
     elif args.mode == 'predict':
-        success = predict_mode(
+        result = predict_mode(
             city=args.city,
             steps=args.steps,
             save_chart=args.save_chart
         )
+        success = result is not False
     elif args.mode == 'evaluate':
         success = evaluate_mode(city=args.city)
     
