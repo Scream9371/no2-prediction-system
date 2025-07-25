@@ -184,8 +184,8 @@ def predict_no2(city_id):
                 "warning": f"模型文件不存在 ({model_path})，显示的是示例数据。请先训练模型。"
             })
         
-        predictions_df = predict_mode(city=english_city_name, steps=24)
-        
+        predictions_df = predict_mode(city=english_city_name, steps=24, save_chart=True)
+
         # 将DataFrame转换为前端需要的JSON格式
         if predictions_df is not None and hasattr(predictions_df, 'empty') and not predictions_df.empty:
             # 从预测数据中提取实际的时间标签
