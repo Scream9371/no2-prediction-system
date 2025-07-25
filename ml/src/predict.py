@@ -1,18 +1,18 @@
 """
 NC-CQR预测模块 - 未来24小时NO2浓度预测
 """
-import pandas as pd
-import numpy as np
-import torch
-import torch.nn as nn
+import os
 from datetime import timedelta
 from typing import Tuple, Dict
-import os
-import matplotlib.pyplot as plt
-from .train import QuantileNet, load_model
-from .data_loader import get_latest_data
-from .data_processing import load_scalers_for_pipeline, load_scalers_for_control
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+
+from .data_loader import get_latest_data
+from .train import QuantileNet, load_model
 
 # 设置中文显示
 plt.rcParams['font.sans-serif'] = ['SimHei']
