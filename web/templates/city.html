@@ -144,7 +144,7 @@
 
     // 解析URL参数获取城市名
     function getUrlParameter(name) {
-        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        name = name.replace(/\[/, '\\[').replace(/]/, '\\]');
         const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
         const results = regex.exec(location.search);
         return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
@@ -315,9 +315,11 @@
         const ctx = document.getElementById('chartCanvas').getContext('2d');
 
         if (chartInstance) {
+            // @ts-ignore - Chart.js method loaded from CDN
             chartInstance.destroy();
         }
 
+        // @ts-ignore - Chart.js class loaded from CDN
         chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
