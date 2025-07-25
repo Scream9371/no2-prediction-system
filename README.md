@@ -111,17 +111,14 @@ no2-prediction-system/
 - **特征工程与标准化**：[`ml/src/data_processing.py`](ml/src/data_processing.py)
   负责数据清洗、特征提取和标准化，标准化器按城市分离缓存于[`data/ml_cache/scalers/`](data/ml_cache/scalers/)。
 - **模型训练与预测**：
-    - **训练管道**：[`ml/src/train.py`](ml/src/train.py)训练 NC-CQR 模型，[
-      `scripts/run_pipeline.py`](scripts/run_pipeline.py)提供批量训练和版本控制
+    - **训练管道**：[`ml/src/train.py`](ml/src/train.py)训练 NC-CQR 模型，[`scripts/run_pipeline.py`](scripts/run_pipeline.py)提供批量训练和版本控制
     - **控制脚本**：[`ml/src/control.py`](ml/src/control.py)提供独立的训练、预测、评估功能
     - **预测模块**：[`ml/src/predict.py`](ml/src/predict.py)用于预测未来 24 小时 NO₂ 浓度及 95% 置信区间
 - **模型版本控制**：
-    - **训练管道模型**：存储在[`ml/models/daily/`](ml/models/daily/)（按日期版本）和[
-      `ml/models/latest/`](ml/models/latest/)（最新版本链接）
-    - **控制脚本模型**：存储在[`outputs/models/`](outputs/models/)
+    - **训练管道模型**：存储在`ml/models/daily/`（按日期版本）和`ml/models/latest/`（最新版本链接）
+    - **控制脚本模型**：存储在`outputs/models/`
 - **模型评估**：[`ml/src/evaluate.py`](ml/src/evaluate.py)评估预测准确率和置信区间覆盖率。
-- **前端可视化**：[`web/app.py`](web/app.py)为 Flask 主程序，[`web/routes/`](web/routes/)
-  定义路由，前端使用 Chart.js 生成预测折线图，支持城市背景图片和健康建议，前端页面见[`web/templates/`](web/templates/)。
+- **前端可视化**：[`web/app.py`](web/app.py)为 Flask 主程序，[`web/routes/`](web/routes/)定义路由，前端使用 Chart.js 生成预测折线图，支持城市背景图片和健康建议，前端页面见[`web/templates/`](web/templates/)。
 - **工具函数**：[`utils/auth.py`](utils/auth.py)提供认证相关工具函数。
 
 ## 4. 使用方法
