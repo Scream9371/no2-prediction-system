@@ -1,13 +1,14 @@
 """
 NC-CQR模型训练模块
 """
+import os
+from typing import Tuple, Dict
+
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.model_selection import train_test_split
-from typing import Tuple, Dict
-import os
+
 from .data_loader import load_data_from_mysql
 from .data_processing import prepare_nc_cqr_data, save_scalers_for_pipeline
 
