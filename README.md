@@ -102,7 +102,7 @@ no2-prediction-system/
 ## 3. 实现说明
 
 - **API采集**：[`api/heweather/client.py`](api/heweather/client.py)
-  定义获取城市ID和历史十天天气及空气质量数据的 API 客户端，支持 JWT 认证，密钥等配置在[`.env`](.env)。
+  定义获取城市ID和历史十天天气及空气质量数据的 API 客户端，支持 JWT 认证，密钥等配置在`.env`。
 - **数据入库**：采集到的数据通过[`database/crud.py`](database/crud.py)写入数据库，结构定义见[
   `database/models.py`](database/models.py)，支持 11 个城市的分表存储。
 - **数据采集**：[`api/schedules/data_collector.py`](api/schedules/data_collector.py)采集过去十天的历史数据，支持防重复插入机制。
@@ -154,7 +154,7 @@ no2-prediction-system/
    ```bash
    python  -m scripts.setup_database
    ```
-   > 注意！此操作会清除数据库中所有数据表以重新创建，你的数据库中的所有数据会被清除，若你的数据库中已经存有历史的NO₂数据，建议在执行此操作前先对原数据进行备份。备份操作参见[其他说明](#5-其他说明)。
+   > 注意！此操作会清除数据库中所有数据表以重新创建，你的数据库中的所有数据会被清除，若你的数据库中已经存有历史的 NO₂ 数据，建议在执行此操作前先对原数据进行备份。备份操作参见[其他说明](#5-其他说明)。
 
 5. **采集历史数据**
    ```bash
@@ -238,6 +238,6 @@ no2-prediction-system/
     - **训练管道**：模型存储在`ml/models/daily/`（按日期版本）和`ml/models/latest/`（最新版本），标准化器缓存于
       `data/ml_cache/scalers/`
     - **控制脚本**：模型存储在`outputs/models/`，专用缓存在`outputs/ml_cache/`，预测结果保存在`outputs/predictions/`
-    - **数据备份**：数据库备份自动保存在`data/backup/`目录，按城市分离
+    - **数据备份**：数据库备份自动保存在[`data/backup`](data/backup)目录，按城市分离
     > 上述目录会在执行脚本后自动创建，不会被版本追踪。
 - **可扩展性**：支持添加新城市、切换模型、调整预测区间等。
