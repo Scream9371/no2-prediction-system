@@ -6,13 +6,11 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 # 训练管道缓存目录 (scripts/run_pipeline.py)
 ML_CACHE_DIR = os.path.join(DATA_DIR, "ml_cache")
 PIPELINE_SCALERS_DIR = os.path.join(ML_CACHE_DIR, "scalers")
-PIPELINE_FEATURES_DIR = os.path.join(ML_CACHE_DIR, "features")
 
 # 控制脚本缓存目录 (ml/src/control.py)
 OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs")
 CONTROL_CACHE_DIR = os.path.join(OUTPUTS_DIR, "ml_cache")
 CONTROL_SCALERS_DIR = os.path.join(CONTROL_CACHE_DIR, "scalers")
-CONTROL_FEATURES_DIR = os.path.join(CONTROL_CACHE_DIR, "features")
 CONTROL_MODELS_DIR = os.path.join(OUTPUTS_DIR, "models")
 
 # 训练管道模型目录
@@ -21,7 +19,6 @@ DAILY_MODELS_DIR = os.path.join(MODELS_DIR, "daily")
 LATEST_MODELS_DIR = os.path.join(MODELS_DIR, "latest")
 
 # 其他目录
-EXTERNAL_DATA_DIR = os.path.join(DATA_DIR, "external")
 BACKUP_DIR = os.path.join(DATA_DIR, "backup")
 
 
@@ -97,13 +94,12 @@ def ensure_directories():
     """
     directories = [
         # 训练管道目录
-        ML_CACHE_DIR, PIPELINE_SCALERS_DIR, PIPELINE_FEATURES_DIR,
+        ML_CACHE_DIR, PIPELINE_SCALERS_DIR,
         MODELS_DIR, DAILY_MODELS_DIR, LATEST_MODELS_DIR,
         # 控制脚本目录
-        OUTPUTS_DIR, CONTROL_CACHE_DIR, CONTROL_SCALERS_DIR, 
-        CONTROL_FEATURES_DIR, CONTROL_MODELS_DIR,
+        OUTPUTS_DIR, CONTROL_CACHE_DIR, CONTROL_SCALERS_DIR, CONTROL_MODELS_DIR,
         # 其他目录
-        EXTERNAL_DATA_DIR, BACKUP_DIR
+        BACKUP_DIR
     ]
     
     for directory in directories:
