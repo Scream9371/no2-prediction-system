@@ -119,10 +119,9 @@ def predict_no2(city_id):
         
         # 将DataFrame转换为前端需要的JSON格式
         if predictions_df is not None and hasattr(predictions_df, 'empty') and not predictions_df.empty:
-            # 生成时间标签（未来24小时）
-            import datetime
-            current_time = datetime.datetime.now()
-            times = [(current_time + datetime.timedelta(hours=i)).strftime("%H:%M") for i in range(24)]
+            # 从预测数据中提取实际的时间标签
+            import pandas as pd
+            times = [pd.to_datetime(t).strftime("%H:%M") for t in predictions_df['observation_time'].tolist()[:24]]
             
             # 提取预测数据
             values = predictions_df['prediction'].tolist()[:24]
@@ -131,6 +130,10 @@ def predict_no2(city_id):
             
             current_value = values[0] if values else 0
             avg_value = sum(values) / len(values) if values else 0
+            
+            # 获取当前时间作为更新时间
+            import datetime
+            current_time = datetime.datetime.now()
             
             return jsonify({
                 "updateTime": current_time.strftime("%Y-%m-%d %H:%M"),
