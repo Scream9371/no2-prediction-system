@@ -5,7 +5,12 @@
     <title>城市NO₂浓度详情</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: "Microsoft YaHei", sans-serif;
             background-size: cover;
@@ -18,7 +23,7 @@
             align-items: center;
             padding: 2rem 0;
         }
-        
+
         .card {
             width: 90%;
             max-width: 1000px;
@@ -26,14 +31,14 @@
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
             text-align: center;
         }
-        
+
         .header {
             margin-bottom: 2rem;
         }
-        
+
         .back-btn {
             position: absolute;
             top: 2rem;
@@ -45,40 +50,40 @@
             color: #333;
             transition: background 0.3s;
         }
-        
+
         .back-btn:hover {
             background: rgba(255, 255, 255, 0.9);
         }
-        
+
         .stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
             margin: 2rem 0;
         }
-        
+
         .stat-card {
             background: rgba(255, 255, 255, 0.3);
             padding: 1.5rem;
             border-radius: 8px;
         }
-        
+
         .stat-value {
             font-size: 2rem;
             font-weight: bold;
             margin-bottom: 0.5rem;
         }
-        
+
         .stat-label {
             color: #555;
         }
-        
+
         #chartCanvas {
             width: 100%;
             height: 400px;
             margin: 2rem 0;
         }
-        
+
         .recommendations {
             text-align: left;
             background: rgba(255, 255, 255, 0.3);
@@ -86,336 +91,334 @@
             border-radius: 8px;
             margin-top: 2rem;
         }
-        
+
         .recommendations h3 {
             margin-bottom: 1rem;
         }
-        
+
         .recommendations ul {
             list-style-position: inside;
         }
-        
+
         .recommendations li {
             margin-bottom: 0.5rem;
         }
     </style>
 </head>
 <body>
-    <a href="/" class="back-btn">返回首页</a>
-    
-    <div class="card">
-        <div class="header">
-            <h1 id="cityName">城市名称</h1>
-            <p id="updateTime">更新时间：2023-01-01 12:00</p>
+<a href="/" class="back-btn">返回首页</a>
+
+<div class="card">
+    <div class="header">
+        <h1 id="cityName">城市名称</h1>
+        <p id="updateTime">更新时间：2023-01-01 12:00</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-value" id="currentValue">-</div>
+            <div class="stat-label">当前NO₂浓度 (μg/m³)</div>
         </div>
-        
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-value" id="currentValue">-</div>
-                <div class="stat-label">当前NO₂浓度 (μg/m³)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="avgValue">-</div>
-                <div class="stat-label">24小时平均浓度 (μg/m³)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="qualityLevel">-</div>
-                <div class="stat-label">空气质量等级</div>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" id="avgValue">-</div>
+            <div class="stat-label">24小时平均浓度 (μg/m³)</div>
         </div>
-        
-        <canvas id="chartCanvas"></canvas>
-        
-        <div class="recommendations">
-            <h3>健康建议</h3>
-            <ul id="recommendationsList">
-                <!-- 动态生成内容 -->
-            </ul>
+        <div class="stat-card">
+            <div class="stat-value" id="qualityLevel">-</div>
+            <div class="stat-label">空气质量等级</div>
         </div>
     </div>
 
-    <script>
-        let chartInstance = null;
-        
-        // 解析URL参数获取城市名
-        function getUrlParameter(name) {
-            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-            const results = regex.exec(location.search);
-            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-        }
-        
-        // 获取空气质量等级和建议
-        function getAirQualityInfo(value) {
-            if (value < 40) {
-                return {
-                    level: '优',
-                    color: 'green',
-                    recommendations: [
-                        '空气质量令人满意，基本无空气污染',
-                        '各类人群可正常活动'
-                    ]
-                };
-            } else if (value < 80) {
-                return {
-                    level: '良',
-                    color: 'yellow',
-                    recommendations: [
-                        '空气质量可接受，但某些污染物可能对极少数异常敏感人群健康有较弱影响',
-                        '极少数异常敏感人群应减少户外活动'
-                    ]
-                };
-            } else if (value < 180) {
-                return {
-                    level: '轻度污染',
-                    color: 'orange',
-                    recommendations: [
-                        '易感人群症状有轻度加剧，健康人群出现刺激症状',
-                        '儿童、老年人及心脏病、呼吸系统疾病患者应减少长时间、高强度的户外锻炼'
-                    ]
-                };
-            } else if (value < 280) {
-                return {
-                    level: '中度污染',
-                    color: 'red',
-                    recommendations: [
-                        '进一步加剧易感人群症状，可能对健康人群心脏、呼吸系统有影响',
-                        '儿童、老年人及心脏病、呼吸系统疾病患者避免长时间、高强度的户外锻炼，一般人群适量减少户外运动'
-                    ]
-                };
-            } else {
-                return {
-                    level: '重度污染',
-                    color: 'purple',
-                    recommendations: [
-                        '心脏病和肺病患者症状显著加剧，运动耐受力降低，健康人群普遍出现症状',
-                        '儿童、老年人和心脏病、肺病患者应停留在室内，停止户外运动，一般人群减少户外运动'
-                    ]
-                };
-            }
-        }
-        
-        // 城市背景图片映射
-        function getCityBackgroundImage(city) {
-    const cityImages = {
-        '广州': 'https://images.unsplash.com/photo-1544594376-0a9a6ae2c997?q=80&w=1803&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-        '深圳': 'https://images.unsplash.com/photo-1609515602438-31b5b4362d52?q=80&w=2069&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-        '珠海': 'https://images.unsplash.com/photo-1666960325075-2dd9a901423c?q=80&w=1932&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-        '佛山': '/static/images/foshan.png',
-        '惠州': '/static/images/huizhou.png', 
-        '东莞': '/static/images/dongguan.png',
-        '中山': '/static/images/zhongshan.jpg',
-        '江门': '/static/images/jiangmen.jpg',
-        '肇庆': '/static/images/zhaoqing.png',
-        '香港特别行政区': 'https://plus.unsplash.com/premium_photo-1661887277173-f996f36b8fb2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-        '澳门特别行政区': 'https://images.unsplash.com/photo-1675102128521-b4ab17e003b0?q=80&w=1090&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
-    };
-    
-    const normalizedCityNames = {
-        '广州': '广州',
-        '广州市': '广州',
-        '深圳': '深圳',
-        '深圳市': '深圳',
-        '珠海': '珠海',
-        '珠海市': '珠海',
-        '佛山': '佛山',
-        '佛山市': '佛山',
-        '惠州': '惠州',
-        '惠州市': '惠州',
-        '东莞': '东莞',
-        '东莞市': '东莞',
-        '中山': '中山',
-        '中山市': '中山',
-        '江门': '江门',
-        '江门市': '江门',
-        '肇庆': '肇庆',
-        '肇庆市': '肇庆',
-        '香港': '香港特别行政区',
-        '香港特别行政区': '香港特别行政区',
-        '澳门': '澳门特别行政区',
-        '澳门特别行政区': '澳门特别行政区'
-    };
-    
-    const normalizedCity = normalizedCityNames[city] || city;
-    
-    if (cityImages[normalizedCity]) {
-        return cityImages[normalizedCity];
+    <canvas id="chartCanvas"></canvas>
+
+    <div class="recommendations">
+        <h3>健康建议</h3>
+        <ul id="recommendationsList">
+            <!-- 动态生成内容 -->
+        </ul>
+    </div>
+</div>
+
+<script>
+    let chartInstance = null;
+
+    // 解析URL参数获取城市名
+    function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        const results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
     }
-    
-    return 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920';
-}
-        
-        // 从后端API获取数据，利用统一的城市映射
-        async function fetchCityData(city) {
-            try {
-                // 获取统一的城市映射（从后端接口）
-                const citiesResponse = await fetch('/api/cities');
-                const cities = await citiesResponse.json();
-                
-                // 使用后端统一的城市映射查找匹配的城市
-                // 支持多种匹配方式：完整名称匹配、部分匹配等
-                const cityInfo = cities.find(item => {
-                    // 精确匹配
-                    if (item.name === city) return true;
-                    
-                    // 支持带"市"后缀的匹配：如"东莞市" 匹配 "东莞"
-                    if (city.endsWith('市') && item.name === city.slice(0, -1)) return true;
-                    if (city.endsWith('特别行政区') && item.name === city.slice(0, -5)) return true;
-                    
-                    // 支持不带后缀的匹配：如"东莞" 匹配 "东莞市" （虽然后端应该是标准格式）
-                    if (item.name.endsWith('市') && item.name.slice(0, -1) === city) return true;
-                    if (item.name.endsWith('特别行政区') && item.name.slice(0, -5) === city) return true;
-                    
-                    return false;
-                });
-                
-                if (!cityInfo) {
-                    throw new Error(`未找到城市${city}的ID`);
-                }
 
-                // 获取城市NO2预测数据
-                const response = await fetch(`/api/predict/no2/${cityInfo.id}`);
-                if (!response.ok) {
-                    throw new Error('预测数据获取失败');
-                }
-                const data = await response.json();
-                
-                // 检查是否有警告信息
-                if (data.warning) {
-                    console.warn('预测数据警告:', data.warning);
-                    // 在页面上显示警告
-                    const warningElement = document.createElement('div');
-                    warningElement.style.cssText = 'background: rgba(255, 193, 7, 0.8); color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 14px;';
-                    warningElement.innerHTML = `⚠️ <strong>警告：</strong>${data.warning}`;
-                    document.querySelector('.card').insertBefore(warningElement, document.querySelector('.header'));
-                }
-                
-                return {
-                    city: city,
-                    updateTime: data.updateTime,
-                    currentValue: data.currentValue,
-                    avgValue: data.avgValue,
-                    times: data.times,
-                    values: data.values,
-                    low: data.low,
-                    high: data.high,
-                    airQuality: getAirQualityInfo(data.currentValue)
-                };
-            } catch (error) {
-                console.error('数据获取失败:', error);
-                throw error;
-            }
+    // 获取空气质量等级和建议
+    function getAirQualityInfo(value) {
+        if (value < 40) {
+            return {
+                level: '优',
+                color: 'green',
+                recommendations: [
+                    '空气质量令人满意，基本无空气污染',
+                    '各类人群可正常活动'
+                ]
+            };
+        } else if (value < 80) {
+            return {
+                level: '良',
+                color: 'yellow',
+                recommendations: [
+                    '空气质量可接受，但某些污染物可能对极少数异常敏感人群健康有较弱影响',
+                    '极少数异常敏感人群应减少户外活动'
+                ]
+            };
+        } else if (value < 180) {
+            return {
+                level: '轻度污染',
+                color: 'orange',
+                recommendations: [
+                    '易感人群症状有轻度加剧，健康人群出现刺激症状',
+                    '儿童、老年人及心脏病、呼吸系统疾病患者应减少长时间、高强度的户外锻炼'
+                ]
+            };
+        } else if (value < 280) {
+            return {
+                level: '中度污染',
+                color: 'red',
+                recommendations: [
+                    '进一步加剧易感人群症状，可能对健康人群心脏、呼吸系统有影响',
+                    '儿童、老年人及心脏病、呼吸系统疾病患者避免长时间、高强度的户外锻炼，一般人群适量减少户外运动'
+                ]
+            };
+        } else {
+            return {
+                level: '重度污染',
+                color: 'purple',
+                recommendations: [
+                    '心脏病和肺病患者症状显著加剧，运动耐受力降低，健康人群普遍出现症状',
+                    '儿童、老年人和心脏病、肺病患者应停留在室内，停止户外运动，一般人群减少户外运动'
+                ]
+            };
+        }
+    }
+
+    // 城市背景图片映射
+    function getCityBackgroundImage(city) {
+        const cityImages = {
+            '广州': 'https://images.unsplash.com/photo-1544594376-0a9a6ae2c997?q=80&w=1803&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            '深圳': 'https://images.unsplash.com/photo-1609515602438-31b5b4362d52?q=80&w=2069&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            '珠海': 'https://images.unsplash.com/photo-1666960325075-2dd9a901423c?q=80&w=1932&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            '佛山': '/static/images/foshan.png',
+            '惠州': '/static/images/huizhou.png',
+            '东莞': '/static/images/dongguan.png',
+            '中山': '/static/images/zhongshan.jpg',
+            '江门': '/static/images/jiangmen.jpg',
+            '肇庆': '/static/images/zhaoqing.png',
+            '香港特别行政区': 'https://plus.unsplash.com/premium_photo-1661887277173-f996f36b8fb2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            '澳门特别行政区': 'https://images.unsplash.com/photo-1675102128521-b4ab17e003b0?q=80&w=1090&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+        };
+
+        const normalizedCityNames = {
+            '广州': '广州',
+            '广州市': '广州',
+            '深圳': '深圳',
+            '深圳市': '深圳',
+            '珠海': '珠海',
+            '珠海市': '珠海',
+            '佛山': '佛山',
+            '佛山市': '佛山',
+            '惠州': '惠州',
+            '惠州市': '惠州',
+            '东莞': '东莞',
+            '东莞市': '东莞',
+            '中山': '中山',
+            '中山市': '中山',
+            '江门': '江门',
+            '江门市': '江门',
+            '肇庆': '肇庆',
+            '肇庆市': '肇庆',
+            '香港': '香港特别行政区',
+            '香港特别行政区': '香港特别行政区',
+            '澳门': '澳门特别行政区',
+            '澳门特别行政区': '澳门特别行政区'
+        };
+
+        const normalizedCity = normalizedCityNames[city] || city;
+
+        if (cityImages[normalizedCity]) {
+            return cityImages[normalizedCity];
         }
 
-        // 渲染图表
-        function renderChart(data) {
-            const ctx = document.getElementById('chartCanvas').getContext('2d');
-            
-            if (chartInstance) {
-                chartInstance.destroy();
+        return 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920';
+    }
+
+    // 从后端API获取数据，利用统一的城市映射
+    async function fetchCityData(city) {
+        try {
+            // 获取统一的城市映射（从后端接口）
+            const citiesResponse = await fetch('/api/cities');
+            const cities = await citiesResponse.json();
+
+            // 使用后端统一的城市映射查找匹配的城市
+            // 支持多种匹配方式：完整名称匹配、部分匹配等
+            const cityInfo = cities.find(item => {
+                // 精确匹配
+                if (item.name === city) return true;
+
+                // 支持带"市"后缀的匹配：如"东莞市" 匹配 "东莞"
+                if (city.endsWith('市') && item.name === city.slice(0, -1)) return true;
+                if (city.endsWith('特别行政区') && item.name === city.slice(0, -5)) return true;
+
+                // 支持不带后缀的匹配：如"东莞" 匹配 "东莞市" （虽然后端应该是标准格式）
+                if (item.name.endsWith('市') && item.name.slice(0, -1) === city) return true;
+                return item.name.endsWith('特别行政区') && item.name.slice(0, -5) === city;
+            });
+
+            if (!cityInfo) {
+                throw new Error(`未找到城市${city}的ID`);
             }
-            
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.times,
-                    datasets: [
-                        {
-                            label: 'NO₂浓度 (μg/m³)',
-                            data: data.values,
-                            borderColor: 'rgba(33, 150, 243, 1)',
-                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                            fill: false,
-                            tension: 0.3,
-                            pointRadius: 5,
-                            pointBackgroundColor: 'white',
-                            pointBorderColor: 'rgba(33, 150, 243, 1)'
-                        },
-                        {
-                            label: '预测区间下限',
-                            data: data.low,
-                            borderColor: 'rgba(255, 152, 0, 0.2)',
-                            backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                            fill: true,
-                            borderDash: [5, 5],
-                            tension: 0.3,
-                            pointRadius: 0,
-                            order: 1
-                        },
-                        {
-                            label: '预测区间上限',
-                            data: data.high,
-                            borderColor: 'rgba(255, 152, 0, 0.2)',
-                            backgroundColor: 'transparent',
-                            borderDash: [5, 5],
-                            tension: 0.3,
-                            pointRadius: 0,
-                            order: 2
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'NO₂浓度（μg/m³）' },
-                            grid: { color: '#eee' }
-                        },
-                        x: {
-                            title: { display: true, text: '时间' },
-                            grid: { display: false },
-                            ticks: {
-                                maxTicksLimit: 12 // 限制X轴标签数量
-                            }
-                        }
+
+            // 获取城市NO2预测数据
+            const response = await fetch(`/api/predict/no2/${cityInfo.id}`);
+            if (!response.ok) {
+                throw new Error('预测数据获取失败');
+            }
+            const data = await response.json();
+
+            // 检查是否有警告信息
+            if (data.warning) {
+                console.warn('预测数据警告:', data.warning);
+                // 在页面上显示警告
+                const warningElement = document.createElement('div');
+                warningElement.style.cssText = 'background: rgba(255, 193, 7, 0.8); color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 14px;';
+                warningElement.innerHTML = `⚠️ <strong>警告：</strong>${data.warning}`;
+                document.querySelector('.card').insertBefore(warningElement, document.querySelector('.header'));
+            }
+
+            return {
+                city: city,
+                updateTime: data.updateTime,
+                currentValue: data.currentValue,
+                avgValue: data.avgValue,
+                times: data.times,
+                values: data.values,
+                low: data.low,
+                high: data.high,
+                airQuality: getAirQualityInfo(data.currentValue)
+            };
+        } catch (error) {
+            console.error('数据获取失败:', error);
+            throw error;
+        }
+    }
+
+    // 渲染图表
+    function renderChart(data) {
+        const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.times,
+                datasets: [
+                    {
+                        label: 'NO₂浓度 (μg/m³)',
+                        data: data.values,
+                        borderColor: 'rgba(33, 150, 243, 1)',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: 'white',
+                        pointBorderColor: 'rgba(33, 150, 243, 1)'
                     },
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
+                    {
+                        label: '预测区间下限',
+                        data: data.low,
+                        borderColor: 'rgba(255, 152, 0, 0.2)',
+                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        fill: true,
+                        borderDash: [5, 5],
+                        tension: 0.3,
+                        pointRadius: 0,
+                        order: 1
+                    },
+                    {
+                        label: '预测区间上限',
+                        data: data.high,
+                        borderColor: 'rgba(255, 152, 0, 0.2)',
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        tension: 0.3,
+                        pointRadius: 0,
+                        order: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {display: true, text: 'NO₂浓度（μg/m³）'},
+                        grid: {color: '#eee'}
+                    },
+                    x: {
+                        title: {display: true, text: '时间'},
+                        grid: {display: false},
+                        ticks: {
+                            maxTicksLimit: 12 // 限制X轴标签数量
                         }
                     }
+                },
+                plugins: {
+                    legend: {position: 'top'},
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
                 }
-            });
-        }
-        
-        // 页面加载时执行
-        window.addEventListener('load', async() => {
-            const city = getUrlParameter('city') || '广州';
-            
-            // 设置城市背景图片
-            document.body.style.backgroundImage = `url('${getCityBackgroundImage(city)}')`;
-            
-            // 从后端API调取数据
-            try {
-        // 调用真实接口获取数据（替换模拟数据）
-        const realData = await fetchCityData(city); 
-        // 更新页面内容（与原逻辑一致）
-        document.getElementById('cityName').textContent = `${realData.city} NO₂浓度详情`;
-        document.getElementById('updateTime').textContent = `更新时间：${realData.updateTime}`;
-        document.getElementById('currentValue').textContent = realData.currentValue;
-        document.getElementById('avgValue').textContent = realData.avgValue;
-        document.getElementById('qualityLevel').textContent = realData.airQuality.level;
-        document.getElementById('qualityLevel').style.color = realData.airQuality.color;
-        
-        // 渲染健康建议
-        const recommendationsList = document.getElementById('recommendationsList');
-        recommendationsList.innerHTML = '';
-        realData.airQuality.recommendations.forEach(rec => {
-            const li = document.createElement('li');
-            li.textContent = rec;
-            recommendationsList.appendChild(li);
+            }
         });
-        
-        // 渲染图表
-        renderChart(realData);
-    } catch (error) {
-        console.error('数据加载失败:', error);
-        alert('无法获取城市数据，请稍后重试');
     }
-        });
-    </script>
+
+    // 页面加载时执行
+    window.addEventListener('load', async () => {
+        const city = getUrlParameter('city') || '广州';
+
+        // 设置城市背景图片
+        document.body.style.backgroundImage = `url('${getCityBackgroundImage(city)}')`;
+
+        // 从后端API调取数据
+        try {
+            // 调用真实接口获取数据（替换模拟数据）
+            const realData = await fetchCityData(city);
+            // 更新页面内容（与原逻辑一致）
+            document.getElementById('cityName').textContent = `${realData.city} NO₂浓度详情`;
+            document.getElementById('updateTime').textContent = `更新时间：${realData.updateTime}`;
+            document.getElementById('currentValue').textContent = realData.currentValue;
+            document.getElementById('avgValue').textContent = realData.avgValue;
+            document.getElementById('qualityLevel').textContent = realData.airQuality.level;
+            document.getElementById('qualityLevel').style.color = realData.airQuality.color;
+
+            // 渲染健康建议
+            const recommendationsList = document.getElementById('recommendationsList');
+            recommendationsList.innerHTML = '';
+            realData.airQuality.recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.textContent = rec;
+                recommendationsList.appendChild(li);
+            });
+
+            // 渲染图表
+            renderChart(realData);
+        } catch (error) {
+            console.error('数据加载失败:', error);
+            alert('无法获取城市数据，请稍后重试');
+        }
+    });
+</script>
 </body>
 </html>
