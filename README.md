@@ -80,10 +80,6 @@ no2-prediction-system/
 │   │   ├── images.png
 │   │   ├── index.html     #主页模板
 │   │   └── city.html
-│   └── utils/
-│       ├── __init__.py
-│       ├── visualization.py
-│       └── data_fetcher.py
 │
 ├── scripts/
 │   ├── setup_database.py
@@ -112,7 +108,7 @@ no2-prediction-system/
 - **特征工程与标准化**：[`ml/src/data_processing.py`](ml/src/data_processing.py)负责数据清洗、特征提取和标准化，标准化器缓存于[`data/ml_cache`](data/ml_cache)。
 - **模型训练与预测**：[`ml/src/train.py`](ml/src/train.py)训练模型，[`ml/src/predict.py`](ml/src/predict.py)用于预测未来24小时NO₂浓度及置信区间。
 - **模型评估**：[`ml/src/evaluate.py`](ml/src/evaluate.py)评估预测准确率。
-- **前端可视化**：[`web/app.py`](web/app.py)为Flask主程序，[`web/routes`](web/routes)定义路由，[`web/utils/visualization.py`](web/utils/visualization.py)生成预测折线图，前端页面见[`web/templates`](web/templates)。
+- **前端可视化**：[`web/app.py`](web/app.py)为Flask主程序，[`web/routes`](web/routes)定义路由，前端使用Chart.js生成预测折线图，前端页面见[`web/templates`](web/templates)。
 
 ## 4. 使用方法
 
