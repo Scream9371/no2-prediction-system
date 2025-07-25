@@ -5,6 +5,8 @@ import os
 from datetime import timedelta
 from typing import Tuple, Dict
 
+import matplotlib
+matplotlib.use('Agg')  # 设置非交互式后端，用于Web应用
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
