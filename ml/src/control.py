@@ -52,18 +52,20 @@ def predict_mode(city: str = 'dongguan', steps: int = 24, save_chart: bool = Fal
         # 获取历史数据用于可视化（使用数据库中所有240小时数据）
         history = load_data_from_mysql(city)
         
+        # 生成统一的时间戳，用于图像和CSV文件
+        from config.paths import get_control_prediction_image_path, get_control_prediction_csv_path, ensure_directories
+        ensure_directories()
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
         # 可视化结果
         save_path = None
         if save_chart:
-            from config.paths import BASE_DIR
-            save_path = os.path.join(BASE_DIR, "outputs", "predictions", f"{city}_nc_cqr_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            save_path = get_control_prediction_image_path(city, timestamp)
         
         visualize_predictions(history, predictions, save_path=save_path)
         
         # 导出预测结果
-        from config.paths import BASE_DIR
-        csv_path = os.path.join(BASE_DIR, "outputs", "predictions", f"{city}_nc_cqr_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+        csv_path = get_control_prediction_csv_path(city, timestamp)
         export_predictions_to_csv(predictions, csv_path, city)
         
         print(f"\n=== 预测完成 ===")
