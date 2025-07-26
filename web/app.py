@@ -1,5 +1,5 @@
 import os
-import sys
+
 from flask import Flask
 
 from config.cities import init_city_mappings
