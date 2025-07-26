@@ -101,10 +101,8 @@ no2-prediction-system/
 
 ## 3. 实现说明
 
-- **API采集**：[`api/heweather/client.py`](api/heweather/client.py)
-  定义获取城市ID和历史十天天气及空气质量数据的 API 客户端，支持 JWT 认证，密钥等配置在`.env`。
-- **数据入库**：采集到的数据通过[`database/crud.py`](database/crud.py)写入数据库，结构定义见[
-  `database/models.py`](database/models.py)，支持 11 个城市的分表存储。
+- **API采集**：[`api/heweather/client.py`](api/heweather/client.py)定义获取城市ID和历史十天天气及空气质量数据的 API 客户端，支持 JWT 认证，密钥等配置在`.env`。
+- **数据入库**：采集到的数据通过[`database/crud.py`](database/crud.py)写入数据库，结构定义见[`database/models.py`](database/models.py)，支持 11 个城市的分表存储。
 - **数据采集**：[`api/schedules/data_collector.py`](api/schedules/data_collector.py)采集过去十天的历史数据，支持防重复插入机制。
 - **城市配置**：[`config/cities.py`](config/cities.py)管理城市 ID 映射和配置，[`config/paths.py`](config/paths.py)定义项目路径常量。
 - **数据加载**：[`ml/src/data_loader.py`](ml/src/data_loader.py)负责从数据库加载数据，使用 30 天滑动窗口（720 小时）获取训练数据。
@@ -194,8 +192,8 @@ no2-prediction-system/
     - **访问方式**
       打开浏览器访问[http://127.0.0.1:5000](http://127.0.0.1:5000)即可使用系统，操作流程如下：
         - 在搜索框输入城市名（如"广州"、"深圳"），从下拉列表选择目标城市
-        - 系统将自动加载并展示该城市未来24小时的NO₂浓度预测结果
-        - 图表中包含预测值曲线和95%置信区间
+        - 系统将自动加载并展示该城市未来 24 小时的 NO₂ 浓度预测结果
+        - 图表中包含预测值曲线和 95% 置信区间
 
     - **Web系统功能说明**
         - 城市搜索：支持模糊查询，快速定位大湾区城市
