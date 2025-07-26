@@ -136,7 +136,7 @@ no2-prediction-system/
        HF_PRIVATE_KEY_FILE=ed25519-private.pem  # ed25519私钥路径，放在根目录
        HF_PROJECT_ID=your_project_id  # 和风天气项目ID
        HF_KEY_ID=your_credential_id  # 和风天气凭据ID
-       DATABASE_URL=mysql+pymysql://<username>:<your_password>.@localhost:3306/<database>  # MySQL数据库地址
+       DATABASE_URL=mysql+pymysql://<username>:<your_password>@localhost:3306/<database>  # MySQL数据库地址
        BACKEND_BASE_URL=http://localhost:5000  # 本地开发环境 
        ```
 
