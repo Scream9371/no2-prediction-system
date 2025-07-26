@@ -33,6 +33,11 @@ def init_city_mappings():
     """
     global _city_id_cache, _name_to_id_cache
     
+    # 检查是否已经初始化过，避免重复执行
+    if _city_id_cache and _name_to_id_cache:
+        print(f"城市映射已初始化 ({len(_city_id_cache)} 个城市)，跳过重复初始化")
+        return True
+    
     try:
         from api.heweather.client import HeWeatherClient
         client = HeWeatherClient()
