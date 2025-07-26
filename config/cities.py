@@ -2,6 +2,9 @@
 城市配置模块
 动态管理大湾区城市ID和名称的映射关系
 """
+import os
+import json
+import tempfile
 
 # 大湾区城市名称列表
 GREATER_BAY_AREA_CITIES = [
@@ -22,6 +25,38 @@ GREATER_BAY_AREA_CITIES = [
 _city_id_cache = {}
 _name_to_id_cache = {}
 
+# 缓存文件路径
+_CACHE_FILE = os.path.join(tempfile.gettempdir(), 'no2_city_mappings.json')
+
+
+def _load_cache_from_file():
+    """从文件加载缓存"""
+    global _city_id_cache, _name_to_id_cache
+    
+    if os.path.exists(_CACHE_FILE):
+        try:
+            with open(_CACHE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                _city_id_cache = data.get('city_id_cache', {})
+                _name_to_id_cache = data.get('name_to_id_cache', {})
+                return True
+        except Exception as e:
+            print(f"加载城市映射缓存失败: {e}")
+    return False
+
+
+def _save_cache_to_file():
+    """保存缓存到文件"""
+    try:
+        data = {
+            'city_id_cache': _city_id_cache,
+            'name_to_id_cache': _name_to_id_cache
+        }
+        with open(_CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"保存城市映射缓存失败: {e}")
+
 
 def init_city_mappings():
     """
@@ -33,11 +68,17 @@ def init_city_mappings():
     """
     global _city_id_cache, _name_to_id_cache
     
-    # 检查是否已经初始化过，避免重复执行
-    if _city_id_cache and _name_to_id_cache:
-        print(f"城市映射已初始化 ({len(_city_id_cache)} 个城市)，跳过重复初始化")
+    # 先尝试从文件加载缓存
+    if _load_cache_from_file() and _city_id_cache and _name_to_id_cache:
+        print(f"从缓存加载城市映射 ({len(_city_id_cache)} 个城市)")
         return True
     
+    # 检查内存中是否已经初始化过
+    if _city_id_cache and _name_to_id_cache:
+        print(f"城市映射已在内存中初始化 ({len(_city_id_cache)} 个城市)")
+        return True
+    
+    print("正在初始化城市映射...")
     try:
         from api.heweather.client import HeWeatherClient
         client = HeWeatherClient()
@@ -52,6 +93,10 @@ def init_city_mappings():
                 return False
                 
         print(f"成功初始化 {len(_city_id_cache)} 个城市的映射关系")
+        
+        # 保存缓存到文件
+        _save_cache_to_file()
+        
         return True
         
     except Exception as e:
