@@ -24,6 +24,9 @@ BACKUP_DIR = os.path.join(DATA_DIR, "backup")
 # Web API 预测文件目录
 WEB_PREDICTIONS_DIR = os.path.join(DATA_DIR, "predictions")
 
+# 控制脚本预测文件目录
+CONTROL_PREDICTIONS_DIR = os.path.join(OUTPUTS_DIR, "predictions")
+
 
 def get_pipeline_scaler_path(city: str) -> str:
     """
@@ -160,7 +163,7 @@ def ensure_directories():
         # 控制脚本目录
         OUTPUTS_DIR, CONTROL_CACHE_DIR, CONTROL_SCALERS_DIR, CONTROL_MODELS_DIR,
         # 控制脚本预测文件目录
-        os.path.join(OUTPUTS_DIR, "predictions"),
+        CONTROL_PREDICTIONS_DIR,
         # 其他目录
         BACKUP_DIR,
         # Web API预测文件目录
