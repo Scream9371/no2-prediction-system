@@ -112,7 +112,7 @@ def predict_future_nc_cqr(
 def predict_with_saved_model(
         city: str = 'dongguan',
         model_path: str = None,
-        steps: int = 48
+        steps: int = 24
 ) -> pd.DataFrame:
     """
     使用已保存的模型进行预测
