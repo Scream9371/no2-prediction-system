@@ -11,14 +11,17 @@ from .data_loader import load_data_from_mysql, get_supported_cities
 from .data_processing import prepare_nc_cqr_data, save_scalers_for_control
 from .train import train_full_pipeline, load_model, save_model
 from .predict import predict_with_saved_model, visualize_predictions, export_predictions_to_csv
+from .reproducibility import ensure_reproducibility_context
 
 
-def train_mode(city: str = 'dongguan', **kwargs):
+def train_mode(city: str = 'dongguan', deterministic: bool = True, **kwargs):
     """训练模式"""
     print(f"=== NC-CQR训练模式 - {city} ===")
     
     try:
-        model, Q, scalers, eval_results = train_full_pipeline(city, **kwargs)
+        # 使用可重现性上下文管理器进行训练
+        with ensure_reproducibility_context(city, base_seed=42, ensure_deterministic=deterministic):
+            model, Q, scalers, eval_results = train_full_pipeline(city, **kwargs)
         
         # 保存控制脚本专用的标准化器
         save_scalers_for_control(scalers, city)
