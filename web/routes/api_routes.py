@@ -60,8 +60,8 @@ def web_predict_with_files(city: str, steps: int = 24):
     # 确保目录存在
     ensure_directories()
     
-    # 进行预测
-    predictions = predict_with_saved_model(city, steps=steps)
+    # 进行预测（Web API专用，仅使用训练管道模型）
+    predictions = predict_with_saved_model(city, steps=steps, model_source='web')
     
     # 获取历史数据用于可视化
     history = load_data_from_mysql(city)
@@ -149,7 +149,7 @@ def predict_no2(city_id):
     """
     获取指定城市未来24小时的NO₂浓度预测数据
     
-    这是核心预测API，使用训练好的NC-CQR模型预测城市未来24小时的NO₂浓度及95%置信区间。
+    这是核心预测API，使用训练好的NC-CQR模型预测城市未来48小时的NO₂浓度及95%置信区间。
     
     Args:
         city_id (str): 城市ID，从URL路径中获取
@@ -161,14 +161,13 @@ def predict_no2(city_id):
             - avgValue (float): 24小时平均预测值 (μg/m³)
             - times (list): 24个时间点，格式 ["HH:MM", ...]，基于实际预测时间
             - values (list): 24个预测值 (μg/m³)
-            - low (list): 24个置信区间下限值 (μg/m³)
-            - high (list): 24个置信区间上限值 (μg/m³)
+            - low (list): 置信区间下限值 (μg/m³)
+            - high (list): 置信区间上限值 (μg/m³)
             - warning (str, 可选): 当模型不存在时的警告信息
             
     模型选择策略:
-        1. 优先使用训练管道的最新模型 (ml/models/latest/)
-        2. 备选控制脚本模型 (outputs/models/)
-        3. 模型不存在时返回示例数据并显示警告
+        1. 仅使用训练管道的最新模型 (ml/models/latest/)
+        2. 模型不存在时返回示例数据并显示警告
         
     HTTP状态码:
         200: 成功返回预测数据
