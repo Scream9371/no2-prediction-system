@@ -112,7 +112,8 @@ def predict_future_nc_cqr(
 def predict_with_saved_model(
         city: str = 'dongguan',
         model_path: str = None,
-        steps: int = 24
+        steps: int = 24,
+        model_source: str = 'auto'
 ) -> pd.DataFrame:
     """
     使用已保存的模型进行预测
@@ -121,32 +122,58 @@ def predict_with_saved_model(
         city (str): 城市名称
         model_path (str): 模型路径，如果为None则使用默认路径
         steps (int): 预测步数
+        model_source (str): 模型来源策略
+            - 'auto': 自动选择（先latest后control）
+            - 'web': 仅使用训练管道模型 (ml/models/latest/)
+            - 'control': 仅使用控制脚本模型 (outputs/models/)
         
     Returns:
         pd.DataFrame: 预测结果
     """
-    # 确定模型路径（优先使用训练管道模型）
+    # 确定模型路径
     if model_path is None:
         from config.paths import get_latest_model_path, get_control_model_path
-        # 先尝试训练管道的最新模型
-        pipeline_model_path = get_latest_model_path(city)
-        if os.path.exists(pipeline_model_path):
-            model_path = pipeline_model_path
-            print(f"使用训练管道模型: {model_path}")
-        else:
-            # 如果训练管道模型不存在，检查控制脚本模型
-            control_model_path = get_control_model_path(city)
-            if os.path.exists(control_model_path):
-                model_path = control_model_path
+        
+        if model_source == 'web':
+            # Web API模式：仅使用训练管道模型
+            model_path = get_latest_model_path(city)
+            if os.path.exists(model_path):
+                print(f"使用训练管道模型: {model_path}")
+            else:
+                raise FileNotFoundError(
+                    f"城市 {city} 的训练管道模型不存在: {model_path}\n"
+                    f"请先运行训练管道 'python -m scripts.run_pipeline'"
+                )
+                
+        elif model_source == 'control':
+            # 控制脚本模式：仅使用控制脚本模型
+            model_path = get_control_model_path(city)
+            if os.path.exists(model_path):
                 print(f"使用控制脚本模型: {model_path}")
             else:
-                # 两个模型都不存在
                 raise FileNotFoundError(
-                    f"城市 {city} 的模型文件不存在:\n"
-                    f"  训练管道模型: {pipeline_model_path}\n"
-                    f"  控制脚本模型: {control_model_path}\n"
-                    f"请先运行训练管道 'python -m scripts.run_pipeline' 或控制脚本训练模式"
+                    f"城市 {city} 的控制脚本模型不存在: {model_path}\n"
+                    f"请先运行控制脚本训练模式 'python -m ml.src.control train --city {city}'"
                 )
+                
+        else:  # model_source == 'auto'
+            # 自动模式：先尝试训练管道模型，再尝试控制脚本模型
+            pipeline_model_path = get_latest_model_path(city)
+            if os.path.exists(pipeline_model_path):
+                model_path = pipeline_model_path
+                print(f"使用训练管道模型: {model_path}")
+            else:
+                control_model_path = get_control_model_path(city)
+                if os.path.exists(control_model_path):
+                    model_path = control_model_path
+                    print(f"使用控制脚本模型: {model_path}")
+                else:
+                    raise FileNotFoundError(
+                        f"城市 {city} 的模型文件不存在:\n"
+                        f"  训练管道模型: {pipeline_model_path}\n"
+                        f"  控制脚本模型: {control_model_path}\n"
+                        f"请先运行训练管道 'python -m scripts.run_pipeline' 或控制脚本训练模式"
+                    )
 
     # 加载模型
     model, Q, scalers = load_model(model_path)
