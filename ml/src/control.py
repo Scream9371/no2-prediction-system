@@ -46,8 +46,8 @@ def predict_mode(city: str = 'dongguan', steps: int = 24, save_chart: bool = Fal
     print(f"=== NC-CQR预测模式 - {city} ===")
     
     try:
-        # 进行预测（predict_with_saved_model会智能选择模型路径）
-        predictions = predict_with_saved_model(city, steps=steps)
+        # 进行预测（控制脚本专用，仅使用控制脚本模型）
+        predictions = predict_with_saved_model(city, steps=steps, model_source='control')
         
         # 获取历史数据用于可视化（使用数据库中所有240小时数据）
         history = load_data_from_mysql(city)
