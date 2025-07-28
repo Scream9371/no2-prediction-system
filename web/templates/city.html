@@ -28,7 +28,7 @@
             width: 90%;
             max-width: 1000px;
             padding: 2rem;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.3);
             backdrop-filter: blur(10px);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -63,7 +63,7 @@
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.4);
             padding: 1.5rem;
             border-radius: 8px;
         }
@@ -86,7 +86,7 @@
 
         .recommendations {
             text-align: left;
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(225, 225, 225, 0.3);
             padding: 1.5rem;
             border-radius: 8px;
             margin-top: 2rem;
@@ -328,19 +328,23 @@
                     {
                         label: 'NO₂浓度 (μg/m³)',
                         data: data.values,
+                        borderWidth: 3,
                         borderColor: 'rgba(33, 150, 243, 1)',
                         backgroundColor: 'rgba(33, 150, 243, 0.1)',
                         fill: false,
-                        tension: 0.3,
-                        pointRadius: 5,
+                        tension: 0.1,
+                        pointRadius: 6,
+                        pointHoverRadius: 7, // 鼠标悬停时点的半径
                         pointBackgroundColor: 'white',
-                        pointBorderColor: 'rgba(33, 150, 243, 1)'
+                        pointBorderColor: 'rgba(33, 150, 243, 1)',
+                        pointBorderWidth: 2
                     },
                     {
                         label: '预测区间下限',
                         data: data.low,
-                        borderColor: 'rgba(255, 152, 0, 0.2)',
-                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        borderWidth: 2, 
+                        borderColor: 'rgba(255, 152, 0, 0.7)',
+                        backgroundColor: 'rgba(255, 152, 0, 0.45)',
                         fill: true,
                         borderDash: [5, 5],
                         tension: 0.3,
@@ -350,10 +354,11 @@
                     {
                         label: '预测区间上限',
                         data: data.high,
-                        borderColor: 'rgba(255, 152, 0, 0.2)',
+                        borderWidth: 4, // 预测区间线条稍细
+                        borderColor: 'rgba(255, 152, 0, 0.8)',
                         backgroundColor: 'transparent',
                         borderDash: [5, 5],
-                        tension: 0.3,
+                        tension: 0.1,
                         pointRadius: 0,
                         order: 2
                     }
@@ -361,25 +366,70 @@
             },
             options: {
                 responsive: true,
+                devicePixelRatio: 2,
                 scales: {
                     y: {
                         beginAtZero: true,
-                        title: {display: true, text: 'NO₂浓度（μg/m³）'},
-                        grid: {color: '#eee'}
+                        title: {display: true, 
+                            text: 'NO₂浓度（μg/m³）',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                           },
+                           color: '#333' // 标题颜色加深
+                        },
+                         
+                        ticks: {
+                            font: {size: 13},
+                            weight: 'bold',
+                            color: '#222'
+                        },
+                        // 优化Y轴网格线：更清晰但不刺眼
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.6)', // 浅灰色网格线
+                            lineWidth: 1 // 网格线粗细
+                        }
                     },
                     x: {
-                        title: {display: true, text: '时间'},
-                        grid: {display: false},
+                        title: {display: true, text: '时间',
+                            // 优化X轴标题：增大字体、加粗
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#222'
+                        },
                         ticks: {
-                            maxTicksLimit: 12 // 限制X轴标签数量
-                        }
+                            maxTicksLimit: 12,
+                            font: {
+                                size: 13,
+                                weight: '600'
+                            },
+                            color: '#222',
+                            // 可选：旋转文字避免重叠（如果时间标签较长）
+                            maxRotation: 45,
+                            minRotation: 45
+                        },
+                        grid: {display: false},
+                        
                     }
                 },
                 plugins: {
-                    legend: {position: 'top'},
+                    legend: {
+                        position: 'top',
+                        labels: {font: {size: 13,weight: '500'}}, // 图例文字放大
+                        color: '#222' // 颜色浅灰
+                    },
                     tooltip: {
                         mode: 'index',
-                        intersect: false
+                        intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 10,
+                        bodyFont: {size: 13}
                     }
                 }
             }
