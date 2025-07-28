@@ -1,1 +1,0 @@
-web: gunicorn --bind 0.0.0.0:$PORT app_deploy:app --timeout 300 --workers 1
