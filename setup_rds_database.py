@@ -264,8 +264,11 @@ if __name__ == "__main__":
         # 安装必要的依赖
         import mysql.connector
     except ImportError:
-        print("正在安装mysql-connector-python...")
-        os.system("pip install mysql-connector-python")
-        import mysql.connector
+        print("❌ 缺少mysql-connector-python依赖")
+        print("请在虚拟环境中运行:")
+        print("  ./venv/bin/python setup_rds_database.py")
+        print("或先安装依赖:")
+        print("  ./venv/bin/pip install mysql-connector-python")
+        sys.exit(1)
     
     main()
