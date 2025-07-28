@@ -121,7 +121,6 @@ def train_city_with_version_control(city: str, **train_kwargs) -> bool:
     
     # 临时修改train_mode以保存到带日期的路径
     today_str = datetime.now().strftime("%Y%m%d")
-    original_model_path = get_latest_model_path(city)
     daily_model_path = get_daily_model_path(city, today_str)
     
     try:

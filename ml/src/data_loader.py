@@ -1,18 +1,19 @@
 """
 数据加载器模块 - 从MySQL数据库加载NO2数据
 """
-import pandas as pd
 import os
+from datetime import datetime, timedelta
+
+import pandas as pd
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
-from datetime import datetime, timedelta
+
 from database.models import (
     GuangzhouNO2Record, ShenzhenNO2Record, ZhuhaiNO2Record, FoshanNO2Record,
     HuizhouNO2Record, DongguanNO2Record, ZhongshanNO2Record, JiangmenNO2Record,
     ZhaoqingNO2Record, HongkongNO2Record, MacaoNO2Record
 )
-
 
 # 城市名到模型类的映射
 CITY_MODEL_MAP = {
@@ -46,36 +47,36 @@ def load_data_from_mysql(city: str = 'dongguan') -> pd.DataFrame:
     # 检查城市是否支持
     if city not in CITY_MODEL_MAP:
         raise ValueError(f"不支持的城市: {city}。支持的城市: {list(CITY_MODEL_MAP.keys())}")
-    
+
     # 加载环境变量
     load_dotenv()
-    
+
     # 获取数据库连接字符串
     database_url = os.getenv('DATABASE_URL')
     if not database_url:
         raise ValueError("请在.env文件中设置DATABASE_URL环境变量")
-    
+
     # 创建数据库连接
     engine = create_engine(database_url)
     Session = sessionmaker(bind=engine)
     session = Session()
-    
+
     try:
         # 获取对应城市的模型类
         model_class = CITY_MODEL_MAP[city]
-        
+
         # 计算30天前的时间点
         cutoff_time = datetime.now() - timedelta(days=30)
-        
+
         # 查询最近30天(720小时)的数据
         query = session.query(model_class).filter(
             model_class.observation_time >= cutoff_time
         ).order_by(model_class.observation_time)
         records = query.all()
-        
+
         if not records:
             raise ValueError(f"{city}_no2_records表中没有数据")
-        
+
         # 转换为DataFrame
         data = []
         for record in records:
@@ -88,30 +89,15 @@ def load_data_from_mysql(city: str = 'dongguan') -> pd.DataFrame:
                 'wind_direction': record.wind_direction,
                 'pressure': record.pressure
             })
-        
+
         df = pd.DataFrame(data)
         print(f"成功从数据库加载 {len(df)} 条{city}NO2记录 (30天滑窗)")
         return df
-        
+
     except Exception as e:
         raise ValueError(f"数据库操作失败: {str(e)}")
     finally:
         session.close()
-
-
-def get_latest_data(city: str = 'dongguan', hours: int = 48) -> pd.DataFrame:
-    """
-    获取指定城市最近几小时的数据
-    
-    Args:
-        city (str): 城市名称
-        hours (int): 获取最近多少小时的数据
-        
-    Returns:
-        pd.DataFrame: 最近的数据
-    """
-    df = load_data_from_mysql(city)
-    return df.tail(hours).copy()
 
 
 def get_supported_cities() -> list:

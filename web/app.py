@@ -1,8 +1,10 @@
-from flask import Flask
 import os
-from web.routes.main_routes import main_bp
-from web.routes.api_routes import api_bp
+
+from flask import Flask
+
 from config.cities import init_city_mappings
+from web.routes.api_routes import api_bp
+from web.routes.main_routes import main_bp
 
 # 设置正确的template和static目录路径
 web_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,8 +15,7 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, st
 app.register_blueprint(main_bp)
 app.register_blueprint(api_bp)
 
-# 初始化城市映射
-print("正在初始化城市映射...")
+# 初始化城市映射（使用文件系统缓存，避免重复初始化）
 if init_city_mappings():
     print("城市映射初始化成功")
 else:

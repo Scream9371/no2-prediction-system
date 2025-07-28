@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from .data_loader import load_data_from_mysql
 from .data_processing import prepare_nc_cqr_data, save_scalers_for_pipeline
+from .reproducibility import create_deterministic_dataloader, get_city_seed
 
 
 class QuantileNet(nn.Module):
@@ -69,7 +70,9 @@ def train_nc_cqr_model(
     epochs: int = 150, 
     batch_size: int = 32,
     learning_rate: float = 1e-3,
-    hidden_dims: list = [64, 64]
+    hidden_dims: list = [64, 64],
+    city: str = None,
+    deterministic: bool = True
 ) -> Tuple[nn.Module, float]:
     """
     训练NC-CQR模型
@@ -83,6 +86,8 @@ def train_nc_cqr_model(
         batch_size (int): 批次大小
         learning_rate (float): 学习率
         hidden_dims (list): 隐藏层维度
+        city (str): 城市名称，用于确定性训练
+        deterministic (bool): 是否启用确定性训练模式
         
     Returns:
         Tuple[nn.Module, float]: 训练好的模型和校准量化值Q
@@ -90,12 +95,22 @@ def train_nc_cqr_model(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"使用设备: {device}")
     
-    # 创建数据加载器
+    # 创建数据集
     train_dataset = TensorDataset(
         torch.FloatTensor(X_train),
         torch.FloatTensor(y_train)
     )
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    
+    # 根据是否需要确定性选择数据加载器
+    if deterministic and city:
+        # 使用城市特定的种子创建确定性数据加载器
+        city_seed = get_city_seed(city)
+        train_loader = create_deterministic_dataloader(train_dataset, batch_size, city_seed)
+        print(f"使用确定性数据加载器 - 城市种子: {city_seed}")
+    else:
+        # 使用传统的随机数据加载器
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        print("使用标准数据加载器")
     
     # 初始化模型
     model = QuantileNet(input_dim=X_train.shape[1], hidden_dims=hidden_dims).to(device)
@@ -296,7 +311,9 @@ def train_full_pipeline(city: str = 'dongguan',
     
     # 4. 训练模型
     print("\n=== 开始模型训练 ===")
-    model, Q = train_nc_cqr_model(X_train, y_train, X_calib, y_calib, **train_kwargs)
+    # 确保城市参数传递给训练函数
+    train_kwargs_with_city = {**train_kwargs, 'city': city}
+    model, Q = train_nc_cqr_model(X_train, y_train, X_calib, y_calib, **train_kwargs_with_city)
     print(f"训练完成，Q值：{Q:.2f}")
     
     # 5. 模型评估

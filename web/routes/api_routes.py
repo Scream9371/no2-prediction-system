@@ -5,7 +5,8 @@ from flask import Blueprint, jsonify
 from config.cities import get_city_name, is_supported_city, get_all_cities
 from database.crud import get_no2_records
 from database.session import get_db
-from ml.src.control import predict_mode
+from ml.src.predict import predict_with_saved_model, visualize_predictions, export_predictions_to_csv
+from ml.src.data_loader import load_data_from_mysql
 
 # 中文城市名到英文城市名的映射（用于模型文件路径）
 CHINESE_TO_ENGLISH_CITY_MAP = {
@@ -39,6 +40,50 @@ def get_english_city_name(chinese_name: str) -> str:
         '未知城市'
     """
     return CHINESE_TO_ENGLISH_CITY_MAP.get(chinese_name, chinese_name)
+
+
+def web_predict_with_files(city: str, steps: int = 24):
+    """
+    Web API专用的预测函数，将预测结果保存到data/predictions目录
+    
+    Args:
+        city (str): 城市名称
+        steps (int): 预测步数
+        
+    Returns:
+        pd.DataFrame: 预测结果
+    """
+    import os
+    from datetime import datetime
+    from config.paths import get_web_prediction_image_path, get_web_prediction_csv_path, ensure_directories
+    
+    # 确保目录存在
+    ensure_directories()
+    
+    # 进行预测（Web API专用，仅使用训练管道模型）
+    predictions = predict_with_saved_model(city, steps=steps, model_source='web')
+    
+    # 获取历史数据用于可视化
+    history = load_data_from_mysql(city)
+    
+    # 生成时间戳
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    # 生成文件路径
+    image_path = get_web_prediction_image_path(city, timestamp)
+    csv_path = get_web_prediction_csv_path(city, timestamp)
+    
+    # 可视化并保存图像
+    visualize_predictions(history, predictions, save_path=image_path)
+    
+    # 导出CSV数据
+    export_predictions_to_csv(predictions, csv_path, city)
+    
+    print(f"Web预测文件已保存:")
+    print(f"  图像: {image_path}")
+    print(f"  CSV: {csv_path}")
+    
+    return predictions
 
 api_bp = Blueprint("api", __name__)
 
@@ -104,7 +149,7 @@ def predict_no2(city_id):
     """
     获取指定城市未来24小时的NO₂浓度预测数据
     
-    这是核心预测API，使用训练好的NC-CQR模型预测城市未来24小时的NO₂浓度及95%置信区间。
+    这是核心预测API，使用训练好的NC-CQR模型预测城市未来48小时的NO₂浓度及95%置信区间。
     
     Args:
         city_id (str): 城市ID，从URL路径中获取
@@ -116,14 +161,13 @@ def predict_no2(city_id):
             - avgValue (float): 24小时平均预测值 (μg/m³)
             - times (list): 24个时间点，格式 ["HH:MM", ...]，基于实际预测时间
             - values (list): 24个预测值 (μg/m³)
-            - low (list): 24个置信区间下限值 (μg/m³)
-            - high (list): 24个置信区间上限值 (μg/m³)
+            - low (list): 置信区间下限值 (μg/m³)
+            - high (list): 置信区间上限值 (μg/m³)
             - warning (str, 可选): 当模型不存在时的警告信息
             
     模型选择策略:
-        1. 优先使用训练管道的最新模型 (ml/models/latest/)
-        2. 备选控制脚本模型 (outputs/models/)
-        3. 模型不存在时返回示例数据并显示警告
+        1. 仅使用训练管道的最新模型 (ml/models/latest/)
+        2. 模型不存在时返回示例数据并显示警告
         
     HTTP状态码:
         200: 成功返回预测数据
@@ -184,7 +228,8 @@ def predict_no2(city_id):
                 "warning": f"模型文件不存在 ({model_path})，显示的是示例数据。请先训练模型。"
             })
         
-        predictions_df = predict_mode(city=english_city_name, steps=24, save_chart=True)
+        # 使用自定义的Web预测函数，保存文件到data/predictions目录
+        predictions_df = web_predict_with_files(city=english_city_name, steps=24)
 
         # 将DataFrame转换为前端需要的JSON格式
         if predictions_df is not None and hasattr(predictions_df, 'empty') and not predictions_df.empty:

@@ -21,6 +21,12 @@ LATEST_MODELS_DIR = os.path.join(MODELS_DIR, "latest")
 # 其他目录
 BACKUP_DIR = os.path.join(DATA_DIR, "backup")
 
+# Web API 预测文件目录
+WEB_PREDICTIONS_DIR = os.path.join(DATA_DIR, "predictions")
+
+# 控制脚本预测文件目录
+CONTROL_PREDICTIONS_DIR = os.path.join(OUTPUTS_DIR, "predictions")
+
 
 def get_pipeline_scaler_path(city: str) -> str:
     """
@@ -88,6 +94,64 @@ def get_control_model_path(city: str) -> str:
     return os.path.join(CONTROL_MODELS_DIR, f"{city}_nc_cqr_model.pth")
 
 
+def get_web_prediction_image_path(city: str, timestamp: str) -> str:
+    """
+    获取Web API预测图像文件路径
+    
+    Args:
+        city (str): 城市名称
+        timestamp (str): 时间戳字符串 (YYYYMMDD_HHMMSS)
+        
+    Returns:
+        str: Web预测图像文件路径
+    """
+    return os.path.join(WEB_PREDICTIONS_DIR, f"{city}_web_prediction_{timestamp}.png")
+
+
+def get_web_prediction_csv_path(city: str, timestamp: str) -> str:
+    """
+    获取Web API预测CSV文件路径
+    
+    Args:
+        city (str): 城市名称
+        timestamp (str): 时间戳字符串 (YYYYMMDD_HHMMSS)
+        
+    Returns:
+        str: Web预测CSV文件路径
+    """
+    return os.path.join(WEB_PREDICTIONS_DIR, f"{city}_web_prediction_{timestamp}.csv")
+
+
+def get_control_prediction_image_path(city: str, timestamp: str) -> str:
+    """
+    获取控制脚本预测图像文件路径
+    
+    Args:
+        city (str): 城市名称
+        timestamp (str): 时间戳字符串 (YYYYMMDD_HHMMSS)
+        
+    Returns:
+        str: 控制脚本预测图像文件路径
+    """
+    control_predictions_dir = os.path.join(OUTPUTS_DIR, "predictions")
+    return os.path.join(control_predictions_dir, f"{city}_nc_cqr_prediction_{timestamp}.png")
+
+
+def get_control_prediction_csv_path(city: str, timestamp: str) -> str:
+    """
+    获取控制脚本预测CSV文件路径
+    
+    Args:
+        city (str): 城市名称
+        timestamp (str): 时间戳字符串 (YYYYMMDD_HHMMSS)
+        
+    Returns:
+        str: 控制脚本预测CSV文件路径
+    """
+    control_predictions_dir = os.path.join(OUTPUTS_DIR, "predictions")
+    return os.path.join(control_predictions_dir, f"{city}_nc_cqr_prediction_{timestamp}.csv")
+
+
 def ensure_directories():
     """
     确保所有必要的目录存在
@@ -98,8 +162,12 @@ def ensure_directories():
         MODELS_DIR, DAILY_MODELS_DIR, LATEST_MODELS_DIR,
         # 控制脚本目录
         OUTPUTS_DIR, CONTROL_CACHE_DIR, CONTROL_SCALERS_DIR, CONTROL_MODELS_DIR,
+        # 控制脚本预测文件目录
+        CONTROL_PREDICTIONS_DIR,
         # 其他目录
-        BACKUP_DIR
+        BACKUP_DIR,
+        # Web API预测文件目录
+        WEB_PREDICTIONS_DIR
     ]
     
     for directory in directories:

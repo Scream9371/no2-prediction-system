@@ -11,14 +11,17 @@ from .data_loader import load_data_from_mysql, get_supported_cities
 from .data_processing import prepare_nc_cqr_data, save_scalers_for_control
 from .train import train_full_pipeline, load_model, save_model
 from .predict import predict_with_saved_model, visualize_predictions, export_predictions_to_csv
+from .reproducibility import ensure_reproducibility_context
 
 
-def train_mode(city: str = 'dongguan', **kwargs):
+def train_mode(city: str = 'dongguan', deterministic: bool = True, **kwargs):
     """训练模式"""
     print(f"=== NC-CQR训练模式 - {city} ===")
     
     try:
-        model, Q, scalers, eval_results = train_full_pipeline(city, **kwargs)
+        # 使用可重现性上下文管理器进行训练
+        with ensure_reproducibility_context(city, base_seed=42, ensure_deterministic=deterministic):
+            model, Q, scalers, eval_results = train_full_pipeline(city, **kwargs)
         
         # 保存控制脚本专用的标准化器
         save_scalers_for_control(scalers, city)
@@ -46,24 +49,26 @@ def predict_mode(city: str = 'dongguan', steps: int = 24, save_chart: bool = Fal
     print(f"=== NC-CQR预测模式 - {city} ===")
     
     try:
-        # 进行预测（predict_with_saved_model会智能选择模型路径）
-        predictions = predict_with_saved_model(city, steps=steps)
+        # 进行预测（控制脚本专用，仅使用控制脚本模型）
+        predictions = predict_with_saved_model(city, steps=steps, model_source='control')
         
         # 获取历史数据用于可视化（使用数据库中所有240小时数据）
         history = load_data_from_mysql(city)
         
+        # 生成统一的时间戳，用于图像和CSV文件
+        from config.paths import get_control_prediction_image_path, get_control_prediction_csv_path, ensure_directories
+        ensure_directories()
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
         # 可视化结果
         save_path = None
         if save_chart:
-            from config.paths import BASE_DIR
-            save_path = os.path.join(BASE_DIR, "outputs", "predictions", f"{city}_nc_cqr_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            save_path = get_control_prediction_image_path(city, timestamp)
         
         visualize_predictions(history, predictions, save_path=save_path)
         
         # 导出预测结果
-        from config.paths import BASE_DIR
-        csv_path = os.path.join(BASE_DIR, "outputs", "predictions", f"{city}_nc_cqr_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+        csv_path = get_control_prediction_csv_path(city, timestamp)
         export_predictions_to_csv(predictions, csv_path, city)
         
         print(f"\n=== 预测完成 ===")
