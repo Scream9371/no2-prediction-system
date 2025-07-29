@@ -18,8 +18,9 @@ __pycache__/
 venv/
 ENV/
 
-# 配置文件目录
+# IDE文件目录
 .idea/
+.vscode/
 
 # 机器学习输出和缓存
 outputs/
