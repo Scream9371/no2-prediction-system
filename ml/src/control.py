@@ -106,7 +106,7 @@ def evaluate_mode(city: str = 'dongguan'):
         eval_results = evaluate_model(model, X_test, y_test, Q)
         
         print(f"\n=== 评估结果 ===")
-        print(f"测试集样本数: {len(X_test)}")
+        print(f"测试集样本数: {eval_results['test_samples']}")
         print(f"覆盖率: {eval_results['coverage']:.1%}")
         print(f"平均区间宽度: {eval_results['avg_interval_width']:.2f}")
         
