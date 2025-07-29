@@ -18,6 +18,7 @@ __pycache__/
 venv/
 ENV/
 
+# 配置文件目录
 .idea/
 
 # 机器学习输出和缓存
@@ -25,3 +26,9 @@ outputs/
 data/ml_cache/
 data/predictions
 ml/models/
+
+# 日志文件
+logs/
+
+# 设计文档
+docs/
