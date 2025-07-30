@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify
 from config.cities import get_city_name, is_supported_city, get_all_cities
 from database.crud import get_no2_records
 from database.session import get_db
-from ml.src.predict import predict_with_saved_model, visualize_predictions, export_predictions_to_csv
+from ml.src.predict import predict_with_saved_model, visualize_predictions, export_predictions_to_csv, predict_for_web_api
 from ml.src.data_loader import load_data_from_mysql
 
 # 中文城市名到英文城市名的映射（用于模型文件路径）
@@ -84,6 +84,118 @@ def web_predict_with_files(city: str, steps: int = 24):
     print(f"  CSV: {csv_path}")
     
     return predictions
+
+
+def load_daily_predictions_cache():
+    """
+    加载每日预测缓存数据
+    
+    Returns:
+        Dict: 缓存数据，如果不存在返回None
+    """
+    import os
+    import json
+    
+    try:
+        cache_dir = os.path.join(os.getcwd(), 'data', 'predictions_cache')
+        cache_file = os.path.join(cache_dir, 'latest_predictions.json')
+        
+        if not os.path.exists(cache_file):
+            return None
+        
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            cache_data = json.load(f)
+        
+        return cache_data
+        
+    except Exception as e:
+        print(f"加载预测缓存失败: {str(e)}")
+        return None
+
+
+def fallback_realtime_prediction(city: str):
+    """
+    降级到实时预测（当缓存未命中时）
+    
+    Args:
+        city (str): 城市名称
+        
+    Returns:
+        JSON响应
+    """
+    try:
+        # 检查模型是否存在
+        import os
+        from config.paths import get_latest_model_path, get_control_model_path
+        
+        # 先尝试训练管道的最新模型
+        model_path = get_latest_model_path(city)
+        if not os.path.exists(model_path):
+            # 如果训练管道模型不存在，尝试控制脚本模型
+            model_path = get_control_model_path(city)
+        
+        if not os.path.exists(model_path):
+            # 如果模型不存在，返回示例数据并提示用户
+            import datetime
+            current_time = datetime.datetime.now()
+            times = [(current_time + datetime.timedelta(hours=i)).strftime("%H:%M") for i in range(24)]
+            
+            # 生成示例预测数据
+            import random
+            base_value = random.uniform(30, 80)
+            values = [round(base_value + random.uniform(-5, 5), 1) for _ in range(24)]
+            low = [round(v - 10, 1) for v in values]
+            high = [round(v + 10, 1) for v in values]
+            
+            return jsonify({
+                "updateTime": current_time.strftime("%Y-%m-%d %H:%M"),
+                "currentValue": values[0],
+                "avgValue": round(sum(values) / len(values), 1),
+                "times": times,
+                "values": values,
+                "low": low,
+                "high": high,
+                "warning": f"模型文件不存在且缓存未命中，显示示例数据。请先训练模型。",
+                "fallback": True  # 标记为降级预测
+            })
+        
+        # 使用实时预测
+        predictions_df = predict_for_web_api(city=city, steps=24)
+
+        # 将DataFrame转换为前端需要的JSON格式
+        if predictions_df is not None and hasattr(predictions_df, 'empty') and not predictions_df.empty:
+            # 从预测数据中提取实际的时间标签
+            import pandas as pd
+            times = [pd.to_datetime(t).strftime("%H:%M") for t in predictions_df['observation_time'].tolist()[:24]]
+            
+            # 提取预测数据
+            values = predictions_df['prediction'].tolist()[:24]
+            low = predictions_df['lower_bound'].tolist()[:24]
+            high = predictions_df['upper_bound'].tolist()[:24]
+            
+            current_value = values[0] if values else 0
+            avg_value = sum(values) / len(values) if values else 0
+            
+            # 获取当前时间作为更新时间
+            import datetime
+            current_time = datetime.datetime.now()
+            
+            return jsonify({
+                "updateTime": current_time.strftime("%Y-%m-%d %H:%M"),
+                "currentValue": round(current_value, 1),
+                "avgValue": round(avg_value, 1),
+                "times": times,
+                "values": [round(v, 1) for v in values],
+                "low": [round(l, 1) for l in low],
+                "high": [round(h, 1) for h in high],
+                "fallback": True  # 标记为降级预测
+            })
+        else:
+            return jsonify({"error": "无法获取预测数据，请检查模型和数据"}), 500
+            
+    except Exception as e:
+        return jsonify({"error": f"降级预测失败: {str(e)}"}), 500
+
 
 api_bp = Blueprint("api", __name__)
 
@@ -188,78 +300,22 @@ def predict_no2(city_id):
     """
     if not is_supported_city(city_id):
         return jsonify({"error": "不支持的城市"}), 400
+    
     try:
         # 获取城市名称用于预测
         city_name = get_city_name(city_id)
         # 转换为英文城市名（用于模型文件路径）
         english_city_name = get_english_city_name(city_name)
         
-        # 检查模型是否存在（优先使用训练管道模型）
-        import os
-        from config.paths import get_latest_model_path, get_control_model_path
+        # 优先从缓存获取预测数据
+        cached_data = load_daily_predictions_cache()
         
-        # 先尝试训练管道的最新模型
-        model_path = get_latest_model_path(english_city_name)
-        if not os.path.exists(model_path):
-            # 如果训练管道模型不存在，尝试控制脚本模型
-            model_path = get_control_model_path(english_city_name)
+        if cached_data and english_city_name in cached_data.get('predictions', {}):
+            # 返回缓存的预测数据
+            return jsonify(cached_data['predictions'][english_city_name])
         
-        if not os.path.exists(model_path):
-            # 如果模型不存在，返回示例数据并提示用户
-            import datetime
-            current_time = datetime.datetime.now()
-            times = [(current_time + datetime.timedelta(hours=i)).strftime("%H:%M") for i in range(24)]
-            
-            # 生成示例预测数据
-            import random
-            base_value = random.uniform(30, 80)
-            values = [round(base_value + random.uniform(-5, 5), 1) for _ in range(24)]
-            low = [round(v - 10, 1) for v in values]
-            high = [round(v + 10, 1) for v in values]
-            
-            return jsonify({
-                "updateTime": current_time.strftime("%Y-%m-%d %H:%M"),
-                "currentValue": values[0],
-                "avgValue": round(sum(values) / len(values), 1),
-                "times": times,
-                "values": values,
-                "low": low,
-                "high": high,
-                "warning": f"模型文件不存在 ({model_path})，显示的是示例数据。请先训练模型。"
-            })
-        
-        # 使用自定义的Web预测函数，保存文件到data/predictions目录
-        predictions_df = web_predict_with_files(city=english_city_name, steps=24)
-
-        # 将DataFrame转换为前端需要的JSON格式
-        if predictions_df is not None and hasattr(predictions_df, 'empty') and not predictions_df.empty:
-            # 从预测数据中提取实际的时间标签
-            import pandas as pd
-            times = [pd.to_datetime(t).strftime("%H:%M") for t in predictions_df['observation_time'].tolist()[:24]]
-            
-            # 提取预测数据
-            values = predictions_df['prediction'].tolist()[:24]
-            low = predictions_df['lower_bound'].tolist()[:24]
-            high = predictions_df['upper_bound'].tolist()[:24]
-            
-            current_value = values[0] if values else 0
-            avg_value = sum(values) / len(values) if values else 0
-            
-            # 获取当前时间作为更新时间
-            import datetime
-            current_time = datetime.datetime.now()
-            
-            return jsonify({
-                "updateTime": current_time.strftime("%Y-%m-%d %H:%M"),
-                "currentValue": round(current_value, 1),
-                "avgValue": round(avg_value, 1),
-                "times": times,
-                "values": [round(v, 1) for v in values],
-                "low": [round(l, 1) for l in low],
-                "high": [round(h, 1) for h in high]
-            })
-        else:
-            return jsonify({"error": "无法获取预测数据，请检查模型和数据"}), 500
+        # 缓存未命中，降级到实时预测
+        return fallback_realtime_prediction(english_city_name)
             
     except Exception as e:
         return jsonify({"error": f"预测失败: {str(e)}"}), 500

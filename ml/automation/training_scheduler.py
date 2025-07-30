@@ -197,11 +197,19 @@ class SimpleAutoTrainingScheduler:
             cleaned_count = cleanup_old_models(days_to_keep=7)
             self.logger.info(f"已清理 {cleaned_count} 个旧模型文件")
             
-            # 6. 显示最终状态
+            # 6. 预计算今日预测数据（新模型训练完成后）
+            if successful_cities:
+                self.logger.info("\n🔮 开始预计算今日预测数据...")
+                precompute_result = self._precompute_daily_predictions(successful_cities)
+                self.logger.info(f"预计算完成: 成功{precompute_result['successful']}个城市, 失败{precompute_result['failed']}个城市")
+            else:
+                self.logger.info("\n⏭️ 跳过预计算（无新训练模型）")
+            
+            # 7. 显示最终状态
             self.logger.info("\n📊 训练后模型状态:")
             show_model_status()
             
-            # 7. 生成结果
+            # 8. 生成结果
             end_time = datetime.now()
             execution_time = (end_time - start_time).total_seconds()
             
@@ -327,6 +335,164 @@ class SimpleAutoTrainingScheduler:
             checks['system_error'] = False
         
         return checks
+    
+    def _precompute_daily_predictions(self, cities: List[str]) -> Dict[str, int]:
+        """
+        预计算所有城市的24小时预测数据
+        
+        Args:
+            cities (List[str]): 需要预计算的城市列表
+            
+        Returns:
+            Dict[str, int]: 预计算结果统计 {'successful': int, 'failed': int}
+        """
+        from ml.src.predict import predict_for_web_api
+        import pandas as pd
+        
+        predictions_cache = {}
+        successful_count = 0
+        failed_count = 0
+        
+        for city in cities:
+            try:
+                self.logger.info(f"  正在预计算 {city}...")
+                
+                # 执行预测
+                predictions_df = predict_for_web_api(city, steps=24)
+                
+                # 格式化预测数据为API需要的格式
+                formatted_data = self._format_predictions_for_api(predictions_df)
+                predictions_cache[city] = formatted_data
+                
+                successful_count += 1
+                self.logger.info(f"  ✅ {city} 预测数据已生成 (24小时)")
+                
+            except Exception as e:
+                failed_count += 1
+                self.logger.error(f"  ❌ {city} 预测失败: {str(e)}")
+        
+        # 保存预测缓存到文件
+        if predictions_cache:
+            self._save_predictions_cache(predictions_cache)
+            self.logger.info(f"📁 预测缓存已保存 ({len(predictions_cache)} 个城市)")
+        
+        return {
+            'successful': successful_count,
+            'failed': failed_count
+        }
+    
+    def _format_predictions_for_api(self, predictions_df) -> Dict:
+        """
+        将预测DataFrame格式化为API返回的JSON格式
+        
+        Args:
+            predictions_df (pd.DataFrame): 预测结果DataFrame
+            
+        Returns:
+            Dict: API格式的预测数据
+        """
+        import pandas as pd
+        
+        if predictions_df is None or predictions_df.empty:
+            raise Exception("预测数据为空")
+        
+        # 提取24小时预测数据
+        times = [pd.to_datetime(t).strftime("%H:%M") for t in predictions_df['observation_time'].tolist()[:24]]
+        values = predictions_df['prediction'].tolist()[:24]
+        low = predictions_df['lower_bound'].tolist()[:24]
+        high = predictions_df['upper_bound'].tolist()[:24]
+        
+        current_value = values[0] if values else 0
+        avg_value = sum(values) / len(values) if values else 0
+        
+        # 生成API格式数据
+        formatted_data = {
+            "updateTime": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "currentValue": round(current_value, 1),
+            "avgValue": round(avg_value, 1),
+            "times": times,
+            "values": [round(v, 1) for v in values],
+            "low": [round(l, 1) for l in low],
+            "high": [round(h, 1) for h in high],
+            "cached": True,  # 标记为缓存数据
+            "cache_time": datetime.now().isoformat()
+        }
+        
+        return formatted_data
+    
+    def _save_predictions_cache(self, predictions_cache: Dict):
+        """
+        保存预测缓存到文件
+        
+        Args:
+            predictions_cache (Dict): 预测缓存数据
+        """
+        try:
+            # 确保缓存目录存在
+            cache_dir = os.path.join(os.getcwd(), 'data', 'predictions_cache')
+            os.makedirs(cache_dir, exist_ok=True)
+            
+            # 生成文件名
+            today_str = datetime.now().strftime('%Y%m%d')
+            cache_file = os.path.join(cache_dir, f'daily_predictions_{today_str}.json')
+            latest_cache_file = os.path.join(cache_dir, 'latest_predictions.json')
+            
+            # 添加元数据
+            cache_data = {
+                'generated_at': datetime.now().isoformat(),
+                'date': today_str,
+                'cities_count': len(predictions_cache),
+                'predictions': predictions_cache
+            }
+            
+            # 保存带日期的缓存文件
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, indent=2, ensure_ascii=False)
+            
+            # 保存最新缓存文件（覆盖）
+            with open(latest_cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, indent=2, ensure_ascii=False)
+            
+            self.logger.info(f"缓存文件已保存:")
+            self.logger.info(f"  - 日期版本: {cache_file}")
+            self.logger.info(f"  - 最新版本: {latest_cache_file}")
+            
+        except Exception as e:
+            self.logger.error(f"保存预测缓存失败: {str(e)}")
+    
+    def load_predictions_cache(self, date_str: str = None) -> Optional[Dict]:
+        """
+        加载预测缓存数据
+        
+        Args:
+            date_str (str): 日期字符串 (YYYYMMDD)，默认为今天
+            
+        Returns:
+            Optional[Dict]: 缓存数据，如果不存在返回None
+        """
+        try:
+            cache_dir = os.path.join(os.getcwd(), 'data', 'predictions_cache')
+            
+            if date_str is None:
+                # 加载最新缓存
+                cache_file = os.path.join(cache_dir, 'latest_predictions.json')
+            else:
+                # 加载指定日期缓存
+                cache_file = os.path.join(cache_dir, f'daily_predictions_{date_str}.json')
+            
+            if not os.path.exists(cache_file):
+                self.logger.warning(f"缓存文件不存在: {cache_file}")
+                return None
+            
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+            
+            self.logger.info(f"已加载预测缓存: {cache_file}")
+            return cache_data
+            
+        except Exception as e:
+            self.logger.error(f"加载预测缓存失败: {str(e)}")
+            return None
 
 
 def main():

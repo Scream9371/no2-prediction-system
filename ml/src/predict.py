@@ -16,9 +16,14 @@ import torch.nn as nn
 
 from .train import load_model
 
-# 设置中文显示
-plt.rcParams['font.sans-serif'] = ['SimHei']
-plt.rcParams['axes.unicode_minus'] = False
+# 设置中文显示（生产环境友好配置）
+try:
+    plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans', 'Arial Unicode MS', 'sans-serif']
+    plt.rcParams['axes.unicode_minus'] = False
+except Exception:
+    # 如果字体配置失败，使用默认字体
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'sans-serif']
+    plt.rcParams['axes.unicode_minus'] = False
 
 
 def predict_future_nc_cqr(
@@ -192,7 +197,8 @@ def visualize_predictions(
         history: pd.DataFrame,
         predictions: pd.DataFrame,
         eval_results: Dict = None,
-        save_path: str = None
+        save_path: str = None,
+        show_plot: bool = False
 ) -> None:
     """
     可视化预测结果
@@ -202,45 +208,59 @@ def visualize_predictions(
         predictions (pd.DataFrame): 预测结果
         eval_results (Dict): 评估结果，可选
         save_path (str): 保存路径，可选
+        show_plot (bool): 是否显示图表，默认False（适配生产环境）
     """
-    plt.figure(figsize=(14, 6))
+    try:
+        plt.figure(figsize=(14, 6))
 
-    # 绘制历史观测值
-    plt.plot(history['observation_time'], history['no2'],
-             'b-', label='历史观测值', alpha=0.7)
+        # 绘制历史观测值
+        plt.plot(history['observation_time'], history['no2'],
+                 'b-', label='历史观测值', alpha=0.7)
 
-    # 标记预测起始点
-    pred_start = predictions['observation_time'].iloc[0]
-    plt.axvline(x=pred_start, color='gray', linestyle='--', label='预测起始点')
+        # 标记预测起始点
+        pred_start = predictions['observation_time'].iloc[0]
+        plt.axvline(x=pred_start, color='gray', linestyle='--', label='预测起始点')
 
-    # 绘制预测值和置信区间
-    plt.plot(predictions['observation_time'], predictions['prediction'],
-             'r-', label='预测中值')
-    plt.fill_between(
-        predictions['observation_time'],
-        predictions['lower_bound'],
-        predictions['upper_bound'],
-        color='r', alpha=0.2, label='95%预测区间'
-    )
+        # 绘制预测值和置信区间
+        plt.plot(predictions['observation_time'], predictions['prediction'],
+                 'r-', label='预测中值')
+        plt.fill_between(
+            predictions['observation_time'],
+            predictions['lower_bound'],
+            predictions['upper_bound'],
+            color='r', alpha=0.2, label='95%预测区间'
+        )
 
-    # 设置标题（包含评估结果）
-    title = '二氧化氮浓度预测结果（未来48小时）'
-    if eval_results:
-        title += f"\n测试集覆盖率：{eval_results['coverage']:.1%}，平均区间宽度：{eval_results['avg_interval_width']:.2f}"
-    plt.title(title, fontsize=14)
+        # 设置标题（包含评估结果）
+        title = '二氧化氮浓度预测结果（未来48小时）'
+        if eval_results:
+            title += f"\n测试集覆盖率：{eval_results['coverage']:.1%}，平均区间宽度：{eval_results['avg_interval_width']:.2f}"
+        plt.title(title, fontsize=14)
 
-    plt.xlabel('时间', fontsize=12)
-    plt.ylabel('NO₂浓度 (μg/m³)', fontsize=12)
-    plt.legend(fontsize=10)
-    plt.grid(alpha=0.3)
-    plt.xticks(rotation=45)
-    plt.tight_layout()
+        plt.xlabel('时间', fontsize=12)
+        plt.ylabel('NO₂浓度 (μg/m³)', fontsize=12)
+        plt.legend(fontsize=10)
+        plt.grid(alpha=0.3)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
 
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"图表已保存到: {save_path}")
+        if save_path:
+            try:
+                plt.savefig(save_path, dpi=300, bbox_inches='tight')
+                print(f"图表已保存到: {save_path}")
+            except Exception as e:
+                print(f"保存图表失败: {e}")
 
-    plt.show()
+        if show_plot:
+            plt.show()
+        else:
+            # 生产环境：关闭图表以释放内存
+            plt.close()
+            
+    except Exception as e:
+        print(f"可视化预测结果时出错: {e}")
+        # 确保清理matplotlib资源
+        plt.close('all')
 
 
 def export_predictions_to_csv(
@@ -270,3 +290,32 @@ def export_predictions_to_csv(
     print(f"预测结果已导出到: {output_path}")
 
     return output_path
+
+
+def predict_for_web_api(city: str, steps: int = 24) -> pd.DataFrame:
+    """
+    专用于Web API的预测函数，不保存任何文件（生产环境优化）
+    
+    Args:
+        city (str): 城市名称
+        steps (int): 预测步数，默认24小时
+        
+    Returns:
+        pd.DataFrame: 预测结果，包含时间、预测值、置信区间
+        
+    Raises:
+        FileNotFoundError: 模型文件不存在
+        Exception: 预测过程出错
+    """
+    try:
+        # 使用Web模式：仅使用训练管道模型，不保存文件
+        predictions = predict_with_saved_model(city, steps=steps, model_source='web')
+        return predictions
+        
+    except FileNotFoundError as e:
+        # 模型文件不存在时的详细错误信息
+        raise FileNotFoundError(f"城市 {city} 的模型不存在，请先训练模型: {str(e)}")
+        
+    except Exception as e:
+        # 其他预测错误
+        raise Exception(f"预测城市 {city} 的NO2浓度时出错: {str(e)}")
