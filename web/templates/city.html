@@ -141,6 +141,11 @@
 
 <script>
     let chartInstance = null;
+    // 获取当前小时
+    function getCurrentHour() {
+    const now = new Date();
+    return now.getHours(); // 返回当前小时数（如7点半返回7）
+}
 
     // 解析URL参数获取城市名
     function getUrlParameter(name) {
@@ -283,32 +288,37 @@
             }
             const data = await response.json();
 
-            // 检查是否有警告信息
-            if (data.warning) {
-                console.warn('预测数据警告:', data.warning);
-                // 在页面上显示警告
-                const warningElement = document.createElement('div');
-                warningElement.style.cssText = 'background: rgba(255, 193, 7, 0.8); color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 14px;';
-                warningElement.innerHTML = `⚠️ <strong>警告：</strong>${data.warning}`;
-                document.querySelector('.card').insertBefore(warningElement, document.querySelector('.header'));
-            }
+            // 关键修改：根据当前小时获取对应的预测浓度
+            // 1. 获取当前小时（如7点半返回7）
+             const currentHour = getCurrentHour();
+            // 2. 假设data.times是["00:00", "01:00", ..., "23:00"]，索引与小时直接对应
+            // 取当前小时对应的预测值（如currentHour=7则取索引7的值）
+            let currentValue;
+            if (data.values && data.values.length > currentHour) {
+                currentValue = data.values[currentHour]; // 按当前小时取对应浓度
+                } else {
+                    // 容错：如果数据长度不足，取最后一个值
+                    currentValue = data.values && data.values.length > 0 ? data.values[data.values.length - 1] : 0;
+                    console.warn(`预测数据不足24小时，使用最后一个值: ${currentValue}`);
+                }
 
+            // 3. 返回处理后的数据（用新的currentValue替换原data.currentValue）
             return {
-                city: city,
-                updateTime: data.updateTime,
-                currentValue: data.currentValue,
-                avgValue: data.avgValue,
-                times: data.times,
-                values: data.values,
-                low: data.low,
-                high: data.high,
-                airQuality: getAirQualityInfo(data.currentValue)
+            city: city,
+            updateTime: data.updateTime,
+            currentValue: currentValue, // 现在是按当前小时取的值
+            avgValue: data.avgValue,
+            times: data.times,
+            values: data.values,
+            low: data.low,
+            high: data.high,
+            airQuality: getAirQualityInfo(currentValue) // 基于新的currentValue计算空气质量
             };
-        } catch (error) {
-            console.error('数据获取失败:', error);
-            throw error;
-        }
+       } catch (error) {
+        console.error('数据获取失败:', error);
+        throw error;
     }
+}
 
     // 渲染图表
     function renderChart(data) {

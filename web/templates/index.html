@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>大湾区NO₂浓度预测</title>
-    <!-- 引入Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* ========== 全局样式：背景 & 布局 ========== */
         * {
             margin: 0;
             padding: 0;
@@ -14,75 +13,266 @@
         }
 
         body {
-            font-family: "Microsoft YaHei", sans-serif;
-            background: url('https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920') no-repeat center center fixed;
-            background-size: cover;
-            height: 100vh;
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            background: url('/static/images/图片四.jpg') no-repeat center center;
+            background-size: cover; /* 全屏背景图 */
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
+            color: #fff;
+            padding: 20px;
+            overflow-x: hidden;
         }
 
-        /* ========== 透明卡片：还原参考图风格 ========== */
-        .card {
-            width: 80%;
-            max-width: 800px;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        /* 主题标题样式 - 整合index(4).html的设计 */
+        .theme-title {
             text-align: center;
+            margin-bottom: 30px;
+            width: 100%;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
         }
 
-        /* ========== 搜索区域 ========== */
+        .theme-title h1 {
+            font-size: 3.2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.7);
+            margin-bottom: 10px;
+            color: #fff;
+            background: linear-gradient(to right, #00f3ff, #00ffaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theme-title p {
+            font-size: 1.2rem;
+            color: #a7e8ff;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* 主卡片容器 */
+        .card {
+            position: relative;
+            max-width: 1100px;
+            width: 100%;
+            height: 620px;
+            border-radius: 25px;
+            background: rgba(20, 25, 50, 0.7);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            display: flex;
+            overflow: hidden;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+
+        /* 左侧区域样式 - 整合index(4).html的设计 */
+        .card-left {
+            width: 45%;
+            height: 100%;
+            background: url('https://images.pexels.com/photos/33127971/pexels-photo-33127971.jpeg') no-repeat center center;
+            background-size: cover;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(0, 243, 255, 0.2);
+            position: relative;
+            z-index: 2;
+            border-radius: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+        }
+
+        /* 深色覆盖层增强文字可读性 */
+        .card-left::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 20, 40, 0.7);
+            z-index: -1;
+        }
+
+        .city-header {
+            margin-bottom: 30px;
+            text-align: center;
+            z-index: 2;
+        }
+
+        .city-header h2 {
+            font-size: 2.4rem;
+            font-weight: 500;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        /* 时钟样式 - 整合index(4).html的设计 */
+        .realtime-clock {
+            text-align: left;
+            margin: 20px 0 30px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 15px;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            z-index: 2;
+        }
+
+        .realtime-clock .date {
+            font-size: 1.8rem;
+            font-weight: 300;
+            color: #a7e8ff;
+            margin-bottom: 8px;
+        }
+
+        .realtime-clock .weekday {
+            font-size: 1.8rem;
+            font-weight: 300;
+            color: #a7e8ff;
+            margin-bottom: 15px;
+        }
+
+        .realtime-clock .time {
+            font-size: 2.8rem;
+            font-weight: 400;
+            color: #00f3ff;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* 空气质量数据 */
+        .air-quality {
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            z-index: 2;
+        }
+
+
+        .aqi-value {
+            font-size: 4.5rem;
+            font-weight: 700;
+            color: #00ffaa;
+            text-align: center;
+            margin: 15px 0;
+            text-shadow: 0 0 15px rgba(0, 255, 170, 0.4);
+        }
+
+        .aqi-status {
+            font-size: 1.8rem;
+            text-align: center;
+            color: #00ffaa;
+            margin-bottom: 25px;
+        }
+
+.pollution-info {
+    background: rgba(0, 10, 30, 0.6);
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 10px; /* 调整整体位置 */
+    position: relative;
+    z-index: 3;
+}
+
+.pollution-info h3 {
+    font-size: 1.3rem;
+    color: #00f3ff;
+    margin-bottom: 15px;
+    text-align: left; /* 左对齐标题 */
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+}
+
+.pollution-info p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #c7f2ff;
+    margin-bottom: 12px; /* 调整段落间距 */
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+    text-align: justify; /* 两端对齐文本 */
+}
+
+        /* 右侧区域样式 */
+        .card-right {
+            width: 60%;
+            height: 100%;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 搜索区域样式 */
+        .search-container {
+            margin-bottom: 25px;
+            z-index: 10;
+        }
+
         .search-bar {
             display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 1rem 0 2rem;
-            position: relative; /* 为下拉列表提供定位参考 */
+            gap: 12px;
+            position: relative;
         }
 
         #cityInput {
-            padding: 0.8rem 1rem;
+            padding: 14px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             outline: none;
-            font-size: 1rem;
-            width: 60%;
-            max-width: 300px;
+            font-size: 1.1rem;
+            width: 100%;
+            background: rgba(10, 20, 40, 0.7);
+            color: #fff;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+
+        #cityInput::placeholder {
+            color: #7f9fb6;
         }
 
         #searchBtn {
-            padding: 0.8rem 1.5rem;
+            padding: 14px 28px;
             border: none;
-            border-radius: 8px;
-            background: #4CAF50;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #00a8cc, #007bff);
             color: white;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            white-space: nowrap;
         }
 
         #searchBtn:hover {
-            background: #45a049;
+            background: linear-gradient(135deg, #0097b2, #0062cc);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
         }
 
-        /* 城市下拉列表样式 */
         .city-dropdown {
             position: absolute;
             top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60%;
-            max-width: 300px;
-            max-height: 200px;
+            left: 0;
+            width: 100%;
+            max-height: 250px;
             overflow-y: auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            background: rgba(15, 25, 50, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
             z-index: 100;
             display: none;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            margin-top: 8px;
         }
 
         .city-dropdown.active {
@@ -90,59 +280,296 @@
         }
 
         .city-item {
-            padding: 0.8rem 1rem;
-            text-align: left;
+            padding: 14px 20px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            color: #cce6ff;
+            border-bottom: 1px solid rgba(100, 150, 200, 0.2);
+        }
+
+        .city-item:last-child {
+            border-bottom: none;
         }
 
         .city-item:hover {
-            background: #f0f0f0;
+            background: rgba(0, 123, 255, 0.2);
+            color: #00f3ff;
         }
 
-        /* ========== 图表容器 ========== */
-        #chartCanvas {
+        /* 热力图区域 */
+        .heatmap-container {
+            flex-grow: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .heatmap-title {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #00f3ff;
+            font-size: 1.4rem;
+            font-weight: 500;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 15px;
+            height: 100%;
+        }
+
+        .city-cell {
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 500;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .city-cell:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            z-index: 2;
+        }
+
+        .city-name {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .city-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .city-level {
+
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        /* 底部信息 */
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #7f9fb6;
+            font-size: 0.9rem;
             width: 100%;
+            padding: 15px;
+        }
+
+        /* 装饰元素 */
+        .decoration {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 243, 255, 0.15) 0%, rgba(0, 243, 255, 0) 70%);
+            z-index: 0;
+        }
+
+        .decoration.top-right {
+            top: -150px;
+            right: -150px;
+            width: 400px;
             height: 400px;
+        }
+
+        .decoration.bottom-left {
+            bottom: -100px;
+            left: -100px;
+            width: 300px;
+            height: 300px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 900px) {
+            .card {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .card-left, .card-right {
+                width: 100%;
+            }
+            
+            .card-left {
+                height: 400px;
+            }
+            
+            .heatmap-grid {
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .theme-title h1 {
+                font-size: 2.5rem;
+            }
+            
+            .heatmap-grid {
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(6, 1fr);
+            }
+            
+            .city-cell {
+                padding: 15px 5px;
+            }
+            
+            .city-name {
+                font-size: 1rem;
+            }
+            
+            .city-value {
+                font-size: 1.1rem;
+            }
         }
     </style>
 </head>
 <body>
-<div class="card">
-    <h1>大湾区NO₂浓度预测</h1>
-
-    <!-- 搜索框 -->
-    <div class="search-bar">
-        <input type="text" id="cityInput" placeholder="输入大湾区城市名（如：广州、深圳）">
-        <button id="searchBtn">查询</button>
-        <!-- 城市下拉列表 -->
-        <div class="city-dropdown" id="cityDropdown"></div>
+    <!-- 主题标题 - 增强设计 -->
+    <div class="theme-title">
+        <h1>大湾区NO₂浓度预测</h1>
+        <p>实时监测与预测粤港澳大湾区主要城市的二氧化氮浓度，助力环境治理与公众健康</p>
+    </div>
+    
+    <!-- 主卡片容器 -->
+    <div class="card">
+        <!-- 装饰元素 -->
+        <div class="decoration top-right"></div>
+        <div class="decoration bottom-left"></div>
+        
+        <!-- 左侧 -->
+        <div class="card-left">
+            <div class="city-header">
+                <h2>广州市</h2>
+            </div>
+            
+            <div class="realtime-clock">
+                <div class="date" id="dateDisplay">2025/07/28</div>
+                <div class="weekday" id="weekdayDisplay">星期一</div>
+                <div class="time" id="timeDisplay">14:28:36</div>
+            </div>
+            
+            <div class="air-quality">
+                <div class="aqi-value" id="aqiValue"></div>
+                <div class="aqi-status" id="aqiStatus"></div> 
+                   
+            </div>
+        </div>
+        
+        <!-- 右侧：搜索与热力图 -->
+        <div class="card-right">
+            <div class="search-container">
+                <div class="search-bar">
+                    <input type="text" id="cityInput" placeholder="输入大湾区城市名称（如：广州、深圳）">
+                    <button id="searchBtn">查询浓度数据</button>
+                    <div class="city-dropdown" id="cityDropdown"></div>
+                </div>
+            </div>
+            
+            <div class="heatmap-container">
+                <div class="heatmap-title">大湾区各城市实时NO₂浓度热力图 (μg/m³)</div>
+                <div class="heatmap-grid" id="heatmapGrid">
+                    <!-- 热力图将通过JS动态生成 -->
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Chart.js 画布 -->
-    <canvas id="chartCanvas"></canvas>
-</div>
 
 <script>
-    let chartInstance = null; // 存储图表实例
-
-    // 大湾区城市列表 - 从后端API动态获取
+    let chartInstance = null;
     let bayAreaCities = [];
+    const defaultCities = []; // 可保留默认城市作为备选
+    // 城市名 → 图片路径（网络URL或本地静态文件）
+    const cityImageMap = {
+  '广州': 'https://images.unsplash.com/photo-1544594376-0a9a6ae2c997?q=80&w=1803&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  '深圳': 'https://images.unsplash.com/photo-1609515602438-31b5b4362d52?q=80&w=2069&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  '珠海': 'https://images.unsplash.com/photo-1666960325075-2dd9a901423c?q=80&w=1932&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  '佛山': '/static/images/foshan.png',
+  '惠州': '/static/images/huizhou.png',
+  '东莞': '/static/images/dongguan.png',
+  '中山': '/static/images/zhongshan.jpg',
+  '江门': '/static/images/jiangmen.jpg',
+  '肇庆': '/static/images/zhaoqing.png',
+  '香港特别行政区': 'https://plus.unsplash.com/premium_photo-1661887277173-f996f36b8fb2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  '澳门特别行政区': 'https://images.unsplash.com/photo-1675102128521-b4ab17e003b0?q=80&w=1090&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+};
 
-    // 初始化城市列表：从后端API获取统一的城市映射
+    // 初始化城市列表：从后端API获取统一的城市映射并补充预测数据
     async function initializeCities() {
         try {
-            const response = await fetch('/api/cities');
-            const cities = await response.json();
-            // 将后端的 {id, name} 格式转换为前端使用的格式
-            bayAreaCities = cities.map(city => ({
-                name: city.name,
-                code: city.id  // 保持兼容性，将 id 映射到 code
+            // 1. 获取城市列表
+            const citiesResponse = await fetch('/api/cities');
+            if (!citiesResponse.ok) throw new Error('获取城市列表失败');
+            const cities = await citiesResponse.json();
+
+            // 2. 为每个城市获取NO2预测数据
+            const citiesWithData = await Promise.all(cities.map(async (city) => {
+                try {
+                    // 获取城市NO2预测数据
+                    const response = await fetch(`/api/predict/no2/${city.id}`);
+                    if (!response.ok) throw new Error(`获取${city.name}数据失败`);
+                    const data = await response.json();
+
+                     
+                    // 从映射表取图片
+                    const normalizedName = city.name
+                       .replace('市', '')           // 去掉“市”（如“广州市”→“广州”）
+                       .replace('特别行政区', '');
+
+                    // 转换为前端所需格式
+                    return {
+                        name: city.name,
+                        code: city.id,
+                        image: cityImageMap[normalizedName] || getDefaultImage(), // 使用默认图片或扩展逻辑
+                        hourlyValues: data.values || [], // 预测的每小时浓度值
+                        currentValue: data.currentValue || 0,
+                        updateTime: data.updateTime || ''
+                    };
+                } catch (error) {
+                    console.error(`处理${city.name}数据时出错:`, error);
+                    // 出错时返回基础信息
+                    return {
+                        name: city.name,
+                        code: city.id,
+                        image: getDefaultImage(),
+                        hourlyValues: [],
+                        currentValue: 0
+                    };
+                }
             }));
-            console.log('城市列表初始化成功:', bayAreaCities);
+
+            bayAreaCities = citiesWithData;
+            console.log('城市列表及数据初始化成功:', bayAreaCities);
+            generateHeatmap(); // 初始化热力图
         } catch (error) {
-            console.error('初始化城市列表失败:', error);
-            // 如果API调用失败，使用默认城市列表作为备选
+            console.error('初始化城市列表失败，使用默认数据:', error);
+            bayAreaCities = defaultCities;
+            generateHeatmap();
         }
     }
 
@@ -183,7 +610,7 @@
         document.getElementById('cityDropdown').classList.remove('active');
     }
 
-    // 验证并搜索城市（修改：错误提示改为弹窗）
+    // 验证并搜索城市（错误提示改为弹窗）
     function searchCity(cityName) {
         if (!cityName.trim()) {
             alert('请输入城市名！');
@@ -202,103 +629,41 @@
             // 跳转到子页面（携带完整城市名）
             window.open(`city.html?city=${encodeURIComponent(matchedCity.name)}`, '_blank');
         } else {
-            // 改为弹窗提示
+            // 弹窗提示不在范围内
             alert('该城市不在大湾区范围');
             // 清空输入框便于重新输入
             document.getElementById('cityInput').value = '';
         }
     }
 
-    // 绘制图表
-    function renderChart(data) {
-        const ctx = document.getElementById('chartCanvas').getContext('2d');
-
-        if (chartInstance) {
-            chartInstance.destroy();
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        // 初始化城市列表及数据
+        initializeCities().then(() => { // 等待城市数据加载完成
+        // 获取广州的实时数据
+        const guangzhou = bayAreaCities.find(city => city.name.includes('广州'));
+        if (guangzhou) {
+            updateLeftPanel(guangzhou); // 更新左侧面板显示广州数据
         }
-
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.times,
-                datasets: [
-                    {
-                        label: 'NO₂预测值（μg/m³）',
-                        data: data.values,
-                        borderColor: 'rgba(33, 150, 243, 1)',
-                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                        fill: false,
-                        tension: 0.3,
-                        pointRadius: 5,
-                        pointBackgroundColor: 'white',
-                        pointBorderColor: 'rgba(33, 150, 243, 1)'
-                    },
-                    {
-                        label: '预测区间（下限）',
-                        data: data.low,
-                        borderColor: 'rgba(255, 152, 0, 0.2)',
-                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                        fill: true,
-                        borderDash: [5, 5],
-                        tension: 0.3,
-                        pointRadius: 0,
-                        order: 1
-                    },
-                    {
-                        label: '预测区间（上限）',
-                        data: data.high,
-                        borderColor: 'rgba(255, 152, 0, 0.2)',
-                        backgroundColor: 'transparent',
-                        borderDash: [5, 5],
-                        tension: 0.3,
-                        pointRadius: 0,
-                        order: 2
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {display: true, text: 'NO₂浓度（μg/m³）'},
-                        grid: {color: '#eee'}
-                    },
-                    x: {
-                        title: {display: true, text: '时间'},
-                        grid: {display: false}
-                    }
-                },
-                plugins: {
-                    legend: {position: 'top'},
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false
-                    }
-                }
-            }
-        });
-    }
-
-    // 事件监听
-    document.addEventListener('DOMContentLoaded', async () => {
-        // 初始化城市列表
-        await initializeCities();
-        // 搜索按钮点击
+            
+    });
+        
+        // 初始化时钟
+        updateClock();
+        setInterval(updateClock, 1000);
+        
+        // 搜索按钮点击事件
         document.getElementById('searchBtn').addEventListener('click', () => {
             const city = document.getElementById('cityInput').value;
             searchCity(city);
         });
-
+        
         // 输入框事件
         const input = document.getElementById('cityInput');
         input.addEventListener('input', (e) => {
             showCityDropdown(e.target.value);
         });
-        input.addEventListener('focus', () => {
-            showCityDropdown(''); // 输入为空时显示所有城市
-        });
-
+        
         // 回车搜索
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -306,24 +671,119 @@
                 hideCityDropdown();
             }
         });
-
+        
         // 点击其他区域关闭下拉
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('cityDropdown');
             const input = document.getElementById('cityInput');
             if (!dropdown.contains(e.target) && !input.contains(e.target)) {
-                hideCityDropdown();
+                dropdown.classList.remove('active');
             }
         });
 
-        // 初始化示例图表
-        renderChart({
-            times: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '23:59'],
-            values: [45, 40, 55, 60, 58, 52, 48],
-            low: [35, 30, 45, 50, 48, 42, 38],
-            high: [55, 50, 65, 70, 68, 62, 58]
-        });
+        
     });
+
+    // 以下为原有辅助函数（保持不变）
+    function getDefaultImage() {
+        return 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920';
+    }
+
+    function updateClock() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        const weekday = weekdays[now.getDay()];
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        document.getElementById('dateDisplay').textContent = `${year}/${month}/${day}`; 
+        document.getElementById('weekdayDisplay').textContent = weekday;
+        document.getElementById('timeDisplay').textContent = `${hours}:${minutes}:${seconds}`;
+
+        // 每小时更新一次热力图数据
+        if (minutes === '00' && seconds === '00') {
+            initializeCities(); // 重新获取数据并更新热力图
+        }
+    }
+
+    // 热力图相关函数（保持不变）
+    function getCurrentHourValue(city) {
+        const hour = new Date().getHours();
+        return city.hourlyValues && city.hourlyValues[hour] !== undefined 
+            ? city.hourlyValues[hour] 
+            : city.hourlyValues[0] || 0;
+    }
+
+    function getLevelByValue(value) {
+        if (value < 30) return '优良';
+        if (value < 40) return '良好';
+        if (value < 50) return '中等';
+        return '较差';
+    }
+
+    function getOverlayColor(value) {
+        if (value < 30) return 'rgba(50, 200, 100, 0.3)';       // 优秀 - 绿色
+        if (value < 40) return 'rgba(100, 200, 255, 0.3)';     // 良好 - 蓝色
+        if (value < 50) return 'rgba(255, 200, 50, 0.4)';      // 中等 - 黄色
+        return 'rgba(255, 100, 100, 0.5)';                     // 较差 - 红色
+    }
+
+    function generateHeatmap() {
+        const grid = document.getElementById('heatmapGrid');
+        grid.innerHTML = '';
+        
+        bayAreaCities.forEach(city => {
+            const currentValue = getCurrentHourValue(city);
+            const level = getLevelByValue(currentValue);
+            const overlayColor = getOverlayColor(currentValue);
+
+            // 简化港澳名称
+            const displayName = city.name
+                .replace('市', '')
+                .replace('特别行政区', '');
+            
+            const cell = document.createElement('div');
+            cell.className = 'city-cell';
+            cell.style.background = `url('${city.image || getDefaultImage()}') no-repeat center center`;
+            cell.style.backgroundSize = 'cover';
+            
+            cell.innerHTML = `
+                <div class="city-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: ${overlayColor}; z-index: 1;"></div>
+                <div class="city-name" style="z-index: 2;">${displayName}</div>
+                <div class="city-value" style="z-index: 2;">${currentValue}</div>
+                <div class="city-level" style="z-index: 2;">${level}</div>
+            `;
+            
+            cell.addEventListener('click', () => updateLeftPanel(city));
+            
+            grid.appendChild(cell);
+        });
+    }
+    function updateLeftPanel(city) {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentValue = city.hourlyValues[currentHour] || city.hourlyValues[0];
+        const level = getLevelByValue(currentValue);
+        
+        // 简化城市名称（处理市/特别行政区）
+        const displayName = city.name
+            .replace('市', '')
+            .replace('特别行政区', '');
+        
+        // 更新左侧内容
+        document.querySelector('.city-header h2').textContent = displayName;
+        document.getElementById('aqiValue').textContent = currentValue;
+        document.querySelector('.aqi-status').textContent = `${currentValue} μg/m³ · 空气质量${level}`;
+        
+        // 保持时间更新（复用原有逻辑）
+        updateClock();
+    }
+
+    
 </script>
 </body>
 </html>
