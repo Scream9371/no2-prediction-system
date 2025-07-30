@@ -148,20 +148,20 @@ no2-prediction-system/
 	```
 
 4. **初始化数据库**
-   ```bash
-   python  -m scripts.setup_database
-   ```
-   > 注意！此操作会清除数据库中所有数据表以重新创建，你的数据库中的所有数据会被清除，若你的数据库中已经存有历史的 NO₂ 数据，建议在执行此操作前先对原数据进行备份。备份操作参见[其他说明](#5-其他说明)。
+	```bash
+	python  -m scripts.setup_database
+	```
+	> 注意！此操作会清除数据库中所有数据表以重新创建，你的数据库中的所有数据会被清除，若你的数据库中已经存有历史的 NO₂ 数据，建议在执行此操作前先对原数据进行备份。备份操作参见[其他说明](#5-其他说明)。
 
 5. **采集历史数据**
-   ```bash
-   python -m scripts.run_data_collector
-   ```
+	```bash
+	python -m scripts.run_data_collector
+	```
 
 6. **训练模型**
-   ```bash
-   python -m scripts.run_pipeline
-   ```
+	```bash
+	python -m scripts.run_pipeline
+	```
 
 7. **启动Web系统**
 

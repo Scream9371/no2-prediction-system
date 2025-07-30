@@ -89,12 +89,12 @@ class SimpleAutoTrainingScheduler:
         
         return logger
     
-    def check_data_freshness(self, hours_threshold: int = 6) -> Tuple[List[str], List[str]]:
+    def check_data_freshness(self, days_threshold: int = 3) -> Tuple[List[str], List[str]]:
         """
-        检查数据新鲜度，确定哪些城市需要训练
+        检查数据可用性和训练需求，确定哪些城市需要训练
         
         Args:
-            hours_threshold (int): 数据新鲜度阈值（小时）
+            days_threshold (int): 数据可用性阈值（天数），默认3天内有数据即可
             
         Returns:
             Tuple[List[str], List[str]]: (需要训练的城市, 跳过的城市)
@@ -103,31 +103,43 @@ class SimpleAutoTrainingScheduler:
         cities_to_train = []
         cities_to_skip = []
         
-        cutoff_time = datetime.now() - timedelta(hours=hours_threshold)
+        # 数据可用性阈值：最近N天内有数据即可
+        data_cutoff_time = datetime.now() - timedelta(days=days_threshold)
+        today_str = datetime.now().strftime("%Y%m%d")
         
         for city in cities:
             try:
+                # 1. 检查今天是否已经训练过模型
+                from scripts.run_pipeline import is_model_trained_today
+                if is_model_trained_today(city):
+                    cities_to_skip.append(city)
+                    self.logger.info(f"{city}: 今日模型已存在，跳过训练")
+                    continue
+                
+                # 2. 检查数据可用性
                 df = load_data_from_mysql(city)
                 if df.empty:
                     cities_to_skip.append(city)
                     self.logger.warning(f"{city}: 无可用数据")
                     continue
                 
-                # 检查最新数据时间
-                latest_time = df['observation_time'].max()
-                if latest_time < cutoff_time:
-                    cities_to_skip.append(city)
-                    self.logger.info(f"{city}: 数据不够新 (最新: {latest_time})")
-                    continue
-                
-                # 检查数据量
+                # 3. 检查数据量是否足够
                 if len(df) < 100:
                     cities_to_skip.append(city)
                     self.logger.warning(f"{city}: 数据量不足 ({len(df)}条)")
                     continue
                 
+                # 4. 检查数据是否太陈旧（超过阈值天数）
+                latest_time = df['observation_time'].max()
+                if latest_time < data_cutoff_time:
+                    cities_to_skip.append(city)
+                    self.logger.warning(f"{city}: 数据过于陈旧 (最新: {latest_time}, 阈值: {days_threshold}天)")
+                    continue
+                
+                # 5. 所有检查通过，可以训练
                 cities_to_train.append(city)
-                self.logger.info(f"{city}: 数据检查通过 (最新: {latest_time}, 共{len(df)}条)")
+                days_old = (datetime.now() - latest_time).days
+                self.logger.info(f"{city}: 数据检查通过 (最新: {latest_time}, {days_old}天前, 共{len(df)}条)")
                 
             except Exception as e:
                 cities_to_skip.append(city)
