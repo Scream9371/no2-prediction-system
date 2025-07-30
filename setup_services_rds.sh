@@ -105,50 +105,8 @@ except Exception as e:
 "
 fi
 
-# 2. 创建Gunicorn配置
-echo -e "${YELLOW}[2/6] 配置Gunicorn...${NC}"
-cat > $APP_DIR/gunicorn.conf.py << EOF
-# Gunicorn配置文件 - RDS版本
-import os
-
-# 服务器套接字
-bind = "127.0.0.1:5000"
-backlog = 2048
-
-# 工作进程
-workers = 2
-worker_class = "sync"
-worker_connections = 1000
-max_requests = 1000
-max_requests_jitter = 50
-preload_app = True
-timeout = 120
-keepalive = 2
-
-# 日志
-accesslog = "/var/log/gunicorn/access.log"
-errorlog = "/var/log/gunicorn/error.log"
-loglevel = "info"
-access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
-
-# 进程命名
-proc_name = 'no2-prediction-gunicorn-rds'
-
-# 用户和组
-user = "$APP_USER"
-group = "$APP_USER"
-
-# 环境变量
-# RDS连接超时设置
-raw_env = [
-    'DATABASE_CONNECT_TIMEOUT=30',
-    'DATABASE_READ_TIMEOUT=30',
-    'DATABASE_WRITE_TIMEOUT=30'
-]
-
-# 临时目录
-tmp_upload_dir = None
-EOF
+# 2. 准备Gunicorn运行环境
+echo -e "${YELLOW}[2/6] 准备Gunicorn运行环境...${NC}"
 
 # 创建日志目录
 mkdir -p /var/log/gunicorn
@@ -172,7 +130,7 @@ Environment=PATH=$APP_DIR/venv/bin
 Environment=DATABASE_CONNECT_TIMEOUT=30
 Environment=DATABASE_READ_TIMEOUT=30
 Environment=DATABASE_WRITE_TIMEOUT=30
-ExecStart=$APP_DIR/venv/bin/gunicorn --config $APP_DIR/gunicorn.conf.py app_deploy:app
+ExecStart=$APP_DIR/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 2 --timeout 120 --max-requests 1000 --max-requests-jitter 50 --preload --access-logfile /var/log/gunicorn/access.log --error-logfile /var/log/gunicorn/error.log --log-level info --name no2-prediction-gunicorn-rds web.app:app
 ExecReload=/bin/kill -s HUP \$MAINPID
 KillMode=mixed
 TimeoutStopSec=5
