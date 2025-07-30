@@ -184,8 +184,8 @@ def evaluate_model(model: nn.Module, X_test: np.ndarray, y_test: np.ndarray, Q: 
         X_test_tensor = torch.FloatTensor(X_test).to(device)
         
         lower_pred, upper_pred = model(X_test_tensor)
-        lower_bound = lower_pred.squeeze().cpu().numpy() - Q
-        upper_bound = upper_pred.squeeze().cpu().numpy() + Q
+        lower_bound = lower_pred.cpu().numpy().flatten() - Q
+        upper_bound = upper_pred.cpu().numpy().flatten() + Q
         
         # 计算覆盖率
         coverage = np.mean((y_test >= lower_bound) & (y_test <= upper_bound))
@@ -196,6 +196,7 @@ def evaluate_model(model: nn.Module, X_test: np.ndarray, y_test: np.ndarray, Q: 
         return {
             'coverage': coverage,
             'avg_interval_width': avg_interval_width,
+            'test_samples': len(y_test),
             'lower_bound': lower_bound,
             'upper_bound': upper_bound
         }
