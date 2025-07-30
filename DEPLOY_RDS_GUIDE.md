@@ -61,11 +61,13 @@ Internet → 阿里云安全组 → Nginx → Gunicorn → Flask应用 ──网
 # 1. SSH连接ECS服务器
 ssh ubuntu@8.136.12.26
 
-# 2. 克隆项目代码
-git clone https://github.com/Scream9371/no2-prediction-system.git
-cd no2-prediction-system
+# 2. 进入项目目录（已部署）
+cd /var/www/no2-prediction-system
 
-# 3. 执行基础环境部署（不安装MySQL）
+# 如果是首次部署则需要克隆：
+# sudo git clone https://github.com/Scream9371/no2-prediction-system.git /var/www/no2-prediction-system
+
+# 3. 执行基础环境部署
 sudo chmod +x deploy_aliyun_ecs_rds.sh
 sudo ./deploy_aliyun_ecs_rds.sh
 ```
@@ -353,8 +355,7 @@ sudo tail -f /var/log/gunicorn/error.log | grep -i rds
 
 #### 3. 应用部署阶段
 - **代码目录结构**:
-  - 开发目录: `~/no2-prediction-system` (git管理、代码更新)
-  - 生产目录: `/var/www/no2-prediction-system` (Web服务运行)
+  - 生产目录: `/var/www/no2-prediction-system` (git管理、代码更新、Web服务运行)
 - **虚拟环境**: `/var/www/no2-prediction-system/venv`
 - **服务配置**: Gunicorn + Nginx + systemd
 
@@ -381,7 +382,7 @@ sudo tail -f /var/log/gunicorn/error.log | grep -i rds
 #### 3. 配置文件同步问题
 ```bash
 # 问题: setup_services_rds.sh使用.env.template而非实际配置
-# 解决: 手动复制 ~/no2-prediction-system/.env 到部署目录
+# 解决: 统一使用 /var/www/no2-prediction-system 目录进行git管理和部署
 ```
 
 #### 4. API路由404问题
@@ -426,6 +427,85 @@ mysql -h rm-bp15v1h0r46qac7rvso.mysql.rds.aliyuncs.com -P 3306 -u no2user -p no2
 
 # 应用日志查看
 sudo journalctl -u no2-prediction -f
+```
+
+### Git Pull 后服务重启指南
+
+**问题描述**: 每次执行 `git pull` 获取新代码后，云端服务会出现端口占用问题，导致服务无法正常启动。
+
+**解决方案**: 使用 systemd 管理服务，而不是手动运行 gunicorn。
+
+#### 标准重启流程
+```bash
+# 1. 停止现有服务
+sudo systemctl stop no2-prediction
+
+# 2. 清理残留进程（如果有）
+sudo pkill -f gunicorn
+
+# 3. 重新加载systemd配置（如果修改了服务文件）
+sudo systemctl daemon-reload
+
+# 4. 重启服务
+sudo systemctl restart no2-prediction
+
+# 5. 检查服务状态
+sudo systemctl status no2-prediction
+```
+
+#### 快速重启命令
+```bash
+# 一键重启命令（推荐）
+sudo systemctl restart no2-prediction && sudo systemctl status no2-prediction
+```
+
+#### 故障排除
+```bash
+# 如果端口仍被占用，查找占用进程
+sudo netstat -tlnp | grep :5000
+sudo lsof -i :5000
+
+# 强制杀死占用进程
+sudo fuser -k 5000/tcp
+
+# 检查服务日志
+sudo journalctl -u no2-prediction -n 50
+sudo tail -f /var/log/gunicorn/error.log
+```
+
+#### 自动化重启脚本
+创建便捷的重启脚本：
+```bash
+# 创建重启脚本
+cat > ~/restart_service.sh << 'EOF'
+#!/bin/bash
+echo "🔄 正在重启 NO2 预测服务..."
+sudo systemctl stop no2-prediction
+sleep 2
+sudo pkill -f gunicorn 2>/dev/null || true
+sudo systemctl start no2-prediction
+sleep 3
+sudo systemctl status no2-prediction --no-pager
+echo "✅ 服务重启完成！"
+EOF
+
+chmod +x ~/restart_service.sh
+
+# 使用方法
+~/restart_service.sh
+```
+
+#### 避免手动运行 gunicorn
+**❌ 错误做法**:
+```bash
+# 不要直接运行，会导致端口冲突
+gunicorn --bind 127.0.0.1:5000 web.app:app
+```
+
+**✅ 正确做法**:
+```bash
+# 使用 systemd 管理服务
+sudo systemctl restart no2-prediction
 ```
 
 ### 重要配置文件位置
