@@ -663,6 +663,11 @@
         input.addEventListener('input', (e) => {
             showCityDropdown(e.target.value);
         });
+
+        // 当输入框获得焦点时显示下拉框
+        input.addEventListener('focus', (e) => {
+            showCityDropdown(e.target.value);
+        });
         
         // 回车搜索
         input.addEventListener('keypress', (e) => {
