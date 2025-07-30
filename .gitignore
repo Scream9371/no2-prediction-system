@@ -25,7 +25,7 @@ ENV/
 # 机器学习输出和缓存
 outputs/
 data/ml_cache/
-data/predictions
+data/predictions_cache/
 ml/models/
 
 # 日志文件
