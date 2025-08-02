@@ -177,31 +177,44 @@
             margin-bottom: 25px;
         }
 
-.pollution-info {
-    background: rgba(0, 10, 30, 0.6);
-    border-radius: 12px;
-    padding: 15px;
-    margin-top: 10px; /* 调整整体位置 */
-    position: relative;
-    z-index: 3;
-}
+        .pollution-info {
+            background: rgba(0, 10, 30, 0.6);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 10px; /* 调整整体位置 */
+            position: relative;
+            z-index: 3;
+        }
 
-.pollution-info h3 {
-    font-size: 1.3rem;
-    color: #00f3ff;
-    margin-bottom: 15px;
-    text-align: left; /* 左对齐标题 */
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
-}
+        .pollution-info h3 {
+            font-size: 1.3rem;
+            color: #00f3ff;
+            margin-bottom: 15px;
+            text-align: left; /* 左对齐标题 */
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        }
 
-.pollution-info p {
-    font-size: 1rem;
-    line-height: 1.6;
-    color: #c7f2ff;
-    margin-bottom: 12px; /* 调整段落间距 */
-    text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
-    text-align: justify; /* 两端对齐文本 */
-}
+        .pollution-info p {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #c7f2ff;
+            margin-bottom: 12px; /* 调整段落间距 */
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+            text-align: justify; /* 两端对齐文本 */
+        }
+
+        /* 趋势指示符号样式 */
+        .trend-up {
+            color: #ff6b6b;
+            font-size: 1.5rem;
+            margin-left: 10px;
+        }
+        
+        .trend-down {
+            color: #4ecdc4;
+            font-size: 1.5rem;
+            margin-left: 10px;
+        }
 
         /* 右侧区域样式 */
         .card-right {
@@ -296,7 +309,7 @@
             color: #00f3ff;
         }
 
-        /* 热力图区域 */
+        /* 热力热力图区域 */
         .heatmap-container {
             flex-grow: 1;
             background: rgba(0, 0, 0, 0.2);
@@ -361,10 +374,11 @@
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
             padding: 5px 10px;
             border-radius: 5px;
+            display: flex;
+            align-items: center;
         }
 
         .city-level {
-
             padding: 5px 10px;
             border-radius: 5px;
         }
@@ -636,6 +650,42 @@
         }
     }
 
+    // 获取当前小时的数值
+    function getCurrentHourValue(city) {
+        const hour = new Date().getHours(); // 获取当前小时(0-23)
+        // 优先从每小时预测值中取当前小时对应的数据
+        return city.hourlyValues && city.hourlyValues[hour] !== undefined 
+            ? city.hourlyValues[hour] 
+            : city.hourlyValues[0] || 0; // 兜底逻辑
+    }
+    
+    // 获取下一小时的数值
+    function getNextHourValue(city) {
+        const now = new Date();
+        let nextHour = now.getHours() + 1;
+        
+        // 如果当前是23点，下一小时就是0点
+        if (nextHour === 24) {
+            nextHour = 0;
+        }
+        
+        // 优先从每小时预测值中取下一小时对应的数据
+        return city.hourlyValues && city.hourlyValues[nextHour] !== undefined 
+            ? city.hourlyValues[nextHour] 
+            : city.hourlyValues[0] || 0; // 兜底逻辑
+    }
+    
+    // 获取趋势符号
+    function getTrendSymbol(currentValue, nextValue) {
+        if (nextValue > currentValue) {
+            return '<span class="trend-up">↑</span>';
+        } else if (nextValue < currentValue) {
+            return '<span class="trend-down">↓</span>';
+        } else {
+            return ''; // 相等时不显示符号
+        }
+    }
+
     // 页面加载完成后初始化
     document.addEventListener('DOMContentLoaded', () => {
         // 初始化城市列表及数据
@@ -716,13 +766,6 @@
     }
 
     // 热力图相关函数（保持不变）
-    function getCurrentHourValue(city) {
-        const hour = new Date().getHours();
-        return city.hourlyValues && city.hourlyValues[hour] !== undefined 
-            ? city.hourlyValues[hour] 
-            : city.hourlyValues[0] || 0;
-    }
-
     function getLevelByValue(value) {
         if (value < 30) return '优良';
         if (value < 40) return '良好';
@@ -743,6 +786,8 @@ function generateHeatmap() {
     
     bayAreaCities.forEach(city => {
         const currentValue = getCurrentHourValue(city);
+        const nextValue = getNextHourValue(city);
+        const trendSymbol = getTrendSymbol(currentValue, nextValue);
         const level = getLevelByValue(currentValue);
         const overlayColor = getOverlayColor(currentValue);
 
@@ -759,7 +804,7 @@ function generateHeatmap() {
         cell.innerHTML = `
             <div class="city-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: ${overlayColor}; z-index: 1;"></div>
             <div class="city-name" style="z-index: 2;">${displayName}</div>
-            <div class="city-value" style="z-index: 2;">${currentValue}</div>
+            <div class="city-value" style="z-index: 2;">${currentValue} ${trendSymbol}</div>
             <div class="city-level" style="z-index: 2;">${level}</div>
         `;
         
@@ -786,6 +831,10 @@ function generateHeatmap() {
     const now = new Date();
     const currentHour = now.getHours();
     const currentValue = city.hourlyValues[currentHour] || city.hourlyValues[0];
+    // 获取下一小时数值
+    const nextHour = (currentHour + 1) % 24;
+    const nextValue = city.hourlyValues[nextHour] || city.hourlyValues[0];
+    const trendSymbol = getTrendSymbol(currentValue, nextValue);
     const level = getLevelByValue(currentValue);
     
     // 简化城市名称（处理市/特别行政区）
@@ -798,7 +847,7 @@ function generateHeatmap() {
     document.getElementById('aqiValue').textContent = currentValue;
     document.querySelector('.aqi-status').textContent = `${currentValue} μg/m³ · 空气质量${level}`;
     
-    // 新增：更新左侧面板的背景图片
+    // 新增：更新左侧左侧面板的背景图片
     const cardLeft = document.querySelector('.card-left');
     // 使用城市对应的图片，如果没有则使用默认图片
     const cityImage = city.image || getDefaultImage();
