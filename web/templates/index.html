@@ -835,7 +835,7 @@ function generateHeatmap() {
     const nextHour = (currentHour + 1) % 24;
     const nextValue = city.hourlyValues[nextHour] || city.hourlyValues[0];
     const trendSymbol = getTrendSymbol(currentValue, nextValue);
-    const level = getLevelByValue(currentValue);
+    const level = getLevelByValue(cSurrentValue);
     
     // 简化城市名称（处理市/特别行政区）
     const displayName = city.name
