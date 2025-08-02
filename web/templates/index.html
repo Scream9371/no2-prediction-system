@@ -724,17 +724,17 @@
     }
 
     function getLevelByValue(value) {
-        if (value < 30) return '优良';
-        if (value < 40) return '良好';
-        if (value < 50) return '中等';
-        return '较差';
+        if (value < 40) return '优';
+        if (value < 80) return '良';
+        if (value < 120) return '轻度污染';
+        return '中度污染';
     }
 
     function getOverlayColor(value) {
-        if (value < 30) return 'rgba(50, 200, 100, 0.3)';       // 优秀 - 绿色
-        if (value < 40) return 'rgba(100, 200, 255, 0.3)';     // 良好 - 蓝色
-        if (value < 50) return 'rgba(255, 200, 50, 0.4)';      // 中等 - 黄色
-        return 'rgba(255, 100, 100, 0.5)';                     // 较差 - 红色
+        if (value < 40) return 'rgba(50, 200, 100, 0.3)';       // 优 - 绿色
+        if (value < 80) return 'rgba(255, 255, 100, 0.3)';     // 良 - 黄色
+        if (value < 120) return 'rgba(255, 150, 50, 0.4)';      // 轻度污染污染 - 橙色
+        return 'rgba(255, 100, 100, 0.5)';                     //  中度及以上- 红色
     }
 
     function generateHeatmap() {
