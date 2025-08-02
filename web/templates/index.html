@@ -762,8 +762,20 @@
                 <div class="city-value" style="z-index: 2;">${currentValue}</div>
                 <div class="city-level" style="z-index: 2;">${level}</div>
             `;
-            
+            // 单击事件：更新左侧面板数据
             cell.addEventListener('click', () => updateLeftPanel(city));
+            // 防止双击时触发两次单击事件
+            if (!cell.classList.contains('double-clicked')) {
+                updateLeftPanel(city);
+            }
+            cell.classList.remove('double-clicked');
+           
+        
+        // 双击事件：跳转到子页面
+        cell.addEventListener('dblclick', () => {
+            cell.classList.add('double-clicked'); // 标记为双击，避免触发单击处理
+            window.open(`city.html?city=${encodeURIComponent(city.name)}`, '_blank');
+        });
             
             grid.appendChild(cell);
         });
