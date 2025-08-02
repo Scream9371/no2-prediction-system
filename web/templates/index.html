@@ -215,6 +215,12 @@
             font-size: 1.5rem;
             margin-left: 10px;
         }
+        
+        .trend-equal {
+    color: #f0f0f0;
+    font-size: 1.5rem;
+    margin-left: 10px;
+}
 
         /* 右侧区域样式 */
         .card-right {
@@ -677,14 +683,15 @@
     
     // 获取趋势符号
     function getTrendSymbol(currentValue, nextValue) {
-        if (nextValue > currentValue) {
-            return '<span class="trend-up">↑</span>';
-        } else if (nextValue < currentValue) {
-            return '<span class="trend-down">↓</span>';
-        } else {
-            return ''; // 相等时不显示符号
-        }
+    if (nextValue > currentValue) {
+        return '<span class="trend-up">↑</span>';
+    } else if (nextValue < currentValue) {
+        return '<span class="trend-down">↓</span>';
+    } else {
+        // 新增：浓度相等时显示—符号
+        return '<span class="trend-equal">—</span>';
     }
+}
 
     // 页面加载完成后初始化
     document.addEventListener('DOMContentLoaded', () => {
@@ -835,7 +842,7 @@ function generateHeatmap() {
     const nextHour = (currentHour + 1) % 24;
     const nextValue = city.hourlyValues[nextHour] || city.hourlyValues[0];
     const trendSymbol = getTrendSymbol(currentValue, nextValue);
-    const level = getLevelByValue(cSurrentValue);
+    const level = getLevelByValue(currentValue);
     
     // 简化城市名称（处理市/特别行政区）
     const displayName = city.name
