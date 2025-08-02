@@ -84,6 +84,63 @@
             margin: 2rem 0;
         }
 
+        .accuracy-section {
+            margin-top: 3rem;
+            padding: 2rem;
+            background: rgba(240, 248, 255, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(100, 150, 200, 0.2);
+        }
+
+        .accuracy-section h2 {
+            color: #2c5282;
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+
+        .accuracy-description {
+            color: #4a5568;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        #accuracyChartCanvas {
+            width: 100%;
+            height: 350px;
+            margin: 1.5rem 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .accuracy-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .accuracy-metric {
+            background: rgba(255, 255, 255, 0.4);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-label {
+            display: block;
+            font-size: 0.9rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
         .recommendations {
             text-align: left;
             background: rgba(225, 225, 225, 0.3);
@@ -131,6 +188,27 @@
 
     <canvas id="chartCanvas"></canvas>
 
+    <!-- 预测准确性对比图表 -->
+    <div class="accuracy-section">
+        <h2>预测准确性分析</h2>
+        <p class="accuracy-description">对比昨天的预测值与实际观测值，评估模型预测准确性</p>
+        <canvas id="accuracyChartCanvas"></canvas>
+        <div id="accuracyStats" class="accuracy-stats">
+            <div class="accuracy-metric">
+                <span class="metric-label">平均绝对误差:</span>
+                <span id="maeValue" class="metric-value">计算中...</span>
+            </div>
+            <div class="accuracy-metric">
+                <span class="metric-label">预测区间覆盖率:</span>
+                <span id="coverageValue" class="metric-value">计算中...</span>
+            </div>
+            <div class="accuracy-metric">
+                <span class="metric-label">数据更新时间:</span>
+                <span id="accuracyUpdateTime" class="metric-value">-</span>
+            </div>
+        </div>
+    </div>
+
     <div class="recommendations">
         <h3>健康建议</h3>
         <ul id="recommendationsList">
@@ -141,6 +219,7 @@
 
 <script>
     let chartInstance = null;
+    let accuracyChartInstance = null;
     // 获取当前小时
     function getCurrentHour() {
     const now = new Date();
@@ -320,6 +399,241 @@
     }
 }
 
+    // 获取昨天的历史观测数据和预测数据
+    async function fetchAccuracyData(city) {
+        try {
+            // 获取城市ID映射
+            const citiesResponse = await fetch('/api/cities');
+            const cities = await citiesResponse.json();
+            
+            const cityInfo = cities.find(item => {
+                if (item.name === city) return true;
+                if (city.endsWith('市') && item.name === city.slice(0, -1)) return true;
+                if (city.endsWith('特别行政区') && item.name === city.slice(0, -5)) return true;
+                if (item.name.endsWith('市') && item.name.slice(0, -1) === city) return true;
+                return item.name.endsWith('特别行政区') && item.name.slice(0, -5) === city;
+            });
+
+            if (!cityInfo) {
+                throw new Error(`未找到城市${city}的ID`);
+            }
+
+            // 并行获取昨天的历史观测数据和预测数据
+            const [actualResponse, predictedResponse] = await Promise.all([
+                fetch(`/api/no2/${cityInfo.id}`),
+                fetch(`/api/historical-predictions/${cityInfo.id}`)
+            ]);
+
+            if (!actualResponse.ok || !predictedResponse.ok) {
+                throw new Error('无法获取完整的对比数据');
+            }
+
+            const actualData = await actualResponse.json();
+            const predictedData = await predictedResponse.json();
+
+            return {
+                actual: actualData,
+                predicted: predictedData,
+                city: city
+            };
+            
+        } catch (error) {
+            console.error('准确性数据获取失败:', error);
+            throw error;
+        }
+    }
+
+    // 计算准确性指标
+    function calculateAccuracyMetrics(actualData, predictedData) {
+        const actualValues = actualData.data.map(record => record.no2_concentration);
+        const predictedValues = predictedData.values;
+        const predictedLow = predictedData.low;
+        const predictedHigh = predictedData.high;
+        
+        // 确保数据长度匹配（取最小长度）
+        const minLength = Math.min(actualValues.length, predictedValues.length);
+        const actualTrimmed = actualValues.slice(0, minLength);
+        const predictedTrimmed = predictedValues.slice(0, minLength);
+        const lowTrimmed = predictedLow.slice(0, minLength);
+        const highTrimmed = predictedHigh.slice(0, minLength);
+        
+        // 计算平均绝对误差 (MAE)
+        const mae = actualTrimmed.reduce((sum, actual, i) => {
+            return sum + Math.abs(actual - predictedTrimmed[i]);
+        }, 0) / actualTrimmed.length;
+        
+        // 计算预测区间覆盖率
+        let covered = 0;
+        actualTrimmed.forEach((actual, i) => {
+            if (actual >= lowTrimmed[i] && actual <= highTrimmed[i]) {
+                covered++;
+            }
+        });
+        const coverage = (covered / actualTrimmed.length) * 100;
+        
+        return {
+            mae: mae.toFixed(2),
+            coverage: coverage.toFixed(1),
+            dataPoints: minLength
+        };
+    }
+
+    // 渲染准确性对比图表
+    function renderAccuracyChart(accuracyData) {
+        const ctx = document.getElementById('accuracyChartCanvas').getContext('2d');
+
+        if (accuracyChartInstance) {
+            accuracyChartInstance.destroy();
+        }
+
+        const actualData = accuracyData.actual.data;
+        const predictedData = accuracyData.predicted;
+        
+        // 准备数据（确保时间对齐）
+        const times = predictedData.times;
+        const actualValues = actualData.map(record => record.no2_concentration);
+        const predictedValues = predictedData.values;
+        const predictedLow = predictedData.low;
+        const predictedHigh = predictedData.high;
+
+        // 计算准确性指标
+        const metrics = calculateAccuracyMetrics(accuracyData.actual, predictedData);
+        
+        // 更新准确性指标显示
+        document.getElementById('maeValue').textContent = `${metrics.mae} μg/m³`;
+        document.getElementById('coverageValue').textContent = `${metrics.coverage}%`;
+        document.getElementById('accuracyUpdateTime').textContent = accuracyData.actual.date;
+
+        accuracyChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: times,
+                datasets: [
+                    {
+                        label: '实际观测值',
+                        data: actualValues,
+                        borderWidth: 4,
+                        borderColor: 'rgba(220, 38, 127, 1)',
+                        backgroundColor: 'rgba(220, 38, 127, 0.1)',
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: 'rgba(220, 38, 127, 1)',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        order: 1
+                    },
+                    {
+                        label: '预测值',
+                        data: predictedValues,
+                        borderWidth: 3,
+                        borderColor: 'rgba(59, 130, 246, 0.8)',
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        borderDash: [8, 4],
+                        tension: 0.1,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 1,
+                        order: 2
+                    },
+                    {
+                        label: '预测区间下限',
+                        data: predictedLow,
+                        borderWidth: 2,
+                        borderColor: 'rgba(156, 163, 175, 0.6)',
+                        backgroundColor: 'rgba(229, 231, 235, 0.3)',
+                        fill: '+1',
+                        borderDash: [4, 4],
+                        tension: 0.2,
+                        pointRadius: 0,
+                        order: 3
+                    },
+                    {
+                        label: '预测区间上限',
+                        data: predictedHigh,
+                        borderWidth: 2,
+                        borderColor: 'rgba(156, 163, 175, 0.6)',
+                        backgroundColor: 'transparent',
+                        borderDash: [4, 4],
+                        tension: 0.2,
+                        pointRadius: 0,
+                        order: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                devicePixelRatio: 2,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'NO₂浓度 (μg/m³)',
+                            font: { size: 14, weight: 'bold' },
+                            color: '#374151'
+                        },
+                        ticks: {
+                            font: { size: 12 },
+                            color: '#6b7280'
+                        },
+                        grid: {
+                            color: 'rgba(156, 163, 175, 0.3)',
+                            lineWidth: 1
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间 (昨天)',
+                            font: { size: 14, weight: 'bold' },
+                            color: '#374151'
+                        },
+                        ticks: {
+                            maxTicksLimit: 12,
+                            font: { size: 12 },
+                            color: '#6b7280'
+                        },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12, weight: '500' },
+                            color: '#374151',
+                            usePointStyle: true,
+                            pointStyle: 'line'
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#1f2937',
+                        bodyColor: '#4b5563',
+                        borderColor: '#d1d5db',
+                        borderWidth: 1,
+                        padding: 12,
+                        bodyFont: { size: 12 },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y.toFixed(1);
+                                return `${label}: ${value} μg/m³`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     // 渲染图表
     function renderChart(data) {
         const ctx = document.getElementById('chartCanvas').getContext('2d');
@@ -476,6 +790,30 @@
 
             // 渲染图表
             renderChart(realData);
+            
+            // 加载并渲染预测准确性分析
+            try {
+                const accuracyData = await fetchAccuracyData(city);
+                renderAccuracyChart(accuracyData);
+            } catch (accuracyError) {
+                console.error('准确性分析数据加载失败:', accuracyError);
+                // 显示错误信息但不阻止主功能
+                document.getElementById('maeValue').textContent = '暂无数据';
+                document.getElementById('coverageValue').textContent = '暂无数据';
+                document.getElementById('accuracyUpdateTime').textContent = '数据获取失败';
+                
+                // 隐藏准确性图表区域或显示提示信息
+                const accuracyCanvas = document.getElementById('accuracyChartCanvas');
+                const ctx = accuracyCanvas.getContext('2d');
+                ctx.fillStyle = '#f3f4f6';
+                ctx.fillRect(0, 0, accuracyCanvas.width, accuracyCanvas.height);
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无昨天的对比数据', accuracyCanvas.width / 2, accuracyCanvas.height / 2);
+                ctx.fillText('(需要历史预测数据和观测数据)', accuracyCanvas.width / 2, accuracyCanvas.height / 2 + 25);
+            }
+            
         } catch (error) {
             console.error('数据加载失败:', error);
             alert('无法获取城市数据，请稍后重试');
