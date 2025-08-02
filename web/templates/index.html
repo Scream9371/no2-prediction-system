@@ -98,7 +98,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(10, 20, 40, 0.7);
+            background: rgba(10, 20, 40, 0.25);
             z-index: -1;
         }
 
@@ -512,7 +512,7 @@
   '佛山': '/static/images/foshan.png',
   '惠州': '/static/images/huizhou.png',
   '东莞': '/static/images/dongguan.png',
-  '中山': '/static/images/zhongshan.jpg',
+  '中山': '/static/images/zhongshan.png',
   '江门': '/static/images/jiangmen.jpg',
   '肇庆': '/static/images/zhaoqing.png',
   '香港': '/static/images/hongkong.png',
@@ -737,57 +737,78 @@
         return 'rgba(255, 100, 100, 0.5)';                     // 较差 - 红色
     }
 
-    function generateHeatmap() {
-        const grid = document.getElementById('heatmapGrid');
-        grid.innerHTML = '';
-        
-        bayAreaCities.forEach(city => {
-            const currentValue = getCurrentHourValue(city);
-            const level = getLevelByValue(currentValue);
-            const overlayColor = getOverlayColor(currentValue);
-
-            // 简化港澳名称
-            const displayName = city.name
-                .replace('市', '')
-                .replace('特别行政区', '');
-            
-            const cell = document.createElement('div');
-            cell.className = 'city-cell';
-            cell.style.background = `url('${city.image || getDefaultImage()}') no-repeat center center`;
-            cell.style.backgroundSize = 'cover';
-            
-            cell.innerHTML = `
-                <div class="city-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: ${overlayColor}; z-index: 1;"></div>
-                <div class="city-name" style="z-index: 2;">${displayName}</div>
-                <div class="city-value" style="z-index: 2;">${currentValue}</div>
-                <div class="city-level" style="z-index: 2;">${level}</div>
-            `;
-            
-            cell.addEventListener('click', () => updateLeftPanel(city));
-            
-            grid.appendChild(cell);
-        });
-    }
-    function updateLeftPanel(city) {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentValue = city.hourlyValues[currentHour] || city.hourlyValues[0];
+function generateHeatmap() {
+    const grid = document.getElementById('heatmapGrid');
+    grid.innerHTML = '';
+    
+    bayAreaCities.forEach(city => {
+        const currentValue = getCurrentHourValue(city);
         const level = getLevelByValue(currentValue);
-        
-        // 简化城市名称（处理市/特别行政区）
+        const overlayColor = getOverlayColor(currentValue);
+
+        // 简化港澳名称
         const displayName = city.name
             .replace('市', '')
             .replace('特别行政区', '');
         
-        // 更新左侧内容
-        document.querySelector('.city-header h2').textContent = displayName;
-        document.getElementById('aqiValue').textContent = currentValue;
-        document.querySelector('.aqi-status').textContent = `${currentValue} μg/m³ · 空气质量${level}`;
+        const cell = document.createElement('div');
+        cell.className = 'city-cell';
+        cell.style.background = `url('${city.image || getDefaultImage()}') no-repeat center center`;
+        cell.style.backgroundSize = 'cover';
         
-        // 保持时间更新（复用原有逻辑）
-        updateClock();
-    }
+        cell.innerHTML = `
+            <div class="city-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: ${overlayColor}; z-index: 1;"></div>
+            <div class="city-name" style="z-index: 2;">${displayName}</div>
+            <div class="city-value" style="z-index: 2;">${currentValue}</div>
+            <div class="city-level" style="z-index: 2;">${level}</div>
+        `;
+        
+        // 单击事件：更新左侧面板数据
+        cell.addEventListener('click', () => {
+            // 防止双击时触发两次单击事件
+            if (!cell.classList.contains('double-clicked')) {
+                updateLeftPanel(city);
+            }
+            cell.classList.remove('double-clicked');
+        });
+        
+        // 双击事件：跳转到子页面
+        cell.addEventListener('dblclick', () => {
+            cell.classList.add('double-clicked'); // 标记为双击，避免触发单击处理
+            window.open(`city.html?city=${encodeURIComponent(city.name)}`, '_blank');
+        });
+        
+        grid.appendChild(cell);
+    });
+}
 
+    function updateLeftPanel(city) {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentValue = city.hourlyValues[currentHour] || city.hourlyValues[0];
+    const level = getLevelByValue(currentValue);
+    
+    // 简化城市名称（处理市/特别行政区）
+    const displayName = city.name
+        .replace('市', '')
+        .replace('特别行政区', '');
+    
+    // 更新左侧内容
+    document.querySelector('.city-header h2').textContent = displayName;
+    document.getElementById('aqiValue').textContent = currentValue;
+    document.querySelector('.aqi-status').textContent = `${currentValue} μg/m³ · 空气质量${level}`;
+    
+    // 新增：更新左侧面板的背景图片
+    const cardLeft = document.querySelector('.card-left');
+    // 使用城市对应的图片，如果没有则使用默认图片
+    const cityImage = city.image || getDefaultImage();
+    cardLeft.style.background = `url('${cityImage}') no-repeat center center`;
+    cardLeft.style.backgroundSize = 'cover';
+    
+    // 保持时间更新（复用原有逻辑）
+    updateClock();
+}
+    
     
 </script>
 </body>
