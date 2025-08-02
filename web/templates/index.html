@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
-            background: url('/static/images/图片四.jpg') no-repeat center center;
+            background: url('https://images.pexels.com/photos/33127971/pexels-photo-33127971.jpeg') no-repeat center center;
             background-size: cover; /* 全屏背景图 */
             min-height: 100vh;
             display: flex;
@@ -451,7 +451,7 @@
 <body>
     <!-- 主题标题 - 增强设计 -->
     <div class="theme-title">
-        <h1>大湾区NO₂浓度预测</h1>
+        <h1>粤港澳大湾区NO₂浓度预测</h1>
         <p>实时监测与预测粤港澳大湾区主要城市的二氧化氮浓度，助力环境治理与公众健康</p>
     </div>
     
@@ -491,7 +491,7 @@
             </div>
             
             <div class="heatmap-container">
-                <div class="heatmap-title">大湾区各城市实时NO₂浓度热力图 (μg/m³)</div>
+                <div class="heatmap-title">大湾区各城市实时NO₂浓度 (μg/m³)</div>
                 <div class="heatmap-grid" id="heatmapGrid">
                     <!-- 热力图将通过JS动态生成 -->
                 </div>
@@ -506,17 +506,17 @@
     const defaultCities = []; // 可保留默认城市作为备选
     // 城市名 → 图片路径（网络URL或本地静态文件）
     const cityImageMap = {
-  '广州': 'https://images.unsplash.com/photo-1544594376-0a9a6ae2c997?q=80&w=1803&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  '深圳': 'https://images.unsplash.com/photo-1609515602438-31b5b4362d52?q=80&w=2069&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  '珠海': 'https://images.unsplash.com/photo-1666960325075-2dd9a901423c?q=80&w=1932&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  '广州': '/static/images/guangzhou.png',
+  '深圳': '/static/images/shenzhen.png',
+  '珠海': '/static/images/zhuhai.png',
   '佛山': '/static/images/foshan.png',
   '惠州': '/static/images/huizhou.png',
   '东莞': '/static/images/dongguan.png',
   '中山': '/static/images/zhongshan.jpg',
   '江门': '/static/images/jiangmen.jpg',
   '肇庆': '/static/images/zhaoqing.png',
-  '香港特别行政区': 'https://plus.unsplash.com/premium_photo-1661887277173-f996f36b8fb2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  '澳门特别行政区': 'https://images.unsplash.com/photo-1675102128521-b4ab17e003b0?q=80&w=1090&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+  '香港': '/static/images/hongkong.png',
+  '澳门': '/static/images/macao.png'
 };
 
     // 初始化城市列表：从后端API获取统一的城市映射并补充预测数据
