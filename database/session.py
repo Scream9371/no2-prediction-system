@@ -8,8 +8,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 
-# 数据库配置
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///./no2_prediction.db')
+# 数据库配置 - 使用统一的配置
+from config.settings import settings
+DATABASE_URL = settings.DATABASE_URL
 
 # 创建引擎
 try:
