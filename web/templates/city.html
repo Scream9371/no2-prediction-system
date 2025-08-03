@@ -618,21 +618,23 @@
         }
 
         .ai-preset-questions {
-            padding: 15px;
+            padding: 10px 15px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.1);
             background: rgba(248, 249, 250, 0.8);
+            max-height: 120px;
+            overflow-y: auto;
         }
 
         .preset-question-btn {
             display: block;
             width: 100%;
-            margin-bottom: 8px;
-            padding: 8px 12px;
+            margin-bottom: 5px;
+            padding: 6px 10px;
             background: rgba(102, 126, 234, 0.1);
             border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 20px;
+            border-radius: 15px;
             color: #667eea;
-            font-size: 13px;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
             text-align: left;
@@ -705,9 +707,26 @@
         }
 
         .ai-chat-input {
-            padding: 15px;
+            padding: 10px 15px 15px 15px;
             border-top: 1px solid rgba(0, 0, 0, 0.1);
             background: rgba(248, 249, 250, 0.8);
+        }
+
+        .connection-status {
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 8px;
+            padding: 0 5px;
+            line-height: 1.2;
+        }
+
+        .connection-status.connected {
+            color: #059669;
+        }
+
+        .connection-status.disconnected {
+            color: #dc2626;
         }
 
         .chat-input-container {
@@ -1084,6 +1103,9 @@
 
     <!-- 输入区域 -->
     <div class="ai-chat-input">
+        <div class="connection-status" id="connectionStatus">
+            当前回答由AI生成，请核查重要信息
+        </div>
         <div class="chat-input-container">
             <input type="text" class="chat-input" id="chatInput" placeholder="请输入您的问题..." maxlength="200">
             <button class="chat-send-btn" id="chatSendBtn">
@@ -2243,12 +2265,39 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         try {
-            // 准备上下文数据
+            // 准备丰富的上下文数据
             const contextData = {
+                // 基础信息
                 city: getUrlParameter('city') || '广州',
+                updateTime: currentCityData?.updateTime || null,
+                
+                // 当前预测数据
                 currentValue: currentCityData?.currentValue || null,
                 avgValue: currentCityData?.avgValue || null,
-                qualityLevel: currentCityData?.airQuality?.level || null
+                qualityLevel: currentCityData?.airQuality?.level || null,
+                
+                // 24小时预测数据（简化版）
+                predictions: currentCityData ? {
+                    times: currentCityData.times?.slice(0, 6) || [], // 只传前6小时避免数据过大
+                    values: currentCityData.values?.slice(0, 6) || [],
+                    low: currentCityData.low?.slice(0, 6) || [],
+                    high: currentCityData.high?.slice(0, 6) || []
+                } : null,
+                
+                // 趋势分析数据
+                trends: getTrendSummary(),
+                
+                // 准确性分析数据
+                accuracy: getAccuracySummary(),
+                
+                // 防护建议摘要
+                recommendations: getRecommendationsSummary(),
+                
+                // 页面状态
+                pageContext: {
+                    activeSection: getActiveSection(),
+                    availableData: getAvailableDataSummary()
+                }
             };
 
             // 发送到后端AI API
@@ -2269,11 +2318,16 @@
 
             const data = await response.json();
             
+            // 根据响应更新连接状态
+            updateConnectionStatus(data.isConnected !== false);
+            
             // 添加AI回复
             addMessage(data.response, 'ai');
             
         } catch (error) {
             console.error('AI请求失败:', error);
+            // 更新为断开连接状态
+            updateConnectionStatus(false);
             // 添加错误消息
             addMessage('抱歉，我暂时无法回答您的问题。请稍后再试或联系技术支持。', 'ai');
         } finally {
@@ -2281,6 +2335,104 @@
             sendButton.disabled = false;
             typingIndicator.style.display = 'none';
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+
+    // 更新连接状态提示
+    function updateConnectionStatus(isConnected) {
+        const statusElement = document.getElementById('connectionStatus');
+        if (isConnected) {
+            statusElement.textContent = '当前回答由AI生成，请核查重要信息';
+            statusElement.className = 'connection-status connected';
+        } else {
+            statusElement.textContent = '无法连接大语言模型，当前使用的是降级回复';
+            statusElement.className = 'connection-status disconnected';
+        }
+    }
+
+    // 获取趋势分析摘要
+    function getTrendSummary() {
+        try {
+            const trendStats = document.querySelectorAll('.trend-stat-card .stat-value');
+            const analysisItems = document.querySelectorAll('.analysis-list li');
+            
+            return {
+                avgValue: trendStats[0]?.textContent || null,
+                maxValue: trendStats[1]?.textContent || null,
+                minValue: trendStats[2]?.textContent || null,
+                changeRange: trendStats[3]?.textContent || null,
+                analysis: Array.from(analysisItems).map(item => item.textContent).slice(0, 2) // 前2条分析
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // 获取准确性分析摘要
+    function getAccuracySummary() {
+        try {
+            const maeValue = document.getElementById('maeValue')?.textContent;
+            const coverageValue = document.getElementById('coverageValue')?.textContent;
+            const updateTime = document.getElementById('accuracyUpdateTime')?.textContent;
+            
+            return {
+                mae: maeValue || null,
+                coverage: coverageValue || null,
+                updateTime: updateTime || null
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // 获取防护建议摘要
+    function getRecommendationsSummary() {
+        try {
+            // 获取当前激活的建议类别
+            const activeTab = document.querySelector('.recommendation-tabs .tab-card.active');
+            const activeCategory = activeTab?.getAttribute('data-tab') || 'travel';
+            
+            // 获取该类别的建议内容
+            const activePanel = document.getElementById(`${activeCategory}-panel`);
+            const recommendations = Array.from(activePanel?.querySelectorAll('.recommendation-item') || [])
+                .map(item => item.textContent)
+                .slice(0, 3); // 只取前3条建议
+            
+            return {
+                category: activeCategory,
+                items: recommendations
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // 获取当前激活的页面部分
+    function getActiveSection() {
+        try {
+            const activeNav = document.querySelector('.section-nav .nav-item.active');
+            return activeNav?.textContent || '今日预测结果';
+        } catch (e) {
+            return '今日预测结果';
+        }
+    }
+
+    // 获取页面可用数据摘要
+    function getAvailableDataSummary() {
+        try {
+            return {
+                hasPredictionData: !!currentCityData,
+                hasTrendData: document.querySelectorAll('.trend-stat-card .stat-value')[0]?.textContent !== '--',
+                hasAccuracyData: document.getElementById('maeValue')?.textContent !== '暂无数据',
+                hasRecommendations: document.querySelectorAll('.recommendation-item').length > 0
+            };
+        } catch (e) {
+            return {
+                hasPredictionData: false,
+                hasTrendData: false,
+                hasAccuracyData: false,
+                hasRecommendations: false
+            };
         }
     }
 
