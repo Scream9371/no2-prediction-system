@@ -509,11 +509,12 @@ def ai_assistant():
             return jsonify({"error": "消息内容不能为空"}), 400
         
         # 调用AI处理函数
-        from api.ai_service import process_ai_request
-        ai_response = process_ai_request(message, context)
+        from api.ai_service import ai_service
+        ai_response = ai_service.process_request(message, context)
         
         return jsonify({
-            "response": ai_response,
+            "response": ai_response.get("response", ""),
+            "isConnected": ai_response.get("isConnected", False),
             "timestamp": datetime.datetime.now().isoformat()
         })
         
