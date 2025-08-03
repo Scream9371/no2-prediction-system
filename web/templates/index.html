@@ -1137,17 +1137,17 @@
 
     // 热力图相关函数（保持不变）
     function getLevelByValue(value) {
-        if (value < 40) return '优';
-        if (value < 80) return '良';
-        if (value < 120) return '轻度污染';
-        return '中度污染';
+        if (value < 30) return '优良';
+        if (value < 40) return '良好';
+        if (value < 50) return '中等';
+        return '较差';
     }
 
     function getOverlayColor(value) {
-        if (value < 40) return 'rgba(50, 200, 100, 0.3)';       // 优 - 绿色
-        if (value < 80) return 'rgba(255, 255, 100, 0.3)';     // 良 - 黄色
-        if (value < 120) return 'rgba(255, 150, 50, 0.4)';      // 轻度污染污染 - 橙色
-        return 'rgba(255, 100, 100, 0.5)';                     //  中度及以上- 红色
+        if (value < 30) return 'rgba(50, 200, 100, 0.3)';       // 优秀 - 绿色
+        if (value < 40) return 'rgba(100, 200, 255, 0.3)';     // 良好 - 蓝色
+        if (value < 50) return 'rgba(255, 200, 50, 0.4)';      // 中等 - 黄色
+        return 'rgba(255, 100, 100, 0.5)';                     // 较差 - 红色
     }
 
 function generateHeatmap() {
@@ -1178,7 +1178,6 @@ function generateHeatmap() {
             <div class="city-level" style="z-index: 2;">${level}</div>
         `;
         // 单击事件：更新左侧面板数据
-        // 单击事件：更新左侧面板数据
         cell.addEventListener('click', () => {
             // 防止双击时触发两次单击事件
             if (!cell.classList.contains('double-clicked')) {
@@ -1186,18 +1185,6 @@ function generateHeatmap() {
             }
             cell.classList.remove('double-clicked');
         });
-        
-        // 双击事件：跳转到子页面
-        cell.addEventListener('dblclick', () => {
-            cell.classList.add('double-clicked'); // 标记为双击，避免触发单击处理
-            window.open(`city.html?city=${encodeURIComponent(city.name)}`, '_blank');
-        });
-            // 防止双击时触发两次单击事件
-            if (!cell.classList.contains('double-clicked')) {
-                updateLeftPanel(city);
-            }
-            cell.classList.remove('double-clicked');
-           
         
         // 双击事件：跳转到子页面
         cell.addEventListener('dblclick', () => {
@@ -1235,6 +1222,22 @@ function generateHeatmap() {
      
         // 保持时间更新（复用原有逻辑）
         updateClock();
+    }
+
+    // 切换项目信息展开收起
+    function toggleProjectInfo() {
+        const content = document.getElementById('projectContent');
+        const arrow = document.getElementById('toggleArrow');
+        
+        if (content.classList.contains('expanded')) {
+            // 收起
+            content.classList.remove('expanded');
+            arrow.classList.remove('expanded');
+        } else {
+            // 展开
+            content.classList.add('expanded');
+            arrow.classList.add('expanded');
+        }
     }
 
     // 创建仪表盘图表
