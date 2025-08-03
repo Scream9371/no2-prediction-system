@@ -21,7 +21,7 @@ import json
 # 添加项目根目录到路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from scripts.run_pipeline import train_all_cities, show_model_status, cleanup_old_models
+from scripts.run_pipeline import train_cities, show_model_status, cleanup_old_models
 from ml.src.control import get_supported_cities
 from ml.src.data_loader import load_data_from_mysql
 
@@ -72,20 +72,14 @@ class SimpleAutoTrainingScheduler:
         file_handler = logging.FileHandler(log_file, encoding='utf-8')
         file_handler.setLevel(logging.INFO)
         
-        # 控制台handler
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-        
         # 格式化器
         formatter = logging.Formatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
-        
+
         logger.addHandler(file_handler)
-        logger.addHandler(console_handler)
         
         return logger
     
@@ -161,9 +155,7 @@ class SimpleAutoTrainingScheduler:
         self.logger.info("=" * 60)
         
         try:
-            # 1. 显示当前模型状态
-            self.logger.info("📊 当前模型状态:")
-            show_model_status()
+            # 1. 开始训练流程
             
             # 2. 检查数据新鲜度
             self.logger.info("\n🔍 检查数据新鲜度...")
@@ -184,18 +176,21 @@ class SimpleAutoTrainingScheduler:
                     skipped_city_list=cities_to_skip
                 )
             
-            # 3. 执行训练（使用现有的train_all_cities函数）
+            # 3. 执行训练（只训练需要训练的城市）
             self.logger.info(f"\n🚀 开始训练 {len(cities_to_train)} 个城市...")
-            training_results = train_all_cities()
+            training_results = train_cities(cities_to_train)
             
-            # 4. 解析训练结果
+            # 4. 解析训练结果（合并预检查的跳过城市）
             successful_cities = training_results.get('successful', [])
             failed_cities = training_results.get('failed', [])
+            skipped_cities_from_training = training_results.get('skipped', [])
+            
+            # 合并两种跳过的城市：预检查跳过 + 训练时跳过
+            all_skipped_cities = cities_to_skip + skipped_cities_from_training
             
             # 5. 清理旧模型
             self.logger.info("\n🧹 清理旧模型文件...")
-            cleaned_count = cleanup_old_models(days_to_keep=7)
-            self.logger.info(f"已清理 {cleaned_count} 个旧模型文件")
+            cleanup_old_models(days_to_keep=7)
             
             # 6. 预计算今日预测数据（新模型训练完成后）
             if successful_cities:
@@ -205,9 +200,7 @@ class SimpleAutoTrainingScheduler:
             else:
                 self.logger.info("\n⏭️ 跳过预计算（无新训练模型）")
             
-            # 7. 显示最终状态
-            self.logger.info("\n📊 训练后模型状态:")
-            show_model_status()
+            # 7. 训练完成
             
             # 8. 生成结果
             end_time = datetime.now()
@@ -218,11 +211,11 @@ class SimpleAutoTrainingScheduler:
                 total_cities=len(get_supported_cities()),
                 successful_cities=len(successful_cities),
                 failed_cities=len(failed_cities),
-                skipped_cities=len(cities_to_skip),
+                skipped_cities=len(all_skipped_cities),
                 execution_time=execution_time,
                 successful_city_list=successful_cities,
                 failed_city_list=failed_cities,
-                skipped_city_list=cities_to_skip
+                skipped_city_list=all_skipped_cities
             )
             
             # 8. 记录训练报告
