@@ -47,6 +47,7 @@
             color: #fff;
             background: linear-gradient(to right, #00f3ff, #00ffaa);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -209,13 +210,13 @@
             font-size: 1.5rem;
             margin-left: 10px;
         }
-
+        
         .trend-down {
             color: #4ecdc4;
             font-size: 1.5rem;
             margin-left: 10px;
         }
-
+        
         .trend-equal {
     color: #f0f0f0;
     font-size: 1.5rem;
@@ -399,6 +400,185 @@
             padding: 15px;
         }
 
+        /* 项目信息区域 */
+        .project-info {
+            margin-top: 40px;
+            width: 100vw;
+            margin-left: calc(50% - 50vw);
+            background: rgb(41, 55, 83);
+            padding: 0;
+            border: none;
+            box-shadow: none;
+        }
+
+        .project-info-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .project-info-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .project-info h3 {
+            color: #00f3ff;
+            font-size: 1.4rem;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        .toggle-arrow {
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid #00f3ff;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-arrow.expanded {
+            transform: rotate(180deg);
+        }
+
+        .project-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+            padding: 0 40px;
+        }
+
+        .project-content.expanded {
+            max-height: 2000px;
+            padding: 20px 40px 40px;
+        }
+
+        .info-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+
+        .info-section {
+            background: rgba(0, 10, 30, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(0, 243, 255, 0.1);
+        }
+
+        .info-section h4 {
+            color: #00ffaa;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 255, 170, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .info-section p, .info-section li {
+            color: #c7f2ff;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .info-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-section li::before {
+            content: "•";
+            color: #00f3ff;
+            margin-right: 8px;
+        }
+
+        .info-section a {
+            color: #00f3ff;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .info-section a:hover {
+            color: #00ffaa;
+            text-shadow: 0 0 5px rgba(0, 255, 170, 0.5);
+        }
+
+        /* 参考文献样式 */
+        .reference-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(0, 20, 40, 0.4);
+            border-radius: 8px;
+            border-left: 3px solid rgba(0, 243, 255, 0.5);
+        }
+
+        .reference-item a {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .reference-item .authors {
+            color: #a7e8ff;
+            font-size: 0.85rem;
+            font-style: italic;
+            display: block;
+        }
+
+        .project-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0, 243, 255, 0.2);
+            color: #7f9fb6;
+            font-size: 0.9rem;
+        }
+
+        .github-link {
+            color: #c7f2ff;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .github-link:hover {
+            color: #00f3ff;
+            transform: scale(1.1);
+        }
+
+        .github-icon {
+            width: 28px;
+            height: 28px;
+            fill: currentColor;
+        }
+
+        @media (max-width: 768px) {
+            .project-content.expanded {
+                padding: 20px 20px 40px;
+            }
+            
+            .project-footer {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .info-section {
+                padding: 15px;
+            }
+            
+            .reference-item {
+                padding: 10px;
+            }
+        }
+
         /* 装饰元素 */
         .decoration {
             position: absolute;
@@ -429,15 +609,15 @@
                 flex-direction: column;
                 height: auto;
             }
-
+            
             .card-left, .card-right {
                 width: 100%;
             }
-
+            
             .card-left {
                 height: 400px;
             }
-
+            
             .heatmap-grid {
                 grid-template-columns: repeat(3, 1fr);
                 grid-template-rows: repeat(4, 1fr);
@@ -448,20 +628,20 @@
             .theme-title h1 {
                 font-size: 2.5rem;
             }
-
+            
             .heatmap-grid {
                 grid-template-columns: repeat(2, 1fr);
                 grid-template-rows: repeat(6, 1fr);
             }
-
+            
             .city-cell {
                 padding: 15px 5px;
             }
-
+            
             .city-name {
                 font-size: 1rem;
             }
-
+            
             .city-value {
                 font-size: 1.1rem;
             }
@@ -474,32 +654,32 @@
         <h1>粤港澳大湾区NO₂浓度预测</h1>
         <p>实时监测与预测粤港澳大湾区主要城市的二氧化氮浓度，助力环境治理与公众健康</p>
     </div>
-
+    
     <!-- 主卡片容器 -->
     <div class="card">
         <!-- 装饰元素 -->
         <div class="decoration top-right"></div>
         <div class="decoration bottom-left"></div>
-
+        
         <!-- 左侧 -->
         <div class="card-left">
             <div class="city-header">
                 <h2>广州市</h2>
             </div>
-
+            
             <div class="realtime-clock">
                 <div class="date" id="dateDisplay">2025/07/28</div>
                 <div class="weekday" id="weekdayDisplay">星期一</div>
                 <div class="time" id="timeDisplay">14:28:36</div>
             </div>
-
+            
             <div class="air-quality">
                 <div class="aqi-value" id="aqiValue"></div>
-                <div class="aqi-status" id="aqiStatus"></div>
-
+                <div class="aqi-status" id="aqiStatus"></div> 
+                   
             </div>
         </div>
-
+        
         <!-- 右侧：搜索与热力图 -->
         <div class="card-right">
             <div class="search-container">
@@ -509,7 +689,7 @@
                     <div class="city-dropdown" id="cityDropdown"></div>
                 </div>
             </div>
-
+            
             <div class="heatmap-container">
                 <div class="heatmap-title">大湾区各城市实时NO₂浓度 (μg/m³)</div>
                 <div class="heatmap-grid" id="heatmapGrid">
@@ -519,6 +699,75 @@
         </div>
     </div>
 
+    <!-- 项目信息区域 -->
+    <div class="project-info">
+        <div class="project-info-header" onclick="toggleProjectInfo()">
+            <h3>项目信息与技术支持</h3>
+            <div class="toggle-arrow" id="toggleArrow"></div>
+        </div>
+        
+        <div class="project-content" id="projectContent">
+            <div class="info-grid">
+                <div class="info-section">
+                    <h4>📚 参考文献</h4>
+                    <div class="reference-item">
+                        <a href="https://doi.org/10.48550/arXiv.2210.10161" target="_blank">
+                            Nonparametric Quantile Regression: Non-Crossing Constraints and Conformal Prediction
+                        </a>
+                        <span class="authors">Wenlu Tang, Guohao Shen, Yuanyuan Lin, Jian Huang</span>
+                    </div>
+                    <div class="reference-item">
+                        <a href="https://doi.org/10.48550/arXiv.1903.04684" target="_blank">
+                            The limits of distribution-free conditional predictive inference
+                        </a>
+                        <span class="authors">Rina Foygel Barber, Emmanuel J. Candès, Aaditya Ramdas, Ryan J. Tibshirani</span>
+                    </div>
+                    <div class="reference-item">
+                        <a href="https://doi.org/10.48550/arXiv.1905.10634" target="_blank">
+                            Adaptive, Distribution-Free Prediction Intervals for Deep Networks
+                        </a>
+                        <span class="authors">Danijel Kivaranovic, Kory D. Johnson, Hannes Leeb</span>
+                    </div>
+                    <div class="reference-item">
+                        <a href="https://doi.org/10.1016/j.jenvman.2024.121198" target="_blank">
+                            Geospatial artificial intelligence for estimating daytime and nighttime nitrogen dioxide concentration variations in Taiwan: A spatial prediction model
+                        </a>
+                        <span class="authors">Jennieveive Babaan, Pei-Yi Wong, Pau-Chung Chen, Hsiu-Ling Chen, Shih-Chun Candice Lung, Yu-Cheng Chen, Chih-Da Wu</span>
+                    </div>
+                    <div class="reference-item">
+                        <a href="https://doi.org/10.1371/journal.pone.0269295" target="_blank">
+                            Bidirectional convolutional LSTM for the prediction of nitrogen dioxide in the city of Madrid
+                        </a>
+                        <span class="authors">Ditsuhi Iskandaryan, Francisco Ramos, Sergio Trilles</span>
+                    </div>
+                    <div class="reference-item">
+                        <a href="https://link.cnki.net/doi/10.19316/j.issn.1002-6002.2021.01.16" target="_blank">
+                            基于信号改进深度学习网络的京津冀城市群二氧化氮浓度预测
+                        </a>
+                        <span class="authors">宫同伟, 张洋, 刘炳春</span>
+                    </div>
+                    <div class="reference-item">
+                        <a href="https://link.cnki.net/urlid/34.1298.o4.20240828.1649.002" target="_blank">
+                            基于随机森林的O3和NO2近地面质量浓度预测研究
+                        </a>
+                        <span class="authors">魏勤谨, 谢品华, Junaid KHAYYAM, 胡峰</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="project-footer">
+                <a href="https://github.com/Scream9371/no2-prediction-system" target="_blank" class="github-link">
+                    <svg class="github-icon" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.30.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </a>
+                <div>
+                    <p>基于机器学习的大湾区 NO₂ 浓度预测与可视化系统</p>
+                    <p><strong>开发团队：</strong>氮见未来团队</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script>
     let chartInstance = null;
@@ -555,7 +804,7 @@
                     if (!response.ok) throw new Error(`获取${city.name}数据失败`);
                     const data = await response.json();
 
-
+                     
                     // 从映射表取图片
                     const normalizedName = city.name
                        .replace('市', '')           // 去掉“市”（如“广州市”→“广州”）
@@ -660,27 +909,27 @@
     function getCurrentHourValue(city) {
         const hour = new Date().getHours(); // 获取当前小时(0-23)
         // 优先从每小时预测值中取当前小时对应的数据
-        return city.hourlyValues && city.hourlyValues[hour] !== undefined
-            ? city.hourlyValues[hour]
+        return city.hourlyValues && city.hourlyValues[hour] !== undefined 
+            ? city.hourlyValues[hour] 
             : city.hourlyValues[0] || 0; // 兜底逻辑
     }
-
+    
     // 获取下一小时的数值
     function getNextHourValue(city) {
         const now = new Date();
         let nextHour = now.getHours() + 1;
-
+        
         // 如果当前是23点，下一小时就是0点
         if (nextHour === 24) {
             nextHour = 0;
         }
-
+        
         // 优先从每小时预测值中取下一小时对应的数据
-        return city.hourlyValues && city.hourlyValues[nextHour] !== undefined
-            ? city.hourlyValues[nextHour]
+        return city.hourlyValues && city.hourlyValues[nextHour] !== undefined 
+            ? city.hourlyValues[nextHour] 
             : city.hourlyValues[0] || 0; // 兜底逻辑
     }
-
+    
     // 获取趋势符号
     function getTrendSymbol(currentValue, nextValue) {
     if (nextValue > currentValue) {
@@ -702,19 +951,19 @@
         if (guangzhou) {
             updateLeftPanel(guangzhou); // 更新左侧面板显示广州数据
         }
-
+            
     });
-
+        
         // 初始化时钟
         updateClock();
         setInterval(updateClock, 1000);
-
+        
         // 搜索按钮点击事件
         document.getElementById('searchBtn').addEventListener('click', () => {
             const city = document.getElementById('cityInput').value;
             searchCity(city);
         });
-
+        
         // 输入框事件
         const input = document.getElementById('cityInput');
         input.addEventListener('input', (e) => {
@@ -725,7 +974,7 @@
         input.addEventListener('focus', (e) => {
             showCityDropdown(e.target.value);
         });
-
+        
         // 回车搜索
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -733,7 +982,7 @@
                 hideCityDropdown();
             }
         });
-
+        
         // 点击其他区域关闭下拉
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('cityDropdown');
@@ -743,7 +992,7 @@
             }
         });
 
-
+        
     });
 
     // 以下为原有辅助函数（保持不变）
@@ -761,8 +1010,8 @@
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
-
-        document.getElementById('dateDisplay').textContent = `${year}/${month}/${day}`;
+        
+        document.getElementById('dateDisplay').textContent = `${year}/${month}/${day}`; 
         document.getElementById('weekdayDisplay').textContent = weekday;
         document.getElementById('timeDisplay').textContent = `${hours}:${minutes}:${seconds}`;
 
@@ -790,7 +1039,7 @@
 function generateHeatmap() {
     const grid = document.getElementById('heatmapGrid');
     grid.innerHTML = '';
-
+    
     bayAreaCities.forEach(city => {
         const currentValue = getCurrentHourValue(city);
         const nextValue = getNextHourValue(city);
@@ -802,19 +1051,19 @@ function generateHeatmap() {
         const displayName = city.name
             .replace('市', '')
             .replace('特别行政区', '');
-
+        
         const cell = document.createElement('div');
         cell.className = 'city-cell';
         cell.style.background = `url('${city.image || getDefaultImage()}') no-repeat center center`;
         cell.style.backgroundSize = 'cover';
-
+        
         cell.innerHTML = `
             <div class="city-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: ${overlayColor}; z-index: 1;"></div>
             <div class="city-name" style="z-index: 2;">${displayName}</div>
             <div class="city-value" style="z-index: 2;">${currentValue} ${trendSymbol}</div>
             <div class="city-level" style="z-index: 2;">${level}</div>
         `;
-
+        
         // 单击事件：更新左侧面板数据
         cell.addEventListener('click', () => {
             // 防止双击时触发两次单击事件
@@ -823,13 +1072,13 @@ function generateHeatmap() {
             }
             cell.classList.remove('double-clicked');
         });
-
+        
         // 双击事件：跳转到子页面
         cell.addEventListener('dblclick', () => {
             cell.classList.add('double-clicked'); // 标记为双击，避免触发单击处理
             window.open(`city.html?city=${encodeURIComponent(city.name)}`, '_blank');
         });
-
+        
         grid.appendChild(cell);
     });
 }
@@ -843,29 +1092,45 @@ function generateHeatmap() {
     const nextValue = city.hourlyValues[nextHour] || city.hourlyValues[0];
     const trendSymbol = getTrendSymbol(currentValue, nextValue);
     const level = getLevelByValue(currentValue);
-
+    
     // 简化城市名称（处理市/特别行政区）
     const displayName = city.name
         .replace('市', '')
         .replace('特别行政区', '');
-
+    
     // 更新左侧内容
     document.querySelector('.city-header h2').textContent = displayName;
     document.getElementById('aqiValue').textContent = currentValue;
     document.querySelector('.aqi-status').textContent = `${currentValue} μg/m³ · 空气质量${level}`;
-
+    
     // 新增：更新左侧左侧面板的背景图片
     const cardLeft = document.querySelector('.card-left');
     // 使用城市对应的图片，如果没有则使用默认图片
     const cityImage = city.image || getDefaultImage();
     cardLeft.style.background = `url('${cityImage}') no-repeat center center`;
     cardLeft.style.backgroundSize = 'cover';
-
+    
     // 保持时间更新（复用原有逻辑）
     updateClock();
 }
 
-
+// 切换项目信息展开收起
+function toggleProjectInfo() {
+    const content = document.getElementById('projectContent');
+    const arrow = document.getElementById('toggleArrow');
+    
+    if (content.classList.contains('expanded')) {
+        // 收起
+        content.classList.remove('expanded');
+        arrow.classList.remove('expanded');
+    } else {
+        // 展开
+        content.classList.add('expanded');
+        arrow.classList.add('expanded');
+    }
+}
+    
+    
 </script>
 </body>
 </html>

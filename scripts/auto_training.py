@@ -59,13 +59,7 @@ def run_training():
         scheduler = SimpleAutoTrainingScheduler()
         result = scheduler.run_daily_training()
         
-        # 输出结果摘要
-        logger.info("🎯 执行结果摘要:")
-        logger.info(f"   总城市数: {result.total_cities}")
-        logger.info(f"   成功训练: {result.successful_cities}")
-        logger.info(f"   训练失败: {result.failed_cities}")
-        logger.info(f"   跳过训练: {result.skipped_cities}")
-        logger.info(f"   执行时间: {result.execution_time:.1f}秒")
+        logger.info("🎯 自动训练执行完成")
         
         if result.failed_cities > 0:
             logger.warning(f"有 {result.failed_cities} 个城市训练失败")

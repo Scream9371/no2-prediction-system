@@ -1,5 +1,4 @@
 import datetime
-from statistics import mean
 
 from flask import Blueprint, jsonify
 
@@ -7,13 +6,6 @@ from config.cities import get_city_name, is_supported_city, get_all_cities
 from database.crud import get_no2_records
 from database.session import get_db
 from ml.src.predict import predict_for_web_api
-
-# 导入所有模型类
-from database.models import (
-    GuangzhouNO2Record, ShenzhenNO2Record, ZhuhaiNO2Record, FoshanNO2Record,
-    HuizhouNO2Record, DongguanNO2Record, ZhongshanNO2Record, JiangmenNO2Record,
-    ZhaoqingNO2Record, HongkongNO2Record, MacaoNO2Record
-)
 
 # 中文城市名到英文城市名的映射（用于模型文件路径）
 CHINESE_TO_ENGLISH_CITY_MAP = {
@@ -26,23 +18,11 @@ CHINESE_TO_ENGLISH_CITY_MAP = {
     "中山": "zhongshan",
     "江门": "jiangmen",
     "肇庆": "zhaoqing",
+    "香港": "hongkong",
+    "澳门": "macao",
+    # 支持完整的特别行政区名称
     "香港特别行政区": "hongkong",
     "澳门特别行政区": "macao",
-}
-
-# 城市名到模型类的映射
-CITY_MODEL_MAP = {
-    "广州": GuangzhouNO2Record,
-    "深圳": ShenzhenNO2Record,
-    "珠海": ZhuhaiNO2Record,
-    "佛山": FoshanNO2Record,
-    "惠州": HuizhouNO2Record,
-    "东莞": DongguanNO2Record,
-    "中山": ZhongshanNO2Record,
-    "江门": JiangmenNO2Record,
-    "肇庆": ZhaoqingNO2Record,
-    "香港特别行政区": HongkongNO2Record,
-    "澳门特别行政区": MacaoNO2Record
 }
 
 
@@ -150,9 +130,9 @@ def fallback_realtime_prediction(city: str):
 
         # 将DataFrame转换为前端需要的JSON格式
         if (
-                predictions_df is not None
-                and hasattr(predictions_df, "empty")
-                and not predictions_df.empty
+            predictions_df is not None
+            and hasattr(predictions_df, "empty")
+            and not predictions_df.empty
         ):
             # 从预测数据中提取实际的时间标签
             import pandas as pd
@@ -232,6 +212,8 @@ def get_no2(city_id):
         return jsonify({"error": "无效的城市ID"}), 400
 
     try:
+        from database.crud import CITY_MODEL_MAP
+        
         if city_name not in CITY_MODEL_MAP:
             return jsonify({"error": "不支持的城市"}), 400
 
@@ -243,7 +225,7 @@ def get_no2(city_id):
 
         db_gen = get_db()
         db = next(db_gen)
-
+        
         # 查询昨天的数据
         model_class = CITY_MODEL_MAP[city_name]
         records = (
@@ -254,6 +236,16 @@ def get_no2(city_id):
             .all()
         )
         db.close()
+
+        # 检查是否有数据
+        if not records:
+            return jsonify({
+                "error": f"未找到{city_name}在{yesterday.isoformat()}的历史观测数据",
+                "date": yesterday.isoformat(),
+                "city": city_name,
+                "total_records": 0,
+                "suggestion": "请确认数据采集是否正常运行，或稍后重试"
+            }), 404
 
         # 转换记录为字典列表
         result = []
@@ -348,72 +340,72 @@ def predict_no2(city_id):
 def get_historical_predictions(city_id):
     """
     获取指定城市昨天的历史预测数据
-
+    
     用于预测准确性验证，返回昨天生成的预测数据以便与实际观测数据对比。
-
+    
     Args:
         city_id (str): 城市ID，从URL路径中获取
-
+        
     Returns:
         JSON: 昨天的预测数据，包含：
             - date (str): 预测日期 (YYYY-MM-DD)
-            - generated_at (str): 预测生成时间
+            - generated_at (str): 预测生成时间 
             - updateTime (str): 更新时间
             - times (list): 24个时间点 ["HH:MM", ...]
             - values (list): 24个预测值 (μg/m³)
-            - low (list): 置信区间下限 (μg/m³)
+            - low (list): 置信区间下限 (μg/m³)  
             - high (list): 置信区间上限 (μg/m³)
-
+            
     HTTP状态码:
         200: 成功返回历史预测数据
         400: 无效的城市ID
         404: 未找到昨天的预测数据
         500: 服务器内部错误
-
+        
     示例:
         GET /api/historical-predictions/101280101
         返回: {
-            "date": "2025-08-01",
+            "date": "2025-08-01", 
             "generated_at": "2025-08-01T03:15:22",
             "times": ["00:00", "01:00", ...],
             "values": [25.6, 24.3, ...],
-            "low": [19.2, 18.1, ...],
+            "low": [19.2, 18.1, ...], 
             "high": [32.0, 30.5, ...]
         }
     """
     if not is_supported_city(city_id):
         return jsonify({"error": "不支持的城市"}), 400
-
+        
     try:
         import os
         import json
-
+        
         # 获取城市名称并转换为英文
         city_name = get_city_name(city_id)
         english_city_name = get_english_city_name(city_name)
-
+        
         # 计算昨天的日期
         yesterday = datetime.date.today() - datetime.timedelta(days=1)
         date_str = yesterday.strftime("%Y%m%d")
-
+        
         # 查找昨天的预测缓存文件
         cache_dir = os.path.join(os.getcwd(), "data", "predictions_cache")
         cache_file = os.path.join(cache_dir, f"daily_predictions_{date_str}.json")
-
+        
         if not os.path.exists(cache_file):
             return jsonify({"error": f"未找到{yesterday}的预测数据"}), 404
-
+            
         # 读取预测缓存
         with open(cache_file, "r", encoding="utf-8") as f:
             cache_data = json.load(f)
-
+            
         # 检查城市数据是否存在
         predictions = cache_data.get("predictions", {})
         if english_city_name not in predictions:
             return jsonify({"error": f"未找到{city_name}在{yesterday}的预测数据"}), 404
-
+            
         city_predictions = predictions[english_city_name]
-
+        
         return jsonify({
             "date": yesterday.isoformat(),
             "generated_at": cache_data.get("generated_at"),
@@ -424,7 +416,7 @@ def get_historical_predictions(city_id):
             "low": city_predictions.get("low", []),
             "high": city_predictions.get("high", [])
         })
-
+        
     except Exception as e:
         return jsonify({"error": f"获取历史预测数据失败: {str(e)}"}), 500
 
@@ -458,118 +450,3 @@ def get_cities():
         广州、深圳、珠海、佛山、惠州、东莞、中山、江门、肇庆、香港特别行政区、澳门特别行政区
     """
     return jsonify(get_all_cities())
-
-
-@api_bp.route("/api/daily-average/<city_id>")
-def get_daily_average(city_id):
-    """获取指定城市当天的二氧化氮浓度平均值"""
-    city_name = get_city_name(city_id)
-    if not city_name:
-        return jsonify({"error": "无效的城市ID"}), 400
-
-    try:
-        if city_name not in CITY_MODEL_MAP:
-            return jsonify({"error": "不支持的城市"}), 400
-
-        # 计算今天的日期范围
-        today = datetime.date.today()
-        today_start = datetime.datetime.combine(today, datetime.time.min)
-        today_end = datetime.datetime.combine(today, datetime.time.max)
-
-        db_gen = get_db()
-        db = next(db_gen)
-
-        # 查询今天的数据
-        model_class = CITY_MODEL_MAP[city_name]
-        records = (
-            db.query(model_class.no2_concentration)
-            .filter(model_class.observation_time >= today_start)
-            .filter(model_class.observation_time <= today_end)
-            .all()
-        )
-        db.close()
-
-        # 计算平均值
-        if not records:
-            return jsonify({
-                "date": today.isoformat(),
-                "city": city_name,
-                "average": None,
-                "record_count": 0,
-                "message": "今天暂无观测数据"
-            })
-
-        concentrations = [record[0] for record in records if record[0] is not None]
-        avg_value = sum(concentrations) / len(concentrations) if concentrations else None
-
-        return jsonify({
-            "date": today.isoformat(),
-            "city": city_name,
-            "average": round(avg_value, 1) if avg_value else None,
-            "record_count": len(concentrations),
-            "unit": "μg/m³"
-        })
-
-    except Exception as e:
-        return jsonify({"error": f"计算日平均值失败: {str(e)}"}), 500
-
-
-@api_bp.route("/api/15day-average/<city_id>")
-def get_15day_average(city_id):
-    """获取指定城市过去15天的二氧化氮浓度日平均值（不包含今天）"""
-    city_name = get_city_name(city_id)
-    if not city_name:
-        return jsonify({"error": "无效的城市ID"}), 400
-
-    try:
-        if city_name not in CITY_MODEL_MAP:
-            return jsonify({"error": "不支持的城市"}), 400
-
-        db_gen = get_db()
-        db = next(db_gen)
-        model_class = CITY_MODEL_MAP[city_name]
-
-        result = []
-        today = datetime.date.today()
-
-        # 获取过去15天的数据（不包含今天，从昨天开始回溯15天）
-        # 修改：从1到15，即昨天（1天前）到15天前
-        for i in range(1, 16):
-            target_date = today - datetime.timedelta(days=i)
-            date_start = datetime.datetime.combine(target_date, datetime.time.min)
-            date_end = datetime.datetime.combine(target_date, datetime.time.max)
-
-            # 查询当天的所有二氧化氮浓度数据
-            records = (
-                db.query(model_class.no2_concentration)
-                .filter(model_class.observation_time >= date_start)
-                .filter(model_class.observation_time <= date_end)
-                .all()
-            )
-
-            # 提取有效浓度值
-            concentrations = [record[0] for record in records if record[0] is not None]
-
-            # 计算平均值（如果当天有数据）
-            avg_value = round(mean(concentrations), 1) if concentrations else None
-
-            result.append({
-                "date": target_date.isoformat(),
-                "average": avg_value,
-                "record_count": len(concentrations)
-            })
-
-        db.close()
-
-        # 按日期升序排列（从最旧到最新）
-        result.reverse()
-
-        return jsonify({
-            "city": city_name,
-            "start_date": result[0]["date"] if result else None,
-            "end_date": result[-1]["date"] if result else None,
-            "data": result
-        })
-
-    except Exception as e:
-        return jsonify({"error": f"计算15天平均值失败: {str(e)}"}), 500

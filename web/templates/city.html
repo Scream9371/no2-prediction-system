@@ -19,8 +19,9 @@
             background-repeat: no-repeat;
             background-attachment: fixed;
             min-height: 100vh;
-            padding: 2rem 0;
+            padding: 0;
             line-height: 1.6;
+            margin: 0;
         }
 
         .card {
@@ -39,47 +40,176 @@
             text-align: center;
         }
 
+        /* 左侧固定导航栏 */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            padding: 2rem 1rem;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
         .back-btn {
-            position: absolute;
-            top: 2rem;
-            left: 2rem;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 5px;
+            display: block;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
             text-decoration: none;
             color: #333;
-            transition: background 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .back-btn:hover {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .nav-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .section-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 0;
+        }
+
+        .nav-item {
+            padding: 0.75rem 0;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            text-align: left;
+            position: relative;
+            border-bottom: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            color: #3498db;
+        }
+
+        .nav-item.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #3498db;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+            width: calc(100% - 250px);
+        }
+
+        /* 统一四个部分的样式 */
+        .prediction-section,
+        .recommendations-section,
+        .trend-section,
+        .accuracy-section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 80px; /* 为锚点滚动添加偏移 */
+        }
+
+        /* 最后一个部分不需要底部间距 */
+        .accuracy-section {
+            margin-bottom: 2rem;
+        }
+
+        .prediction-section h2,
+        .recommendations-section h2,
+        .trend-section h2,
+        .accuracy-section h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+            text-align: center;
+            position: relative;
+            padding-bottom: 0.75rem;
+        }
+
+        .prediction-section h2::after,
+        .recommendations-section h2::after,
+        .trend-section h2::after,
+        .accuracy-section h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 3px;
+            background: #3498db;
+            width: var(--underline-width, 100px);
+        }
+
+        .prediction-tabs,
+        .trend-tabs,
+        .accuracy-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* 添加平滑滚动 */
+        html {
+            scroll-behavior: smooth;
         }
 
         .stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
+            gap: 1.5rem;
             margin: 2rem 0;
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.2);
             padding: 1.5rem;
             border-radius: 8px;
             text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 120px;
         }
 
         .stat-label {
-            color: #555;
+            font-size: 0.9rem;
+            color: #4a5568;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            line-height: 1.2;
         }
 
         #chartCanvas {
@@ -88,26 +218,83 @@
             margin: 2rem 0;
         }
 
-        .accuracy-section {
-            margin-top: 3rem;
-            padding: 2rem;
-            background: rgba(240, 248, 255, 0.3);
-            border-radius: 12px;
-            border: 1px solid rgba(100, 150, 200, 0.2);
-        }
 
-        .accuracy-section h2 {
-            color: #2c5282;
-            margin-bottom: 0.5rem;
-            font-size: 1.5rem;
-            text-align: center;
-        }
-
-        .accuracy-description {
+        .accuracy-description,
+        .trend-description {
             color: #4a5568;
             margin-bottom: 1.5rem;
             font-size: 0.95rem;
             text-align: center;
+        }
+
+        /* 近15天趋势板块样式 */
+        .trend-placeholder {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            border: 2px dashed rgba(59, 130, 246, 0.3);
+        }
+
+        .trend-icon {
+            font-size: 3rem;
+            color: #3498db;
+            margin-bottom: 1rem;
+        }
+
+        .trend-placeholder p {
+            color: #4a5568;
+            margin: 0.5rem 0;
+        }
+
+        .placeholder-note {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .trend-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .trend-stat-card {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 120px;
+        }
+
+        .trend-analysis {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 12px;
+        }
+
+        .trend-analysis h4 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .analysis-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .analysis-list li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            color: #4a5568;
+        }
+
+        .analysis-list li:last-child {
+            border-bottom: none;
         }
 
         #accuracyChartCanvas {
@@ -272,49 +459,18 @@
             line-height: 1;
         }
 
-        /* 新增：15天趋势图样式 */
-        .trend-section {
-            margin-top: 3rem;
-            padding: 2rem;
-            background: rgba(240, 248, 255, 0.3);
-            border-radius: 12px;
-            border: 1px solid rgba(100, 150, 200, 0.2);
-        }
-
-        .trend-section h2 {
-            color: #2c5282;
-            margin-bottom: 0.5rem;
-            font-size: 1.5rem;
-            text-align: center;
-        }
-
-        .trend-description {
-            color: #4a5568;
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
-            text-align: center;
-        }
-
-        #trendChartCanvas {
-            width: 100%;
-            height: 350px;
-            margin: 1.5rem 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-        }
-
         /* 响应式调整 */
         @media (max-width: 767px) {
             .stats {
                 grid-template-columns: 1fr;
             }
-
+            
             .back-btn {
                 position: static;
                 display: inline-flex;
                 margin-bottom: 1rem;
             }
-
+            
             .header {
                 margin-top: 1rem;
             }
@@ -327,39 +483,128 @@
             .tab-title {
                 font-size: 0.9rem;
             }
+
+            .section-nav {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .nav-item {
+                text-align: center;
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .prediction-tabs,
+            .trend-tabs,
+            .accuracy-tabs {
+                justify-content: center;
+            }
+
+            .trend-stats {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            /* 移动端侧边栏 */
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 1rem;
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 1rem;
+            }
+
+            .section-nav {
+                flex-direction: row;
+                gap: 1.5rem;
+                overflow-x: auto;
+                padding: 0.5rem 0;
+            }
+
+            .nav-item {
+                white-space: nowrap;
+                font-size: 0.85rem;
+                padding: 0.5rem 0;
+                text-align: center;
+                min-width: auto;
+            }
         }
     </style>
 </head>
 <body>
-<a href="/" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 返回首页</a>
+<!-- 左侧固定导航栏 -->
+<div class="sidebar">
+    <a href="/" class="back-btn">
+        <i class="fa-solid fa-arrow-left"></i> 返回首页
+    </a>
+    
+    <div class="nav-title">页面导航</div>
+    <div class="section-nav">
+        <a href="#prediction-section" class="nav-item">今日预测结果</a>
+        <a href="#recommendations-section" class="nav-item">防护建议</a>
+        <a href="#trend-section" class="nav-item">近15天浓度趋势</a>
+        <a href="#accuracy-section" class="nav-item">昨日预测准确性分析</a>
+    </div>
+</div>
 
+<!-- 主内容区域 -->
+<div class="main-content">
 <div class="card">
     <div class="header">
         <h1 id="cityName">城市名称</h1>
         <p id="updateTime">更新时间：2023-01-01 12:00</p>
     </div>
 
-    <div class="stats">
-        <div class="stat-card">
-            <div class="stat-value" id="currentValue">-</div>
-            <div class="stat-label">当前NO₂浓度 (μg/m³)</div>
+    <!-- 今日预测结果部分 -->
+    <div id="prediction-section" class="prediction-section">
+        <h2>今日预测结果</h2>
+        
+        <!-- 小卡片导航 -->
+        <div class="prediction-tabs">
+            <div class="tab-card active" data-tab="data">
+                <i class="fa-solid fa-chart-line tab-icon"></i>
+                <div class="tab-title">数据概览</div>
+            </div>
+            <div class="tab-card" data-tab="chart">
+                <i class="fa-solid fa-chart-area tab-icon"></i>
+                <div class="tab-title">趋势图表</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="avgValue">-</div>
-            <div class="stat-label">24小时平均浓度 (μg/m³)</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="qualityLevel">-</div>
-            <div class="stat-label">空气质量等级</div>
+        
+        <!-- 内容面板 -->
+        <div class="content-panels">
+            <div class="content-panel active" id="data-panel">
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">当前NO₂浓度 (μg/m³)</div>
+                        <div class="stat-value" id="currentValue">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">24小时平均浓度 (μg/m³)</div>
+                        <div class="stat-value" id="avgValue">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">空气质量等级</div>
+                        <div class="stat-value" id="qualityLevel">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="content-panel" id="chart-panel">
+                <canvas id="chartCanvas"></canvas>
+            </div>
         </div>
     </div>
 
-    <canvas id="chartCanvas"></canvas>
-
-    <!-- 防护建议部分 - 修改后结构 -->
-    <div class="recommendations-section">
-        <h2 class="recommendations-title">防护建议</h2>
-
+    <!-- 防护建议部分 -->
+    <div id="recommendations-section" class="recommendations-section">
+        <h2>防护建议</h2>
+        
         <!-- 小卡片导航 -->
         <div class="recommendation-tabs">
             <div class="tab-card active" data-tab="travel">
@@ -387,7 +632,7 @@
                 <div class="tab-title">通用建议</div>
             </div>
         </div>
-
+        
         <!-- 内容面板 -->
         <div class="content-panels">
             <div class="content-panel active" id="travel-panel">
@@ -422,40 +667,118 @@
             </div>
         </div>
     </div>
-    <!-- 预测准确性对比图表 -->
-    <div class="accuracy-section">
-        <h2>预测准确性分析</h2>
-        <p class="accuracy-description">对比昨天的预测值与实际观测值，评估模型预测准确性</p>
-        <canvas id="accuracyChartCanvas"></canvas>
-        <div id="accuracyStats" class="accuracy-stats">
-            <div class="accuracy-metric">
-                <span class="metric-label">平均绝对误差:</span>
-                <span id="maeValue" class="metric-value">计算中...</span>
+
+    <!-- 近15天浓度趋势部分 -->
+    <div id="trend-section" class="trend-section">
+        <h2>近15天浓度趋势</h2>
+        
+        <!-- 小卡片导航 -->
+        <div class="trend-tabs">
+            <div class="tab-card active" data-tab="overview">
+                <i class="fa-solid fa-chart-line tab-icon"></i>
+                <div class="tab-title">趋势概览</div>
             </div>
-            <div class="accuracy-metric">
-                <span class="metric-label">预测区间覆盖率:</span>
-                <span id="coverageValue" class="metric-value">计算中...</span>
+            <div class="tab-card" data-tab="statistics">
+                <i class="fa-solid fa-calculator tab-icon"></i>
+                <div class="tab-title">统计数据</div>
             </div>
-            <div class="accuracy-metric">
-                <span class="metric-label">数据更新时间:</span>
-                <span id="accuracyUpdateTime" class="metric-value">-</span>
+            <div class="tab-card" data-tab="analysis">
+                <i class="fa-solid fa-magnifying-glass-chart tab-icon"></i>
+                <div class="tab-title">趋势分析</div>
+            </div>
+        </div>
+        
+        <!-- 内容面板 -->
+        <div class="content-panels">
+            <div class="content-panel active" id="overview-panel">
+                <p class="trend-description">展示过去15天的NO₂浓度变化趋势，帮助了解空气质量的历史变化情况</p>
+                <div class="trend-placeholder">
+                    <i class="fa-solid fa-chart-line trend-icon"></i>
+                    <p>趋势图表功能开发中...</p>
+                    <p class="placeholder-note">将显示近15天的NO₂浓度变化曲线</p>
+                </div>
+            </div>
+            <div class="content-panel" id="statistics-panel">
+                <div class="trend-stats">
+                    <div class="trend-stat-card">
+                        <div class="stat-label">15天平均浓度</div>
+                        <div class="stat-value">--</div>
+                    </div>
+                    <div class="trend-stat-card">
+                        <div class="stat-label">最高浓度</div>
+                        <div class="stat-value">--</div>
+                    </div>
+                    <div class="trend-stat-card">
+                        <div class="stat-label">最低浓度</div>
+                        <div class="stat-value">--</div>
+                    </div>
+                    <div class="trend-stat-card">
+                        <div class="stat-label">变化幅度</div>
+                        <div class="stat-value">--</div>
+                    </div>
+                </div>
+            </div>
+            <div class="content-panel" id="analysis-panel">
+                <div class="trend-analysis">
+                    <h4>趋势分析报告</h4>
+                    <ul class="analysis-list">
+                        <li>功能开发中：整体趋势分析</li>
+                        <li>功能开发中：周期性变化分析</li>
+                        <li>功能开发中：异常值检测</li>
+                        <li>功能开发中：环境因素影响评估</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 新增：15天趋势图表部分 -->
-    <div class="trend-section">
-        <h2>过去15天NO₂浓度趋势</h2>
-        <p class="trend-description">展示过去15天每日的平均NO₂浓度变化</p>
-        <canvas id="trendChartCanvas"></canvas>
+    <!-- 昨日预测准确性分析部分 -->
+    <div id="accuracy-section" class="accuracy-section">
+        <h2>昨日预测准确性分析</h2>
+        
+        <!-- 小卡片导航 -->
+        <div class="accuracy-tabs">
+            <div class="tab-card active" data-tab="metrics">
+                <i class="fa-solid fa-chart-simple tab-icon"></i>
+                <div class="tab-title">准确性指标</div>
+            </div>
+            <div class="tab-card" data-tab="comparison">
+                <i class="fa-solid fa-chart-line tab-icon"></i>
+                <div class="tab-title">对比图表</div>
+            </div>
+        </div>
+        
+        <!-- 内容面板 -->
+        <div class="content-panels">
+            <div class="content-panel active" id="metrics-panel">
+                <p class="accuracy-description">对比昨天的预测值与实际观测值，评估模型预测准确性</p>
+                <div id="accuracyStats" class="accuracy-stats">
+                    <div class="accuracy-metric">
+                        <span class="metric-label">平均绝对误差</span>
+                        <span id="maeValue" class="metric-value">计算中...</span>
+                    </div>
+                    <div class="accuracy-metric">
+                        <span class="metric-label">预测区间覆盖率</span>
+                        <span id="coverageValue" class="metric-value">计算中...</span>
+                    </div>
+                    <div class="accuracy-metric">
+                        <span class="metric-label">数据更新时间</span>
+                        <span id="accuracyUpdateTime" class="metric-value">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="content-panel" id="comparison-panel">
+                <canvas id="accuracyChartCanvas"></canvas>
+            </div>
+        </div>
     </div>
+</div>
 </div>
 
 <script>
     let chartInstance = null;
     let accuracyChartInstance = null;
-    let trendChartInstance = null; // 新增：用于存储趋势图实例
-
+    
     // 获取当前小时
     function getCurrentHour() {
         const now = new Date();
@@ -695,7 +1018,7 @@
             // 获取城市ID映射
             const citiesResponse = await fetch('/api/cities');
             const cities = await citiesResponse.json();
-
+            
             const cityInfo = cities.find(item => {
                 if (item.name === city) return true;
                 if (city.endsWith('市') && item.name === city.slice(0, -1)) return true;
@@ -714,8 +1037,19 @@
                 fetch(`/api/historical-predictions/${cityInfo.id}`)
             ]);
 
-            if (!actualResponse.ok || !predictedResponse.ok) {
-                throw new Error('无法获取完整的对比数据');
+            // 检查响应状态并提供具体错误信息
+            let errorMessages = [];
+            if (!actualResponse.ok) {
+                const actualError = await actualResponse.json();
+                errorMessages.push(`历史观测数据: ${actualError.error || '获取失败'}`);
+            }
+            if (!predictedResponse.ok) {
+                const predictedError = await predictedResponse.json();
+                errorMessages.push(`历史预测数据: ${predictedError.error || '获取失败'}`);
+            }
+            
+            if (errorMessages.length > 0) {
+                throw new Error(errorMessages.join('; '));
             }
 
             const actualData = await actualResponse.json();
@@ -726,39 +1060,9 @@
                 predicted: predictedData,
                 city: city
             };
-
+            
         } catch (error) {
             console.error('准确性数据获取失败:', error);
-            throw error;
-        }
-    }
-
-    // 新增：获取15天平均数据
-    async function fetch15DayAverageData(city) {
-        try {
-            // 获取城市ID映射
-            const citiesResponse = await fetch('/api/cities');
-            const cities = await citiesResponse.json();
-
-            const cityInfo = cities.find(item => {
-                if (item.name === city) return true;
-                if (city.endsWith('市') && item.name === city.slice(0, -1)) return true;
-                if (city.endsWith('特别行政区') && item.name === city.slice(0, -5)) return true;
-                if (item.name.endsWith('市') && item.name.slice(0, -1) === city) return true;
-                return item.name.endsWith('特别行政区') && item.name.slice(0, -5) === city;
-            });
-
-            if (!cityInfo) {
-                throw new Error(`未找到城市${city}的ID`);
-            }
-
-            const response = await fetch(`/api/15day-average/${cityInfo.id}`);
-            if (!response.ok) {
-                throw new Error('15天平均数据获取失败');
-            }
-            return await response.json();
-        } catch (error) {
-            console.error('获取15天平均数据失败:', error);
             throw error;
         }
     }
@@ -769,19 +1073,19 @@
         const predictedValues = predictedData.values;
         const predictedLow = predictedData.low;
         const predictedHigh = predictedData.high;
-
+        
         // 确保数据长度匹配（取最小长度）
         const minLength = Math.min(actualValues.length, predictedValues.length);
         const actualTrimmed = actualValues.slice(0, minLength);
         const predictedTrimmed = predictedValues.slice(0, minLength);
         const lowTrimmed = predictedLow.slice(0, minLength);
         const highTrimmed = predictedHigh.slice(0, minLength);
-
+        
         // 计算平均绝对误差 (MAE)
         const mae = actualTrimmed.reduce((sum, actual, i) => {
             return sum + Math.abs(actual - predictedTrimmed[i]);
         }, 0) / actualTrimmed.length;
-
+        
         // 计算预测区间覆盖率
         let covered = 0;
         actualTrimmed.forEach((actual, i) => {
@@ -790,7 +1094,7 @@
             }
         });
         const coverage = (covered / actualTrimmed.length) * 100;
-
+        
         return {
             mae: mae.toFixed(2),
             coverage: coverage.toFixed(1),
@@ -808,7 +1112,7 @@
 
         const actualData = accuracyData.actual.data;
         const predictedData = accuracyData.predicted;
-
+        
         // 准备数据（确保时间对齐）
         const times = predictedData.times;
         const actualValues = actualData.map(record => record.no2_concentration);
@@ -818,7 +1122,7 @@
 
         // 计算准确性指标
         const metrics = calculateAccuracyMetrics(accuracyData.actual, predictedData);
-
+        
         // 更新准确性指标显示
         document.getElementById('maeValue').textContent = `${metrics.mae} μg/m³`;
         document.getElementById('coverageValue').textContent = `${metrics.coverage}%`;
@@ -892,31 +1196,43 @@
                     y: {
                         beginAtZero: true,
                         title: {
-                            display: true,
-                            text: 'NO₂浓度 (μg/m³)',
-                            font: { size: 14, weight: 'bold' },
-                            color: '#374151'
+                            display: true, 
+                            text: 'NO₂浓度（μg/m³）',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#333'
                         },
                         ticks: {
-                            font: { size: 12 },
-                            color: '#6b7280'
+                            font: { size: 13 },
+                            weight: 'bold',
+                            color: '#222'
                         },
                         grid: {
-                            color: 'rgba(156, 163, 175, 0.3)',
+                            color: 'rgba(200, 200, 200, 0.6)',
                             lineWidth: 1
                         }
                     },
                     x: {
                         title: {
-                            display: true,
+                            display: true, 
                             text: '时间 (昨天)',
-                            font: { size: 14, weight: 'bold' },
-                            color: '#374151'
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#222'
                         },
                         ticks: {
                             maxTicksLimit: 12,
-                            font: { size: 12 },
-                            color: '#6b7280'
+                            font: {
+                                size: 13,
+                                weight: '600'
+                            },
+                            color: '#222',
+                            maxRotation: 45,
+                            minRotation: 45
                         },
                         grid: { display: false }
                     }
@@ -927,8 +1243,21 @@
                         labels: {
                             font: { size: 12, weight: '500' },
                             color: '#374151',
-                            usePointStyle: true,
-                            pointStyle: 'line'
+                            usePointStyle: false,
+                            generateLabels: function(chart) {
+                                const datasets = chart.data.datasets;
+                                return datasets.map((dataset, i) => {
+                                    return {
+                                        text: dataset.label,
+                                        fillStyle: dataset.backgroundColor,
+                                        strokeStyle: dataset.borderColor,
+                                        lineWidth: Math.max(2, dataset.borderWidth || 2),
+                                        lineDash: dataset.borderDash || [],
+                                        hidden: !chart.isDatasetVisible(i),
+                                        datasetIndex: i
+                                    };
+                                });
+                            }
                         }
                     },
                     tooltip: {
@@ -984,7 +1313,7 @@
                     {
                         label: '预测区间下限',
                         data: data.low,
-                        borderWidth: 4,
+                        borderWidth: 4, 
                         borderColor: 'rgba(255, 152, 0, 0.7)',
                         backgroundColor: 'rgba(255, 152, 0, 0.45)',
                         fill: true,
@@ -1013,7 +1342,7 @@
                     y: {
                         beginAtZero: true,
                         title: {
-                            display: true,
+                            display: true, 
                             text: 'NO₂浓度（μg/m³）',
                             font: {
                                 size: 14,
@@ -1033,7 +1362,7 @@
                     },
                     x: {
                         title: {
-                            display: true,
+                            display: true, 
                             text: '时间',
                             font: {
                                 size: 14,
@@ -1057,7 +1386,7 @@
                 plugins: {
                     legend: {
                         position: 'top',
-                        labels: {
+                        labels: { 
                             font: { size: 13, weight: '500' },
                             color: '#222'
                         }
@@ -1072,106 +1401,6 @@
                         borderWidth: 1,
                         padding: 10,
                         bodyFont: { size: 13 }
-                    }
-                }
-            }
-        });
-    }
-
-    // 新增：渲染15天趋势图
-    function renderTrendChart(trendData) {
-        const ctx = document.getElementById('trendChartCanvas').getContext('2d');
-
-        // 如果已存在趋势图实例，先销毁
-        if (trendChartInstance) {
-            trendChartInstance.destroy();
-        }
-
-        // 提取日期和浓度值
-        const dates = trendData.data.map(item =>
-            new Date(item.date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
-        );
-        const concentrations = trendData.data.map(item => item.average);
-
-        // 创建图表
-        trendChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [{
-                    label: '日平均NO₂浓度 (μg/m³)',
-                    data: concentrations,
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: true,
-                    pointBackgroundColor: 'rgba(75, 192, 192, 1)',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 7
-                }]
-            },
-            options: {
-                responsive: true,
-                devicePixelRatio: 2,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        title: {
-                            display: true,
-                            text: 'NO₂浓度 (μg/m³)',
-                            font: { size: 14, weight: 'bold' },
-                            color: '#374151'
-                        },
-                        ticks: {
-                            font: { size: 12 },
-                            color: '#6b7280'
-                        },
-                        grid: {
-                            color: 'rgba(156, 163, 175, 0.3)',
-                            lineWidth: 1
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: '日期',
-                            font: { size: 14, weight: 'bold' },
-                            color: '#374151'
-                        },
-                        ticks: {
-                            font: { size: 12 },
-                            color: '#6b7280'
-                        },
-                        grid: { display: false }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            font: { size: 12, weight: '500' },
-                            color: '#374151',
-                            usePointStyle: true
-                        }
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        titleColor: '#1f2937',
-                        bodyColor: '#4b5563',
-                        borderColor: '#d1d5db',
-                        borderWidth: 1,
-                        padding: 12,
-                        bodyFont: { size: 12 },
-                        callbacks: {
-                            label: function(context) {
-                                return `浓度: ${context.parsed.y.toFixed(1)} μg/m³`;
-                            }
-                        }
                     }
                 }
             }
@@ -1194,7 +1423,7 @@
         categories.forEach(category => {
             const listElement = document.getElementById(category.id);
             listElement.innerHTML = '';
-
+            
             category.items.forEach(itemText => {
                 const li = document.createElement('li');
                 li.className = 'recommendation-item';
@@ -1206,24 +1435,134 @@
 
     // 初始化标签切换功能
     function initTabs() {
-        const tabCards = document.querySelectorAll('.tab-card');
-
-        tabCards.forEach(card => {
+        // 处理预测结果标签
+        const predictionTabs = document.querySelectorAll('.prediction-tabs .tab-card');
+        predictionTabs.forEach(card => {
             card.addEventListener('click', () => {
                 const tabName = card.getAttribute('data-tab');
-
-                // 移除所有激活状态
-                document.querySelectorAll('.tab-card').forEach(c => {
+                
+                // 移除预测结果区域的激活状态
+                document.querySelectorAll('.prediction-tabs .tab-card').forEach(c => {
                     c.classList.remove('active');
                 });
-                document.querySelectorAll('.content-panel').forEach(p => {
+                document.querySelectorAll('.prediction-section .content-panel').forEach(p => {
                     p.classList.remove('active');
                 });
-
+                
                 // 添加当前激活状态
                 card.classList.add('active');
                 document.getElementById(`${tabName}-panel`).classList.add('active');
             });
+        });
+
+        // 处理防护建议标签
+        const recommendationTabs = document.querySelectorAll('.recommendation-tabs .tab-card');
+        recommendationTabs.forEach(card => {
+            card.addEventListener('click', () => {
+                const tabName = card.getAttribute('data-tab');
+                
+                // 移除防护建议区域的激活状态
+                document.querySelectorAll('.recommendation-tabs .tab-card').forEach(c => {
+                    c.classList.remove('active');
+                });
+                document.querySelectorAll('.recommendations-section .content-panel').forEach(p => {
+                    p.classList.remove('active');
+                });
+                
+                // 添加当前激活状态
+                card.classList.add('active');
+                document.getElementById(`${tabName}-panel`).classList.add('active');
+            });
+        });
+
+        // 处理趋势分析标签
+        const trendTabs = document.querySelectorAll('.trend-tabs .tab-card');
+        trendTabs.forEach(card => {
+            card.addEventListener('click', () => {
+                const tabName = card.getAttribute('data-tab');
+                
+                // 移除趋势分析区域的激活状态
+                document.querySelectorAll('.trend-tabs .tab-card').forEach(c => {
+                    c.classList.remove('active');
+                });
+                document.querySelectorAll('.trend-section .content-panel').forEach(p => {
+                    p.classList.remove('active');
+                });
+                
+                // 添加当前激活状态
+                card.classList.add('active');
+                document.getElementById(`${tabName}-panel`).classList.add('active');
+            });
+        });
+
+        // 处理准确性分析标签
+        const accuracyTabs = document.querySelectorAll('.accuracy-tabs .tab-card');
+        accuracyTabs.forEach(card => {
+            card.addEventListener('click', () => {
+                const tabName = card.getAttribute('data-tab');
+                
+                // 移除准确性分析区域的激活状态
+                document.querySelectorAll('.accuracy-tabs .tab-card').forEach(c => {
+                    c.classList.remove('active');
+                });
+                document.querySelectorAll('.accuracy-section .content-panel').forEach(p => {
+                    p.classList.remove('active');
+                });
+                
+                // 添加当前激活状态
+                card.classList.add('active');
+                document.getElementById(`${tabName}-panel`).classList.add('active');
+            });
+        });
+    }
+
+    // 导航栏激活状态管理
+    function initNavigation() {
+        const navItems = document.querySelectorAll('.section-nav .nav-item');
+        const sections = document.querySelectorAll('[id$="-section"]');
+
+        // 滚动时更新导航状态
+        function updateActiveNav() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            sections.forEach((section, index) => {
+                const rect = section.getBoundingClientRect();
+                const isInView = rect.top <= 100 && rect.bottom >= 100;
+                
+                if (isInView) {
+                    navItems.forEach(item => item.classList.remove('active'));
+                    navItems[index]?.classList.add('active');
+                }
+            });
+        }
+
+        // 监听滚动事件
+        window.addEventListener('scroll', updateActiveNav);
+        
+        // 初始化时设置第一个为激活状态
+        navItems[0]?.classList.add('active');
+    }
+
+    // 设置标题下划线宽度与文字等长
+    function setTitleUnderlines() {
+        const titles = document.querySelectorAll('.prediction-section h2, .recommendations-section h2, .trend-section h2, .accuracy-section h2');
+        
+        titles.forEach(title => {
+            // 创建临时元素来测量文字宽度
+            const tempSpan = document.createElement('span');
+            tempSpan.style.visibility = 'hidden';
+            tempSpan.style.position = 'absolute';
+            tempSpan.style.fontSize = getComputedStyle(title).fontSize;
+            tempSpan.style.fontWeight = getComputedStyle(title).fontWeight;
+            tempSpan.style.fontFamily = getComputedStyle(title).fontFamily;
+            tempSpan.textContent = title.textContent;
+            
+            document.body.appendChild(tempSpan);
+            const textWidth = tempSpan.offsetWidth;
+            document.body.removeChild(tempSpan);
+            
+            // 设置伪元素宽度
+            title.style.setProperty('--underline-width', textWidth + 'px');
         });
     }
 
@@ -1234,15 +1573,19 @@
         // 设置城市背景图片
         document.body.style.backgroundImage = `url('${getCityBackgroundImage(city)}')`;
 
-        // 初始化标签切换功能
+        // 初始化标签切换功能和导航栏
         initTabs();
+        initNavigation();
+        
+        // 设置标题下划线宽度
+        setTitleUnderlines();
 
         // 从后端API调取数据
         try {
             const realData = await fetchCityData(city);
-
+            
             // 更新页面内容
-            document.getElementById('cityName').textContent = `${realData.city} NO₂浓度详情`;
+            document.getElementById('cityName').textContent = `${realData.city} NO₂ 浓度详情`;
             document.getElementById('updateTime').textContent = `更新时间：${realData.updateTime}`;
             document.getElementById('currentValue').textContent = realData.currentValue;
             document.getElementById('avgValue').textContent = realData.avgValue;
@@ -1254,7 +1597,7 @@
 
             // 渲染图表
             renderChart(realData);
-
+            
             // 加载并渲染预测准确性分析
             try {
                 const accuracyData = await fetchAccuracyData(city);
@@ -1264,7 +1607,7 @@
                 document.getElementById('maeValue').textContent = '暂无数据';
                 document.getElementById('coverageValue').textContent = '暂无数据';
                 document.getElementById('accuracyUpdateTime').textContent = '数据获取失败';
-
+                
                 const accuracyCanvas = document.getElementById('accuracyChartCanvas');
                 const ctx = accuracyCanvas.getContext('2d');
                 ctx.fillStyle = '#f3f4f6';
@@ -1275,24 +1618,7 @@
                 ctx.fillText('暂无昨天的对比数据', accuracyCanvas.width / 2, accuracyCanvas.height / 2);
                 ctx.fillText('(需要历史预测数据和观测数据)', accuracyCanvas.width / 2, accuracyCanvas.height / 2 + 25);
             }
-
-            // 新增：加载并渲染15天趋势图
-            try {
-                const trendData = await fetch15DayAverageData(city);
-                renderTrendChart(trendData);
-            } catch (trendError) {
-                console.error('15天趋势数据加载失败:', trendError);
-                const trendCanvas = document.getElementById('trendChartCanvas');
-                const ctx = trendCanvas.getContext('2d');
-                ctx.fillStyle = '#f3f4f6';
-                ctx.fillRect(0, 0, trendCanvas.width, trendCanvas.height);
-                ctx.fillStyle = '#6b7280';
-                ctx.font = '16px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('无法加载15天趋势数据', trendCanvas.width / 2, trendCanvas.height / 2);
-                ctx.fillText('请稍后重试', trendCanvas.width / 2, trendCanvas.height / 2 + 25);
-            }
-
+            
         } catch (error) {
             console.error('数据加载失败:', error);
             alert('无法获取城市数据，请稍后重试');
