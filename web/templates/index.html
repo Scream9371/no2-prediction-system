@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>大湾区NO₂浓度预测</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -115,39 +115,89 @@
             text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
         }
 
-        /* 时钟样式 - 整合index(4).html的设计 */
+        /* 时钟样式  */
         .realtime-clock {
             text-align: left;
-            margin: 20px 0 30px;
-            padding: 15px;
+            margin: 10px 0 15px;
+            padding: 8px 12px;;
             background: rgba(0, 0, 0, 0.25);
             border-radius: 15px;
             border: 1px solid rgba(0, 243, 255, 0.2);
             z-index: 2;
         }
+        /* 新增：时钟内容横向排列容器 */
+        .clock-content {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* 元素间间距 */
+        }
 
         .realtime-clock .date {
-            font-size: 1.8rem;
+            font-size: 1.4rem;
             font-weight: 300;
             color: #a7e8ff;
-            margin-bottom: 8px;
+            margin-bottom: 0;
         }
 
         .realtime-clock .weekday {
-            font-size: 1.8rem;
+            font-size: 1.4rem;
             font-weight: 300;
             color: #a7e8ff;
-            margin-bottom: 15px;
+            margin-bottom: 0;
         }
 
         .realtime-clock .time {
-            font-size: 2.8rem;
+            font-size: 1.4rem;
             font-weight: 400;
             color: #00f3ff;
             text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
             font-family: 'Orbitron', sans-serif;
         }
+        /* 新增：分隔符样式 */
+        .separator {
+            color: #a7e8ff;
+            opacity: 0.7;
+        }
+        /* 响应式适配：小屏进一步压缩 */
+        @media (max-width: 600px) {
+            .clock-content {
+                gap: 5px; /* 小屏缩小间距 */
+            }
+            .realtime-clock .date,
+            .realtime-clock .weekday {
+                font-size: 1.1rem;
+            }
+            .realtime-clock .time {
+                font-size: 1.4rem;
+            }
+        }
+        /*仪表盘及图例相关样式*/
+        /* 当前值显示 */
+         .gauge-container {
+            width: 100%;
+            max-width: 320px;
+            height: 250px;
+            position: relative;
+            flex: 1; /* 占据剩余空间 */
+        }
 
+        .current-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #00f3ff;
+            text-align: center;
+            margin: 10px 0;
+            text-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+        /* 质量状态 */
+        .quality-status {
+            font-size: 1.5rem;
+            color: #a7e8ff;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+       
         /* 空气质量数据 */
         .air-quality {
             background: rgba(0, 0, 0, 0.25);
@@ -176,6 +226,42 @@
             color: #00ffaa;
             margin-bottom: 25px;
         }
+/* 实时监测详情板块样式 */
+.pollution-details {
+    margin-top: 1px; /* 与上方表盘保持间距 */
+    padding: 15px;
+    background: rgba(0, 10, 30, 0.6); /* 深色半透明背景，与页面其他信息框一致 */
+    border-radius: 12px; /* 圆角与其他容器统一 */
+    border: 1px solid rgba(0, 243, 255, 0.2); /* 青色边框，匹配主题 */
+}
+
+.pollution-details h3 {
+    font-size: 1.2rem;
+    color: #00f3ff; /* 青色标题，与页面其他标题一致 */
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.3); /* 轻微发光效果 */
+}
+
+.pollution-details p {
+    font-size: 1rem;
+    color: #c7f2ff; /* 浅青色文字，保证可读性 */
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+/* 响应式适配：小屏幕下调整间距和字体 */
+@media (max-width: 600px) {
+    .pollution-details {
+        padding: 12px;
+        margin-top: 15px;
+    }
+    .pollution-details h3 {
+        font-size: 1.1rem;
+    }
+    .pollution-details p {
+        font-size: 0.9rem;
+    }
+}
 
 .pollution-info {
     background: rgba(0, 10, 30, 0.6);
@@ -295,7 +381,7 @@
             background: rgba(0, 123, 255, 0.2);
             color: #00f3ff;
         }
-
+        
         /* 热力图区域 */
         .heatmap-container {
             flex-grow: 1;
@@ -408,6 +494,7 @@
             .card {
                 flex-direction: column;
                 height: auto;
+                max-height: none;
             }
             
             .card-left, .card-right {
@@ -467,17 +554,44 @@
                 <h2>广州市</h2>
             </div>
             
+            <!-- 时钟HTML -->
             <div class="realtime-clock">
-                <div class="date" id="dateDisplay">2025/07/28</div>
-                <div class="weekday" id="weekdayDisplay">星期一</div>
-                <div class="time" id="timeDisplay">14:28:36</div>
+                <div class="clock-content"> <!-- 新增：横向容器 -->
+                    <div class="date" id="dateDisplay">2025/07/28</div>
+                    <span class="separator">|</span> <!-- 新增：分隔符 -->
+                    <div class="weekday" id="weekdayDisplay">星期一</div>
+                    <span class="separator">|</span> <!-- 新增：分隔符 -->
+                    <div class="time" id="timeDisplay">14:28:36</div>
+                </div>
             </div>
-            
+
+
             <div class="air-quality">
-                <div class="aqi-value" id="aqiValue"></div>
-                <div class="aqi-status" id="aqiStatus"></div> 
-                   
-            </div>
+                <!-- 修改点1：将仪表盘和图例放在同一个flex容器中，实现左右布局 -->
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    
+                    <!-- 修改点2：图例放在表盘左侧，垂直排列 -->
+                    <div style="display: flex; flex-direction: column; gap: 0;">
+                        <span style="background: rgba(50, 200, 100, 0.8); padding: 4px 8px; color: #fff; font-size: 0.8rem;">优</span>
+                        <span style="background: rgba(255, 255, 100, 0.8); padding: 4px 8px; color: #fff; font-size: 0.8rem;">良</span>
+                        <span style="background: rgba(255, 150, 50, 0.8); padding: 8px 4px; color: #fff; writing-mode: vertical-rl; text-orientation: upright; font-size: 0.8rem;">轻度污染</span>
+                        <span style="background: rgba(255, 100, 100, 0.8); padding: 8px 4px; color: #fff; writing-mode: vertical-rl; text-orientation: upright; font-size: 0.8rem;">中度污染</span>
+                    </div>
+
+                    <!-- 仪表盘容器 -->
+                    <div class="gauge-container">
+                        <div id="gaugeChart" style="width: 100%; height: 100%;"></div>
+                    </div>
+                </div>
+                <!-- 实时监测详情板块 -->
+                 <div class="pollution-details">
+                    <h3>实时监测详情</h3>
+                    <p>NO₂浓度趋势：</p>
+                    <p>健康建议：适宜户外活动，敏感人群无影响</p>
+                 </div>
+
+
+            </div>           
         </div>
         
         <!-- 右侧：搜索与热力图 -->
@@ -781,23 +895,140 @@
         });
     }
     function updateLeftPanel(city) {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentValue = city.hourlyValues[currentHour] || city.hourlyValues[0];
-        const level = getLevelByValue(currentValue);
-        
-        // 简化城市名称（处理市/特别行政区）
-        const displayName = city.name
-            .replace('市', '')
-            .replace('特别行政区', '');
-        
-        // 更新左侧内容
-        document.querySelector('.city-header h2').textContent = displayName;
-        document.getElementById('aqiValue').textContent = currentValue;
-        document.querySelector('.aqi-status').textContent = `${currentValue} μg/m³ · 空气质量${level}`;
-        
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentValue = city.hourlyValues[currentHour] || city.hourlyValues[0]|| 0;
+    const level = getLevelByValue(currentValue);
+    
+    // 简化城市名称（处理市/特别行政区）
+    const displayName = city.name
+        .replace('市', '')
+        .replace('特别行政区', '');
+    
+    // 更新左侧内容
+    document.querySelector('.city-header h2').textContent = displayName;
+    // 更新仪表盘图表
+    createGaugeChart(currentValue);
+    
+    // 新增：更新左侧面板的背景图片
+    const cardLeft = document.querySelector('.card-left');
+    // 使用城市对应的图片，如果没有则使用默认图片
+    const cityImage = city.image || getDefaultImage();
+    cardLeft.style.background = `url('${cityImage}') no-repeat center center`;
+    cardLeft.style.backgroundSize = 'cover';
+    
+     
         // 保持时间更新（复用原有逻辑）
         updateClock();
+    }
+
+    // 创建仪表盘图表
+    function createGaugeChart(value) {
+        const chartDom = document.getElementById('gaugeChart');
+        // 销毁已有实例
+        if (chartInstance) {
+            chartInstance.dispose();
+        }
+        // 初始化ECharts实例
+        chartInstance = echarts.init(chartDom);
+
+        // 二氧化氮浓度等级配置（您的颜色体系）
+        const levelConfig = [
+            { name: '优', max: 40, color: 'rgba(50, 200, 100, 0.8)' },       // 0-40μg/m³
+            { name: '良', max: 80, color: 'rgba(255, 255, 100, 0.8)' },     // 40-80μg/m³
+            { name: '轻度污染', max: 120, color: 'rgba(255, 150, 50, 0.8)' }, // 80-120μg/m³
+            { name: '中度污染', max: 240, color: 'rgba(255, 100, 100, 0.8)' } // 120-240μg/m³
+        ];
+
+        // 仪表盘配置（基于您提供的示例修改）
+        const option = {
+            series: [
+                {
+                    type: 'gauge', // 表盘类型为gauge
+                    startAngle: 180, // 起始角度（底部）
+                    endAngle: 0,     // 结束角度（顶部）
+                    center: ['50%', '75%'], // 表盘中心位置
+                    radius: '90%',   // 表盘半径
+                    min: 0,          // 最小值（0μg/m³）
+                    max: 240,        // 最大值（240μg/m³）
+                    splitNumber: 8,  // 分割段数（保持示例样式）
+                    axisLine: {
+                        lineStyle: {
+                            width: 6,
+                            // 颜色分段（按浓度比例映射）
+                            color: [
+                                [levelConfig[0].max / 240, levelConfig[0].color], // 优
+                                [levelConfig[1].max / 240, levelConfig[1].color], // 良
+                                [levelConfig[2].max / 240, levelConfig[2].color], // 轻度污染
+                                [1, levelConfig[3].color]                          // 中度污染
+                            ]
+                        }
+                    },
+                    pointer: {
+                        // 指针样式（复用示例的自定义图标）
+                        icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
+                        length: '12%',
+                        width: 20,
+                        offsetCenter: [0, '-60%'], // 指针偏移（向上）
+                        itemStyle: {
+                            color: 'auto'
+                        }
+                    },
+                    axisTick: {
+                        length: 12,
+                        lineStyle: {
+                            color: 'auto',
+                            width: 2
+                        }
+                    },
+                    splitLine: {
+                        length: 20,
+                        lineStyle: {
+                            color: 'auto',
+                            width: 5
+                        }
+                    },
+                    axisLabel: {
+                        // 刻度标签（显示等级名称）
+                        color: '#fff', // 适配深色背景
+                        fontSize: 16,
+                        distance: -40, // 标签距离表盘中心的距离
+                        rotate: 'tangential',
+                    },
+                    title: {
+                        // 表盘标题
+                        name: 'NO₂浓度 (μg/m³)',
+                        offsetCenter: [0, '-10%'],
+                        fontSize: 20,
+                        color: '#00f3ff' // 匹配页面青色风格
+                    },
+                    detail: {
+                        // 实时浓度值显示
+                        fontSize: 17,// 数值字体大小
+                        offsetCenter: [0, '-35%'],
+                        valueAnimation: true, // 数值动画
+                        formatter: function (val) {
+                            return `${val.toFixed(1)} μg/m³`; // 带单位显示
+                        },
+                        color: '#00f3ff'
+                    },
+                    data: [
+                        {
+                            value: value, // 当前浓度值
+                            name: '当前浓度'
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // 设置配置并渲染
+        chartInstance.setOption(option);
+
+        // 窗口大小变化时重绘
+        window.addEventListener('resize', () => {
+            chartInstance.resize();
+        });
     }
 
     
