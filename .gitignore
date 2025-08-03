@@ -27,6 +27,7 @@ outputs/
 data/ml_cache/
 data/predictions_cache/
 ml/models/
+data/predictions/
 
 # 日志文件
 logs/

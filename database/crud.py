@@ -19,6 +19,24 @@ CITY_MODEL_MAP = {
     "肇庆": ZhaoqingNO2Record,
     "香港": HongkongNO2Record,
     "澳门": MacaoNO2Record,
+    # 支持完整的特别行政区名称
+    "香港特别行政区": HongkongNO2Record,
+    "澳门特别行政区": MacaoNO2Record,
+}
+
+# 备份专用城市列表（避免重复备份）
+BACKUP_CITY_LIST = {
+    "广州": GuangzhouNO2Record,
+    "深圳": ShenzhenNO2Record,
+    "珠海": ZhuhaiNO2Record,
+    "佛山": FoshanNO2Record,
+    "惠州": HuizhouNO2Record,
+    "东莞": DongguanNO2Record,
+    "中山": ZhongshanNO2Record,
+    "江门": JiangmenNO2Record,
+    "肇庆": ZhaoqingNO2Record,
+    "香港": HongkongNO2Record,
+    "澳门": MacaoNO2Record,
 }
 
 
