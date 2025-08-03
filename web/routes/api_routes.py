@@ -450,3 +450,208 @@ def get_cities():
         广州、深圳、珠海、佛山、惠州、东莞、中山、江门、肇庆、香港特别行政区、澳门特别行政区
     """
     return jsonify(get_all_cities())
+
+
+# 在api_routes.py中添加以下路由
+
+@api_bp.route("/api/trend/no2/<city_id>")
+def get_no2_trend(city_id):
+    """
+    获取指定城市过去15天（不包含今天）的每日平均NO₂浓度数据
+
+    用于前端展示近15天浓度趋势图
+
+    Args:
+        city_id (str): 城市ID
+
+    Returns:
+        JSON: 包含以下字段：
+            - city: 城市名称
+            - start_date: 开始日期 (YYYY-MM-DD)
+            - end_date: 结束日期 (YYYY-MM-DD)
+            - data: 数据列表，每个元素包含：
+                - date: 日期 (YYYY-MM-DD)
+                - avg_no2: 当日平均NO₂浓度 (μg/m³)
+                - records: 当日数据记录条数
+
+    HTTP状态码:
+        200: 成功返回数据
+        400: 无效的城市ID
+        404: 无数据
+        500: 服务器内部错误
+    """
+    # 转换城市ID为名称
+    city_name = get_city_name(city_id)
+    if not city_name:
+        return jsonify({"error": "无效的城市ID"}), 400
+
+    try:
+        from database.crud import CITY_MODEL_MAP
+
+        if city_name not in CITY_MODEL_MAP:
+            return jsonify({"error": "不支持的城市"}), 400
+
+        # 计算日期范围：过去15天（不包含今天）
+        today = datetime.date.today()
+        start_date = today - datetime.timedelta(days=15)
+        end_date = today - datetime.timedelta(days=1)  # 昨天
+
+        db_gen = get_db()
+        db = next(db_gen)
+        model_class = CITY_MODEL_MAP[city_name]
+
+        # 查询15天内的数据
+        records = (
+            db.query(model_class)
+            .filter(model_class.observation_time >= start_date)
+            .filter(model_class.observation_time < today)  # 不包含今天
+            .order_by(model_class.observation_time.asc())
+            .all()
+        )
+        db.close()
+
+        if not records:
+            return jsonify({
+                "error": f"未找到{city_name}在{start_date}至{end_date}的历史观测数据",
+                "city": city_name,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "total_records": 0
+            }), 404
+
+        # 按日期分组并计算每日平均值
+        daily_data = {}
+        for record in records:
+            # 提取日期部分（忽略时间）
+            date_key = record.observation_time.date()
+
+            if date_key not in daily_data:
+                daily_data[date_key] = {
+                    "sum": 0,
+                    "count": 0
+                }
+
+            daily_data[date_key]["sum"] += record.no2_concentration
+            daily_data[date_key]["count"] += 1
+
+        # 构建返回数据结构
+        result_data = []
+        for date_key in sorted(daily_data.keys()):
+            data = daily_data[date_key]
+            result_data.append({
+                "date": date_key.isoformat(),
+                "avg_no2": round(data["sum"] / data["count"], 1),
+                "records": data["count"]
+            })
+
+        return jsonify({
+            "city": city_name,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "data": result_data
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"获取历史趋势数据失败: {str(e)}"}), 500
+
+
+# 在 api_routes.py 中添加以下路由
+@api_bp.route("/api/trend/no2/<city_id>")
+def get_no2_daily_average(city_id):
+    """
+    获取指定城市过去15天（不包含今天）的每日平均NO₂浓度数据
+
+    用于前端展示近15天浓度趋势图
+
+    Args:
+        city_id (str): 城市ID
+
+    Returns:
+        JSON: 包含以下字段：
+            - city: 城市名称
+            - start_date: 开始日期 (YYYY-MM-DD)
+            - end_date: 结束日期 (YYYY-MM-DD)
+            - data: 数据列表，每个元素包含：
+                - date: 日期 (YYYY-MM-DD)
+                - avg_no2: 当日平均NO₂浓度 (μg/m³)
+                - records: 当日数据记录条数
+
+    HTTP状态码:
+        200: 成功返回数据
+        400: 无效的城市ID
+        404: 无数据
+        500: 服务器内部错误
+    """
+    # 转换城市ID为名称
+    city_name = get_city_name(city_id)
+    if not city_name:
+        return jsonify({"error": "无效的城市ID"}), 400
+
+    try:
+        from database.crud import CITY_MODEL_MAP
+
+        if city_name not in CITY_MODEL_MAP:
+            return jsonify({"error": "不支持的城市"}), 400
+
+        # 计算日期范围：过去15天（不包含今天）
+        today = datetime.date.today()
+        start_date = today - datetime.timedelta(days=15)
+        end_date = today - datetime.timedelta(days=1)  # 昨天
+
+        db_gen = get_db()
+        db = next(db_gen)
+        model_class = CITY_MODEL_MAP[city_name]
+
+        # 查询15天内的数据
+        records = (
+            db.query(model_class)
+            .filter(model_class.observation_time >= start_date)
+            .filter(model_class.observation_time < today)  # 不包含今天
+            .order_by(model_class.observation_time.asc())
+            .all()
+        )
+        db.close()
+
+        if not records:
+            return jsonify({
+                "error": f"未找到{city_name}在{start_date}至{end_date}的历史观测数据",
+                "city": city_name,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "total_records": 0
+            }), 404
+
+        # 按日期分组并计算每日平均值
+        daily_data = {}
+        for record in records:
+            # 提取日期部分（忽略时间）
+            date_key = record.observation_time.date()
+
+            if date_key not in daily_data:
+                daily_data[date_key] = {
+                    "sum": 0,
+                    "count": 0
+                }
+
+            daily_data[date_key]["sum"] += record.no2_concentration
+            daily_data[date_key]["count"] += 1
+
+        # 构建返回数据结构
+        result_data = []
+        for date_key in sorted(daily_data.keys()):
+            data = daily_data[date_key]
+            result_data.append({
+                "date": date_key.isoformat(),
+                "avg_no2": round(data["sum"] / data["count"], 1),
+                "records": data["count"]
+            })
+
+        return jsonify({
+            "city": city_name,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "data": result_data
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"获取历史趋势数据失败: {str(e)}"}), 500
