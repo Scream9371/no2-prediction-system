@@ -18,6 +18,9 @@ CHINESE_TO_ENGLISH_CITY_MAP = {
     "中山": "zhongshan",
     "江门": "jiangmen",
     "肇庆": "zhaoqing",
+    "香港": "hongkong",
+    "澳门": "macao",
+    # 支持完整的特别行政区名称
     "香港特别行政区": "hongkong",
     "澳门特别行政区": "macao",
 }
@@ -209,7 +212,7 @@ def get_no2(city_id):
         return jsonify({"error": "无效的城市ID"}), 400
 
     try:
-        from database.models import CITY_MODEL_MAP
+        from database.crud import CITY_MODEL_MAP
         
         if city_name not in CITY_MODEL_MAP:
             return jsonify({"error": "不支持的城市"}), 400
@@ -233,6 +236,16 @@ def get_no2(city_id):
             .all()
         )
         db.close()
+
+        # 检查是否有数据
+        if not records:
+            return jsonify({
+                "error": f"未找到{city_name}在{yesterday.isoformat()}的历史观测数据",
+                "date": yesterday.isoformat(),
+                "city": city_name,
+                "total_records": 0,
+                "suggestion": "请确认数据采集是否正常运行，或稍后重试"
+            }), 404
 
         # 转换记录为字典列表
         result = []
