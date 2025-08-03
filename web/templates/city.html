@@ -325,27 +325,6 @@
 
     <canvas id="chartCanvas"></canvas>
 
-    <!-- 预测准确性对比图表 -->
-    <div class="accuracy-section">
-        <h2>预测准确性分析</h2>
-        <p class="accuracy-description">对比昨天的预测值与实际观测值，评估模型预测准确性</p>
-        <canvas id="accuracyChartCanvas"></canvas>
-        <div id="accuracyStats" class="accuracy-stats">
-            <div class="accuracy-metric">
-                <span class="metric-label">平均绝对误差:</span>
-                <span id="maeValue" class="metric-value">计算中...</span>
-            </div>
-            <div class="accuracy-metric">
-                <span class="metric-label">预测区间覆盖率:</span>
-                <span id="coverageValue" class="metric-value">计算中...</span>
-            </div>
-            <div class="accuracy-metric">
-                <span class="metric-label">数据更新时间:</span>
-                <span id="accuracyUpdateTime" class="metric-value">-</span>
-            </div>
-        </div>
-    </div>
-
     <!-- 防护建议部分 - 修改后结构 -->
     <div class="recommendations-section">
         <h2 class="recommendations-title">防护建议</h2>
@@ -409,6 +388,27 @@
                 <ul id="generalRecommendations" class="recommendation-items">
                     <!-- 动态生成内容 -->
                 </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 预测准确性对比图表 -->
+    <div class="accuracy-section">
+        <h2>预测准确性分析</h2>
+        <p class="accuracy-description">对比昨天的预测值与实际观测值，评估模型预测准确性</p>
+        <canvas id="accuracyChartCanvas"></canvas>
+        <div id="accuracyStats" class="accuracy-stats">
+            <div class="accuracy-metric">
+                <span class="metric-label">平均绝对误差:</span>
+                <span id="maeValue" class="metric-value">计算中...</span>
+            </div>
+            <div class="accuracy-metric">
+                <span class="metric-label">预测区间覆盖率:</span>
+                <span id="coverageValue" class="metric-value">计算中...</span>
+            </div>
+            <div class="accuracy-metric">
+                <span class="metric-label">数据更新时间:</span>
+                <span id="accuracyUpdateTime" class="metric-value">-</span>
             </div>
         </div>
     </div>
@@ -676,8 +676,19 @@
                 fetch(`/api/historical-predictions/${cityInfo.id}`)
             ]);
 
-            if (!actualResponse.ok || !predictedResponse.ok) {
-                throw new Error('无法获取完整的对比数据');
+            // 检查响应状态并提供具体错误信息
+            let errorMessages = [];
+            if (!actualResponse.ok) {
+                const actualError = await actualResponse.json();
+                errorMessages.push(`历史观测数据: ${actualError.error || '获取失败'}`);
+            }
+            if (!predictedResponse.ok) {
+                const predictedError = await predictedResponse.json();
+                errorMessages.push(`历史预测数据: ${predictedError.error || '获取失败'}`);
+            }
+            
+            if (errorMessages.length > 0) {
+                throw new Error(errorMessages.join('; '));
             }
 
             const actualData = await actualResponse.json();
@@ -859,8 +870,21 @@
                         labels: {
                             font: { size: 12, weight: '500' },
                             color: '#374151',
-                            usePointStyle: true,
-                            pointStyle: 'line'
+                            usePointStyle: false,
+                            generateLabels: function(chart) {
+                                const datasets = chart.data.datasets;
+                                return datasets.map((dataset, i) => {
+                                    return {
+                                        text: dataset.label,
+                                        fillStyle: dataset.backgroundColor,
+                                        strokeStyle: dataset.borderColor,
+                                        lineWidth: Math.max(2, dataset.borderWidth || 2),
+                                        lineDash: dataset.borderDash || [],
+                                        hidden: !chart.isDatasetVisible(i),
+                                        datasetIndex: i
+                                    };
+                                });
+                            }
                         }
                     },
                     tooltip: {
@@ -1074,7 +1098,7 @@
             const realData = await fetchCityData(city);
             
             // 更新页面内容
-            document.getElementById('cityName').textContent = `${realData.city} NO₂浓度详情`;
+            document.getElementById('cityName').textContent = `${realData.city} NO₂ 浓度详情`;
             document.getElementById('updateTime').textContent = `更新时间：${realData.updateTime}`;
             document.getElementById('currentValue').textContent = realData.currentValue;
             document.getElementById('avgValue').textContent = realData.avgValue;
