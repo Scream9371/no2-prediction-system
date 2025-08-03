@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>城市NO₂浓度详情</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -18,10 +19,8 @@
             background-repeat: no-repeat;
             background-attachment: fixed;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             padding: 2rem 0;
+            line-height: 1.6;
         }
 
         .card {
@@ -32,11 +31,12 @@
             backdrop-filter: blur(10px);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            text-align: center;
+            margin: 0 auto;
         }
 
         .header {
             margin-bottom: 2rem;
+            text-align: center;
         }
 
         .back-btn {
@@ -49,6 +49,9 @@
             text-decoration: none;
             color: #333;
             transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .back-btn:hover {
@@ -66,6 +69,7 @@
             background: rgba(255, 255, 255, 0.4);
             padding: 1.5rem;
             border-radius: 8px;
+            text-align: center;
         }
 
         .stat-value {
@@ -96,6 +100,7 @@
             color: #2c5282;
             margin-bottom: 0.5rem;
             font-size: 1.5rem;
+            text-align: center;
         }
 
         .accuracy-description {
@@ -141,29 +146,161 @@
             color: #2d3748;
         }
 
-        .recommendations {
-            text-align: left;
-            background: rgba(225, 225, 225, 0.3);
-            padding: 1.5rem;
+        /* 防护建议区域样式 - 修改部分 */
+        .recommendations-section {
+            margin-top: 3rem;
+        }
+
+        .recommendations-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c5282;
+            font-size: 1.8rem;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .recommendations-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background-color: #3182ce;
+            border-radius: 3px;
+        }
+
+        /* 分类卡片容器 - 改为并排显示 */
+        .recommendation-tabs {
+            display: flex;
+            overflow-x: auto;
+            gap: 0.75rem;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            scrollbar-width: thin;
+        }
+
+        .recommendation-tabs::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .recommendation-tabs::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 150, 200, 0.5);
+            border-radius: 3px;
+        }
+
+        /* 小卡片样式 */
+        .tab-card {
+            flex: 0 0 auto;
+            background: rgba(255, 255, 255, 0.7);
             border-radius: 8px;
-            margin-top: 2rem;
+            padding: 1rem;
+            min-width: 120px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
 
-        .recommendations h3 {
-            margin-bottom: 1rem;
+        .tab-card.active {
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
-        .recommendations ul {
-            list-style-position: inside;
+        .tab-card:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
         }
 
-        .recommendations li {
+        .tab-icon {
+            font-size: 1.5rem;
             margin-bottom: 0.5rem;
+        }
+
+        .tab-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* 内容区域样式 */
+        .content-panels {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .content-panel {
+            display: none;
+        }
+
+        .content-panel.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .recommendation-items {
+            list-style-type: none;
+        }
+
+        .recommendation-item {
+            padding: 0.8rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            border-bottom: 1px dashed rgba(100, 150, 200, 0.2);
+        }
+
+        .recommendation-item:last-child {
+            border-bottom: none;
+        }
+
+        .recommendation-item::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #3182ce;
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 767px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .back-btn {
+                position: static;
+                display: inline-flex;
+                margin-bottom: 1rem;
+            }
+            
+            .header {
+                margin-top: 1rem;
+            }
+
+            .tab-card {
+                min-width: 100px;
+                padding: 0.75rem;
+            }
+
+            .tab-title {
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body>
-<a href="/" class="back-btn">返回首页</a>
+<a href="/" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 返回首页</a>
 
 <div class="card">
     <div class="header">
@@ -209,22 +346,83 @@
         </div>
     </div>
 
-    <div class="recommendations">
-        <h3>健康建议</h3>
-        <ul id="recommendationsList">
-            <!-- 动态生成内容 -->
-        </ul>
+    <!-- 防护建议部分 - 修改后结构 -->
+    <div class="recommendations-section">
+        <h2 class="recommendations-title">防护建议</h2>
+        
+        <!-- 小卡片导航 -->
+        <div class="recommendation-tabs">
+            <div class="tab-card active" data-tab="travel">
+                <i class="fa-solid fa-location-arrow tab-icon"></i>
+                <div class="tab-title">出行建议</div>
+            </div>
+            <div class="tab-card" data-tab="home">
+                <i class="fa-solid fa-home tab-icon"></i>
+                <div class="tab-title">居家建议</div>
+            </div>
+            <div class="tab-card" data-tab="outdoor">
+                <i class="fa-solid fa-tree tab-icon"></i>
+                <div class="tab-title">户外建议</div>
+            </div>
+            <div class="tab-card" data-tab="exercise">
+                <i class="fa-solid fa-dumbbell tab-icon"></i>
+                <div class="tab-title">运动建议</div>
+            </div>
+            <div class="tab-card" data-tab="special">
+                <i class="fa-solid fa-users tab-icon"></i>
+                <div class="tab-title">特殊人群</div>
+            </div>
+            <div class="tab-card" data-tab="general">
+                <i class="fa-solid fa-circle-info tab-icon"></i>
+                <div class="tab-title">通用建议</div>
+            </div>
+        </div>
+        
+        <!-- 内容面板 -->
+        <div class="content-panels">
+            <div class="content-panel active" id="travel-panel">
+                <ul id="travelRecommendations" class="recommendation-items">
+                    <!-- 动态生成内容 -->
+                </ul>
+            </div>
+            <div class="content-panel" id="home-panel">
+                <ul id="homeRecommendations" class="recommendation-items">
+                    <!-- 动态生成内容 -->
+                </ul>
+            </div>
+            <div class="content-panel" id="outdoor-panel">
+                <ul id="outdoorRecommendations" class="recommendation-items">
+                    <!-- 动态生成内容 -->
+                </ul>
+            </div>
+            <div class="content-panel" id="exercise-panel">
+                <ul id="exerciseRecommendations" class="recommendation-items">
+                    <!-- 动态生成内容 -->
+                </ul>
+            </div>
+            <div class="content-panel" id="special-panel">
+                <ul id="specialRecommendations" class="recommendation-items">
+                    <!-- 动态生成内容 -->
+                </ul>
+            </div>
+            <div class="content-panel" id="general-panel">
+                <ul id="generalRecommendations" class="recommendation-items">
+                    <!-- 动态生成内容 -->
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
     let chartInstance = null;
     let accuracyChartInstance = null;
+    
     // 获取当前小时
     function getCurrentHour() {
-    const now = new Date();
-    return now.getHours(); // 返回当前小时数（如7点半返回7）
-}
+        const now = new Date();
+        return now.getHours(); // 返回当前小时数（如7点半返回7）
+    }
 
     // 解析URL参数获取城市名
     function getUrlParameter(name) {
@@ -234,52 +432,116 @@
         return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
     }
 
-    // 获取空气质量等级和建议
+    // 获取空气质量等级和分类建议
     function getAirQualityInfo(value) {
-        if (value < 40) {
+        // 定义浓度分级标准
+        const levels = {
+            low: value < 40,
+            medium: value >= 40 && value < 120,
+            high: value >= 120
+        };
+
+        // 根据浓度返回对应的建议
+        if (levels.low) {
             return {
                 level: '优',
                 color: 'green',
-                recommendations: [
-                    '空气质量令人满意，基本无空气污染',
-                    '各类人群可正常活动'
-                ]
+                recommendations: {
+                    travel: [
+                        '推荐步行或骑行，既能享受清新空气，又能锻炼身体',
+                        '驾车时可开启外循环，保持车内空气流通'
+                    ],
+                    home: [
+                        '每天开窗通风2-3次，每次30分钟以上',
+                        '烹饪时开启油烟机，及时排出厨房废气'
+                    ],
+                    outdoor: [
+                        '可以放心前往公园、郊外等地进行户外活动',
+                        '无需特别防护措施，正常安排户外行程'
+                    ],
+                    exercise: [
+                        '适合进行晨跑、骑行、球类运动等高活力锻炼',
+                        '运动时间和强度可按个人习惯正常安排'
+                    ],
+                    special: [
+                        '婴幼儿：可以正常外出晒太阳，促进钙吸收',
+                        '老人和慢性病患者：可在庭院、阳台休息，呼吸新鲜空气'
+                    ],
+                    general: [
+                        '空气质量优良，无需特别防护',
+                        '可多关注空气质量变化，保持健康生活习惯'
+                    ]
+                }
             };
-        } else if (value < 80) {
+        } else if (levels.medium) {
             return {
-                level: '良',
-                color: 'yellow',
-                recommendations: [
-                    '空气质量可接受，但某些污染物可能对极少数异常敏感人群健康有较弱影响',
-                    '极少数异常敏感人群应减少户外活动'
-                ]
-            };
-        } else if (value < 180) {
-            return {
-                level: '轻度污染',
-                color: 'orange',
-                recommendations: [
-                    '易感人群症状有轻度加剧，健康人群出现刺激症状',
-                    '儿童、老年人及心脏病、呼吸系统疾病患者应减少长时间、高强度的户外锻炼'
-                ]
-            };
-        } else if (value < 280) {
-            return {
-                level: '中度污染',
-                color: 'red',
-                recommendations: [
-                    '进一步加剧易感人群症状，可能对健康人群心脏、呼吸系统有影响',
-                    '儿童、老年人及心脏病、呼吸系统疾病患者避免长时间、高强度的户外锻炼，一般人群适量减少户外运动'
-                ]
+                level: value < 80 ? '良' : '轻度污染',
+                color: value < 80 ? 'yellow' : 'orange',
+                recommendations: {
+                    travel: [
+                        '优先选择地铁、私家车等封闭性好的交通工具',
+                        '步行或骑行时建议佩戴普通医用口罩',
+                        '避开交通拥堵路段和高峰时段出行'
+                    ],
+                    home: [
+                        '每天开窗通风1-2次，每次15分钟左右',
+                        '通风时间避开早晚交通高峰时段',
+                        '有条件可开启空气净化器'
+                    ],
+                    outdoor: [
+                        '减少不必要的户外活动时间',
+                        '避免长时间停留在交通繁忙区域'
+                    ],
+                    exercise: [
+                        '选择轻度运动，运动时间控制在1小时以内',
+                        '尽量避开交通高峰时段进行户外运动'
+                    ],
+                    special: [
+                        '婴幼儿：户外活动时间控制在30分钟以内，远离污染区域',
+                        '呼吸道疾病患者：随身携带急救药物，使用加湿器保持室内湿度',
+                        '敏感人群：减少户外活动时间，外出时佩戴口罩'
+                    ],
+                    general: [
+                        '关注空气质量变化，做好个人防护',
+                        '外出返回后及时洗手漱口'
+                    ]
+                }
             };
         } else {
             return {
-                level: '重度污染',
-                color: 'purple',
-                recommendations: [
-                    '心脏病和肺病患者症状显著加剧，运动耐受力降低，健康人群普遍出现症状',
-                    '儿童、老年人和心脏病、肺病患者应停留在室内，停止户外运动，一般人群减少户外运动'
-                ]
+                level: value < 240 ? '中度污染' : '重度污染',
+                color: value < 240 ? 'red' : 'purple',
+                recommendations: {
+                    travel: [
+                        '尽量减少外出，必要外出时佩戴KN95/N95口罩',
+                        '缩短户外停留时间，避免触摸户外物品',
+                        '购物优先选择线上，线下购物控制在30分钟内'
+                    ],
+                    home: [
+                        '全天关闭门窗，开启空气净化器',
+                        '避免烹饪，若必须做饭，需紧闭厨房门并使用油烟机',
+                        '回家后及时更换衣物、清洗口鼻'
+                    ],
+                    outdoor: [
+                        '尽量避免所有户外活动',
+                        '如必须外出，选择污染相对较低的时段，缩短停留时间'
+                    ],
+                    exercise: [
+                        '建议选择室内轻度运动，如瑜伽、室内健身等',
+                        '敏感人群应暂停所有锻炼，保持安静休息'
+                    ],
+                    special: [
+                        '婴幼儿：严禁外出，室内活动时远离门窗',
+                        '慢性病患者：减少活动量，监测身体指标，不适时联系医生',
+                        '呼吸道疾病患者：减少活动，备好急救药物，必要时及时就医',
+                        '就医时提前线上挂号，减少医院户外等待时间，全程佩戴N95口罩'
+                    ],
+                    general: [
+                        '关注空气质量实时数据，了解最新防护信息',
+                        '保持室内清洁，定期更换空气净化器滤网',
+                        '注意呼吸道症状，如出现不适及时就医'
+                    ]
+                }
             };
         }
     }
@@ -334,7 +596,7 @@
         return 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920';
     }
 
-    // 从后端API获取数据，利用统一的城市映射
+    // 从后端API获取数据
     async function fetchCityData(city) {
         try {
             // 获取统一的城市映射（从后端接口）
@@ -342,16 +604,10 @@
             const cities = await citiesResponse.json();
 
             // 使用后端统一的城市映射查找匹配的城市
-            // 支持多种匹配方式：完整名称匹配、部分匹配等
             const cityInfo = cities.find(item => {
-                // 精确匹配
                 if (item.name === city) return true;
-
-                // 支持带"市"后缀的匹配：如"东莞市" 匹配 "东莞"
                 if (city.endsWith('市') && item.name === city.slice(0, -1)) return true;
                 if (city.endsWith('特别行政区') && item.name === city.slice(0, -5)) return true;
-
-                // 支持不带后缀的匹配：如"东莞" 匹配 "东莞市" （虽然后端应该是标准格式）
                 if (item.name.endsWith('市') && item.name.slice(0, -1) === city) return true;
                 return item.name.endsWith('特别行政区') && item.name.slice(0, -5) === city;
             });
@@ -367,31 +623,27 @@
             }
             const data = await response.json();
 
-            // 关键修改：根据当前小时获取对应的预测浓度
-            // 1. 获取当前小时（如7点半返回7）
-             const currentHour = getCurrentHour();
-            // 2. 假设data.times是["00:00", "01:00", ..., "23:00"]，索引与小时直接对应
-            // 取当前小时对应的预测值（如currentHour=7则取索引7的值）
+            // 根据当前小时获取对应的预测浓度
+            const currentHour = getCurrentHour();
             let currentValue;
             if (data.values && data.values.length > currentHour) {
-                currentValue = data.values[currentHour]; // 按当前小时取对应浓度
-                } else {
-                    // 容错：如果数据长度不足，取最后一个值
-                    currentValue = data.values && data.values.length > 0 ? data.values[data.values.length - 1] : 0;
-                    console.warn(`预测数据不足24小时，使用最后一个值: ${currentValue}`);
-                }
+                currentValue = data.values[currentHour];
+            } else {
+                currentValue = data.values && data.values.length > 0 ? data.values[data.values.length - 1] : 0;
+                console.warn(`预测数据不足24小时，使用最后一个值: ${currentValue}`);
+            }
 
-            // 3. 返回处理后的数据（用新的currentValue替换原data.currentValue）
+            // 返回处理后的数据
             return {
-            city: city,
-            updateTime: data.updateTime,
-            currentValue: currentValue, // 现在是按当前小时取的值
-            avgValue: data.avgValue,
-            times: data.times,
-            values: data.values,
-            low: data.low,
-            high: data.high,
-            airQuality: getAirQualityInfo(currentValue) // 基于新的currentValue计算空气质量
+                city: city,
+                updateTime: data.updateTime,
+                currentValue: currentValue,
+                avgValue: data.avgValue,
+                times: data.times,
+                values: data.values,
+                low: data.low,
+                high: data.high,
+                airQuality: getAirQualityInfo(currentValue)
             };
        } catch (error) {
         console.error('数据获取失败:', error);
@@ -639,11 +891,9 @@
         const ctx = document.getElementById('chartCanvas').getContext('2d');
 
         if (chartInstance) {
-            // @ts-ignore - Chart.js method loaded from CDN
             chartInstance.destroy();
         }
 
-        // @ts-ignore - Chart.js class loaded from CDN
         chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
@@ -658,7 +908,7 @@
                         fill: false,
                         tension: 0.1,
                         pointRadius: 6,
-                        pointHoverRadius: 7, // 鼠标悬停时点的半径
+                        pointHoverRadius: 7,
                         pointBackgroundColor: 'white',
                         pointBorderColor: 'rgba(33, 150, 243, 1)',
                         pointBorderWidth: 2
@@ -678,7 +928,7 @@
                     {
                         label: '预测区间上限',
                         data: data.high,
-                        borderWidth: 4, // 预测区间线条稍细
+                        borderWidth: 4,
                         borderColor: 'rgba(255, 152, 0, 0.8)',
                         backgroundColor: 'transparent',
                         borderDash: [5, 5],
@@ -694,29 +944,29 @@
                 scales: {
                     y: {
                         beginAtZero: true,
-                        title: {display: true, 
+                        title: {
+                            display: true, 
                             text: 'NO₂浓度（μg/m³）',
                             font: {
                                 size: 14,
                                 weight: 'bold'
-                           },
-                           color: '#333' // 标题颜色加深
+                            },
+                            color: '#333'
                         },
-                         
                         ticks: {
-                            font: {size: 13},
+                            font: { size: 13 },
                             weight: 'bold',
                             color: '#222'
                         },
-                        // 优化Y轴网格线：更清晰但不刺眼
                         grid: {
-                            color: 'rgba(200, 200, 200, 0.6)', // 浅灰色网格线
-                            lineWidth: 1 // 网格线粗细
+                            color: 'rgba(200, 200, 200, 0.6)',
+                            lineWidth: 1
                         }
                     },
                     x: {
-                        title: {display: true, text: '时间',
-                            // 优化X轴标题：增大字体、加粗
+                        title: {
+                            display: true, 
+                            text: '时间',
                             font: {
                                 size: 14,
                                 weight: 'bold'
@@ -730,19 +980,19 @@
                                 weight: '600'
                             },
                             color: '#222',
-                            // 可选：旋转文字避免重叠（如果时间标签较长）
                             maxRotation: 45,
                             minRotation: 45
                         },
-                        grid: {display: false},
-                        
+                        grid: { display: false }
                     }
                 },
                 plugins: {
                     legend: {
                         position: 'top',
-                        labels: {font: {size: 13,weight: '500'}}, // 图例文字放大
-                        color: '#222' // 颜色浅灰
+                        labels: { 
+                            font: { size: 13, weight: '500' },
+                            color: '#222'
+                        }
                     },
                     tooltip: {
                         mode: 'index',
@@ -753,10 +1003,59 @@
                         borderColor: '#ddd',
                         borderWidth: 1,
                         padding: 10,
-                        bodyFont: {size: 13}
+                        bodyFont: { size: 13 }
                     }
                 }
             }
+        });
+    }
+
+    // 渲染分类建议
+    function renderRecommendations(recommendations) {
+        // 定义分类和对应DOM元素的映射
+        const categories = [
+            { id: 'travelRecommendations', items: recommendations.travel },
+            { id: 'homeRecommendations', items: recommendations.home },
+            { id: 'outdoorRecommendations', items: recommendations.outdoor },
+            { id: 'exerciseRecommendations', items: recommendations.exercise },
+            { id: 'specialRecommendations', items: recommendations.special },
+            { id: 'generalRecommendations', items: recommendations.general }
+        ];
+
+        // 为每个分类渲染建议内容
+        categories.forEach(category => {
+            const listElement = document.getElementById(category.id);
+            listElement.innerHTML = '';
+            
+            category.items.forEach(itemText => {
+                const li = document.createElement('li');
+                li.className = 'recommendation-item';
+                li.textContent = itemText;
+                listElement.appendChild(li);
+            });
+        });
+    }
+
+    // 初始化标签切换功能
+    function initTabs() {
+        const tabCards = document.querySelectorAll('.tab-card');
+        
+        tabCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const tabName = card.getAttribute('data-tab');
+                
+                // 移除所有激活状态
+                document.querySelectorAll('.tab-card').forEach(c => {
+                    c.classList.remove('active');
+                });
+                document.querySelectorAll('.content-panel').forEach(p => {
+                    p.classList.remove('active');
+                });
+                
+                // 添加当前激活状态
+                card.classList.add('active');
+                document.getElementById(`${tabName}-panel`).classList.add('active');
+            });
         });
     }
 
@@ -767,11 +1066,14 @@
         // 设置城市背景图片
         document.body.style.backgroundImage = `url('${getCityBackgroundImage(city)}')`;
 
+        // 初始化标签切换功能
+        initTabs();
+
         // 从后端API调取数据
         try {
-            // 调用真实接口获取数据（替换模拟数据）
             const realData = await fetchCityData(city);
-            // 更新页面内容（与原逻辑一致）
+            
+            // 更新页面内容
             document.getElementById('cityName').textContent = `${realData.city} NO₂浓度详情`;
             document.getElementById('updateTime').textContent = `更新时间：${realData.updateTime}`;
             document.getElementById('currentValue').textContent = realData.currentValue;
@@ -779,14 +1081,8 @@
             document.getElementById('qualityLevel').textContent = realData.airQuality.level;
             document.getElementById('qualityLevel').style.color = realData.airQuality.color;
 
-            // 渲染健康建议
-            const recommendationsList = document.getElementById('recommendationsList');
-            recommendationsList.innerHTML = '';
-            realData.airQuality.recommendations.forEach(rec => {
-                const li = document.createElement('li');
-                li.textContent = rec;
-                recommendationsList.appendChild(li);
-            });
+            // 渲染分类建议
+            renderRecommendations(realData.airQuality.recommendations);
 
             // 渲染图表
             renderChart(realData);
@@ -797,12 +1093,10 @@
                 renderAccuracyChart(accuracyData);
             } catch (accuracyError) {
                 console.error('准确性分析数据加载失败:', accuracyError);
-                // 显示错误信息但不阻止主功能
                 document.getElementById('maeValue').textContent = '暂无数据';
                 document.getElementById('coverageValue').textContent = '暂无数据';
                 document.getElementById('accuracyUpdateTime').textContent = '数据获取失败';
                 
-                // 隐藏准确性图表区域或显示提示信息
                 const accuracyCanvas = document.getElementById('accuracyChartCanvas');
                 const ctx = accuracyCanvas.getContext('2d');
                 ctx.fillStyle = '#f3f4f6';
