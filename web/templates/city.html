@@ -535,6 +535,259 @@
                 min-width: auto;
             }
         }
+
+        /* AI小助手样式 */
+        .ai-assistant {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .ai-assistant:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .ai-assistant i {
+            color: white;
+            font-size: 24px;
+        }
+
+        .ai-chat-window {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 380px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1002;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .ai-chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-chat-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .ai-chat-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .ai-chat-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .ai-preset-questions {
+            padding: 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            background: rgba(248, 249, 250, 0.8);
+        }
+
+        .preset-question-btn {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 20px;
+            color: #667eea;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .preset-question-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .preset-question-btn:last-child {
+            margin-bottom: 0;
+        }
+
+        .ai-chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(102, 126, 234, 0.3) transparent;
+        }
+
+        .ai-chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .ai-chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 3px;
+        }
+
+        .chat-message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-message.user {
+            align-items: flex-end;
+        }
+
+        .chat-message.ai {
+            align-items: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message-bubble.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-bubble.ai {
+            background: rgba(248, 249, 250, 0.9);
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .ai-chat-input {
+            padding: 15px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            background: rgba(248, 249, 250, 0.8);
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            background: white;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .chat-send-btn {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .chat-send-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 15px;
+            color: #666;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        .typing-dots {
+            display: inline-block;
+            width: 20px;
+        }
+
+        .typing-dots::after {
+            content: '';
+            animation: typing 1.5s infinite;
+        }
+
+        @keyframes typing {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 480px) {
+            .ai-chat-window {
+                width: calc(100vw - 40px);
+                height: calc(100vh - 120px);
+                bottom: 100px;
+                right: 20px;
+                left: 20px;
+            }
+
+            .ai-assistant {
+                bottom: 20px;
+                right: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -773,6 +1026,66 @@
         </div>
     </div>
 </div>
+</div>
+
+<!-- AI小助手 -->
+<div class="ai-assistant" id="aiAssistant">
+    <i class="fa-solid fa-robot"></i>
+</div>
+
+<!-- AI聊天窗口 -->
+<div class="ai-chat-window" id="aiChatWindow">
+    <!-- 聊天窗口头部 -->
+    <div class="ai-chat-header">
+        <h3><i class="fa-solid fa-robot"></i> NO₂ AI小助手</h3>
+        <button class="ai-chat-close" id="aiChatClose">
+            <i class="fa-solid fa-times"></i>
+        </button>
+    </div>
+
+    <!-- 预设问题区域 -->
+    <div class="ai-preset-questions">
+        <button class="preset-question-btn" data-question="NO₂的危害有哪些？">
+            NO₂的危害有哪些？
+        </button>
+        <button class="preset-question-btn" data-question="当前城市的NO₂浓度水平如何？">
+            当前城市的NO₂浓度水平如何？
+        </button>
+        <button class="preset-question-btn" data-question="近期NO₂浓度变化趋势怎样？">
+            近期NO₂浓度变化趋势怎样？
+        </button>
+        <button class="preset-question-btn" data-question="高NO₂浓度时应该如何防护？">
+            高NO₂浓度时应该如何防护？
+        </button>
+        <button class="preset-question-btn" data-question="NO₂浓度对运动有什么影响？">
+            NO₂浓度对运动有什么影响？
+        </button>
+    </div>
+
+    <!-- 消息显示区域 -->
+    <div class="ai-chat-messages" id="aiChatMessages">
+        <div class="chat-message ai">
+            <div class="message-bubble ai">
+                👋 您好！我是NO₂ AI小助手，可以为您解答关于空气质量、NO₂浓度和健康防护的问题。您可以点击上方的预设问题，或直接输入您想了解的内容！
+            </div>
+            <div class="message-time" id="welcomeTime"></div>
+        </div>
+    </div>
+
+    <!-- 打字指示器 -->
+    <div class="typing-indicator" id="typingIndicator">
+        AI小助手正在回复<span class="typing-dots"></span>
+    </div>
+
+    <!-- 输入区域 -->
+    <div class="ai-chat-input">
+        <div class="chat-input-container">
+            <input type="text" class="chat-input" id="chatInput" placeholder="请输入您的问题..." maxlength="200">
+            <button class="chat-send-btn" id="chatSendBtn">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -1583,6 +1896,203 @@
         // 从后端API调取数据
         try {
             const realData = await fetchCityData(city);
+            
+            // 更新页面内容
+            document.getElementById('cityName').textContent = `${realData.city} NO₂ 浓度详情`;
+            document.getElementById('updateTime').textContent = `更新时间：${realData.updateTime}`;
+            document.getElementById('currentValue').textContent = realData.currentValue;
+            document.getElementById('avgValue').textContent = realData.avgValue;
+            document.getElementById('qualityLevel').textContent = realData.airQuality.level;
+            document.getElementById('qualityLevel').style.color = realData.airQuality.color;
+
+            // 渲染分类建议
+            renderRecommendations(realData.airQuality.recommendations);
+
+            // 渲染图表
+            renderChart(realData);
+            
+            // 加载并渲染预测准确性分析
+            try {
+                const accuracyData = await fetchAccuracyData(city);
+                renderAccuracyChart(accuracyData);
+            } catch (accuracyError) {
+                console.error('准确性分析数据加载失败:', accuracyError);
+                document.getElementById('maeValue').textContent = '暂无数据';
+                document.getElementById('coverageValue').textContent = '暂无数据';
+                document.getElementById('accuracyUpdateTime').textContent = '数据获取失败';
+                
+                const accuracyCanvas = document.getElementById('accuracyChartCanvas');
+                const ctx = accuracyCanvas.getContext('2d');
+                ctx.fillStyle = '#f3f4f6';
+                ctx.fillRect(0, 0, accuracyCanvas.width, accuracyCanvas.height);
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无昨天的对比数据', accuracyCanvas.width / 2, accuracyCanvas.height / 2);
+                ctx.fillText('(需要历史预测数据和观测数据)', accuracyCanvas.width / 2, accuracyCanvas.height / 2 + 25);
+            }
+            
+        } catch (error) {
+            console.error('数据加载失败:', error);
+            alert('无法获取城市数据，请稍后重试');
+        }
+    });
+
+    // AI小助手功能
+    let currentCityData = null; // 保存当前城市数据用于AI回答
+
+    // 初始化AI小助手
+    function initAIAssistant() {
+        const aiButton = document.getElementById('aiAssistant');
+        const chatWindow = document.getElementById('aiChatWindow');
+        const closeButton = document.getElementById('aiChatClose');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('chatSendBtn');
+        const presetButtons = document.querySelectorAll('.preset-question-btn');
+        
+        // 设置欢迎消息时间
+        const welcomeTimeElement = document.getElementById('welcomeTime');
+        welcomeTimeElement.textContent = new Date().toLocaleTimeString();
+
+        // 打开/关闭聊天窗口
+        aiButton.addEventListener('click', () => {
+            chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
+        });
+
+        closeButton.addEventListener('click', () => {
+            chatWindow.style.display = 'none';
+        });
+
+        // 预设问题点击事件
+        presetButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const question = btn.getAttribute('data-question');
+                sendMessage(question);
+            });
+        });
+
+        // 发送消息
+        sendButton.addEventListener('click', () => {
+            const message = chatInput.value.trim();
+            if (message) {
+                sendMessage(message);
+                chatInput.value = '';
+            }
+        });
+
+        // 回车发送
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const message = chatInput.value.trim();
+                if (message) {
+                    sendMessage(message);
+                    chatInput.value = '';
+                }
+            }
+        });
+    }
+
+    // 发送消息
+    async function sendMessage(message) {
+        const messagesContainer = document.getElementById('aiChatMessages');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const sendButton = document.getElementById('chatSendBtn');
+        
+        // 添加用户消息
+        addMessage(message, 'user');
+        
+        // 禁用发送按钮并显示打字指示器
+        sendButton.disabled = true;
+        typingIndicator.style.display = 'block';
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        try {
+            // 准备上下文数据
+            const contextData = {
+                city: getUrlParameter('city') || '广州',
+                currentValue: currentCityData?.currentValue || null,
+                avgValue: currentCityData?.avgValue || null,
+                qualityLevel: currentCityData?.airQuality?.level || null
+            };
+
+            // 发送到后端AI API
+            const response = await fetch('/api/ai-assistant', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    context: contextData
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            // 添加AI回复
+            addMessage(data.response, 'ai');
+            
+        } catch (error) {
+            console.error('AI请求失败:', error);
+            // 添加错误消息
+            addMessage('抱歉，我暂时无法回答您的问题。请稍后再试或联系技术支持。', 'ai');
+        } finally {
+            // 恢复发送按钮并隐藏打字指示器
+            sendButton.disabled = false;
+            typingIndicator.style.display = 'none';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+
+    // 添加消息到聊天窗口
+    function addMessage(text, type) {
+        const messagesContainer = document.getElementById('aiChatMessages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${type}`;
+        
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = `message-bubble ${type}`;
+        bubbleDiv.textContent = text;
+        
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'message-time';
+        timeDiv.textContent = new Date().toLocaleTimeString();
+        
+        messageDiv.appendChild(bubbleDiv);
+        messageDiv.appendChild(timeDiv);
+        messagesContainer.appendChild(messageDiv);
+        
+        // 滚动到底部
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // 修改原有的页面加载逻辑，保存城市数据
+    window.addEventListener('load', async () => {
+        const city = getUrlParameter('city') || '广州';
+
+        // 设置城市背景图片
+        document.body.style.backgroundImage = `url('${getCityBackgroundImage(city)}')`;
+
+        // 初始化标签切换功能和导航栏
+        initTabs();
+        initNavigation();
+        
+        // 设置标题下划线宽度
+        setTitleUnderlines();
+
+        // 初始化AI小助手
+        initAIAssistant();
+
+        // 从后端API调取数据
+        try {
+            const realData = await fetchCityData(city);
+            
+            // 保存数据供AI使用
+            currentCityData = realData;
             
             // 更新页面内容
             document.getElementById('cityName').textContent = `${realData.city} NO₂ 浓度详情`;
