@@ -19,6 +19,9 @@ CITY_MODEL_MAP = {
     "肇庆": ZhaoqingNO2Record,
     "香港": HongkongNO2Record,
     "澳门": MacaoNO2Record,
+    # 支持完整的特别行政区名称
+    "香港特别行政区": HongkongNO2Record,
+    "澳门特别行政区": MacaoNO2Record,
 }
 
 
