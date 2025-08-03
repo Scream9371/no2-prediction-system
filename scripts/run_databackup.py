@@ -17,7 +17,7 @@ import csv
 import os
 from datetime import datetime
 
-from database.crud import CITY_MODEL_MAP
+from database.crud import BACKUP_CITY_LIST
 from database.session import get_db
 from dotenv import load_dotenv
 
@@ -106,7 +106,7 @@ def backup_all_cities_data():
     print(f"备份时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print()
 
-    for city_name, model_class in CITY_MODEL_MAP.items():
+    for city_name, model_class in BACKUP_CITY_LIST.items():
         print(f"正在备份 {city_name} 的数据...")
 
         success = backup_city_data_to_csv(city_name, model_class)
@@ -127,7 +127,7 @@ def backup_all_cities_data():
 
     # 输出总结
     print("=== 备份完成 ===")
-    print(f"成功备份城市: {len(results['successful'])}/{len(CITY_MODEL_MAP)}")
+    print(f"成功备份城市: {len(results['successful'])}/{len(BACKUP_CITY_LIST)}")
     print(f"成功的城市: {', '.join(results['successful'])}")
     if results["failed"]:
         print(f"失败的城市: {', '.join(results['failed'])}")
@@ -144,7 +144,20 @@ def main():
     try:
         # 加载环境变量
         load_dotenv()
-
+        
+        # 验证数据库连接
+        from config.database import engine
+        print(f"数据库连接: {engine.url}")
+        print(f"数据库类型: {engine.dialect.name}")
+        
+        # 测试连接
+        try:
+            with engine.connect() as conn:
+                print("数据库连接测试成功")
+        except Exception as db_error:
+            print(f"数据库连接失败: {db_error}")
+            return
+        
         results = backup_all_cities_data()
 
         if results["successful"]:
