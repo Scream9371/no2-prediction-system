@@ -450,3 +450,174 @@ def get_cities():
         广州、深圳、珠海、佛山、惠州、东莞、中山、江门、肇庆、香港特别行政区、澳门特别行政区
     """
     return jsonify(get_all_cities())
+
+
+@api_bp.route("/api/ai-assistant", methods=["POST"])
+def ai_assistant():
+    """
+    AI小助手接口
+
+    处理用户的问题并返回AI回复，支持结合当前城市NO₂数据的上下文回答。
+
+    请求体:
+        JSON格式，包含：
+        - message (str): 用户问题
+        - context (dict): 上下文数据，包含：
+            - city (str): 当前城市名称
+            - currentValue (float): 当前NO₂浓度值
+            - avgValue (float): 24小时平均值
+            - qualityLevel (str): 空气质量等级
+
+    Returns:
+        JSON: AI回复，包含：
+            - response (str): AI回复内容
+            - timestamp (str): 回复时间戳
+
+    HTTP状态码:
+        200: 成功返回AI回复
+        400: 请求参数错误
+        500: 服务器内部错误
+
+    示例:
+        POST /api/ai-assistant
+        请求体: {
+            "message": "NO₂的危害有哪些？",
+            "context": {
+                "city": "广州",
+                "currentValue": 25.6,
+                "avgValue": 23.4,
+                "qualityLevel": "良"
+            }
+        }
+        返回: {
+            "response": "NO₂对人体的主要危害包括...",
+            "timestamp": "2025-08-03T12:34:56"
+        }
+    """
+    from flask import request
+    
+    try:
+        # 解析请求数据
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "请求数据不能为空"}), 400
+        
+        message = data.get("message", "").strip()
+        context = data.get("context", {})
+        
+        if not message:
+            return jsonify({"error": "消息内容不能为空"}), 400
+        
+        # 调用AI处理函数
+        from api.ai_service import process_ai_request
+        ai_response = process_ai_request(message, context)
+        
+        return jsonify({
+            "response": ai_response,
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"AI助手请求处理失败: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"AI助手服务暂时不可用: {str(e)}"}), 500
+
+
+@api_bp.route("/api/ai-assistant/preset-questions")
+def get_preset_questions():
+    """
+    获取AI助手预设问题列表
+
+    返回NO₂相关的常见问题列表，用于前端快速问答功能。
+
+    Returns:
+        JSON: 预设问题列表
+            - questions (list): 问题列表，每个问题包含：
+                - id (str): 问题ID
+                - text (str): 问题文本
+                - category (str): 问题分类
+
+    HTTP状态码:
+        200: 成功返回预设问题列表
+
+    示例:
+        GET /api/ai-assistant/preset-questions
+        返回: {
+            "questions": [
+                {
+                    "id": "no2_harm",
+                    "text": "NO₂的危害有哪些？",
+                    "category": "基础知识"
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        from api.ai_service import get_preset_questions
+        questions = get_preset_questions()
+        
+        # 将问题转换为结构化格式
+        structured_questions = []
+        for i, question in enumerate(questions):
+            structured_questions.append({
+                "id": f"preset_{i}",
+                "text": question,
+                "category": "常见问题"
+            })
+        
+        return jsonify({"questions": structured_questions})
+        
+    except Exception as e:
+        return jsonify({"error": f"获取预设问题失败: {str(e)}"}), 500
+
+
+@api_bp.route("/api/ai-assistant/config")
+def get_ai_config():
+    """
+    获取AI助手配置信息
+
+    返回AI服务的配置状态，用于前端判断功能可用性。
+
+    Returns:
+        JSON: AI配置信息
+            - api_configured (bool): API是否已配置
+            - model_name (str): 使用的模型名称
+            - fallback_available (bool): 降级服务是否可用
+            - status (str): 服务状态
+
+    HTTP状态码:
+        200: 成功返回配置信息
+
+    示例:
+        GET /api/ai-assistant/config
+        返回: {
+            "api_configured": true,
+            "model_name": "gpt-3.5-turbo",
+            "fallback_available": true,
+            "status": "ready"
+        }
+    """
+    try:
+        from api.ai_service import validate_ai_config
+        config = validate_ai_config()
+        
+        # 添加服务状态
+        if config["api_key_configured"]:
+            config["status"] = "ready"
+        elif config["fallback_available"]:
+            config["status"] = "fallback"
+        else:
+            config["status"] = "unavailable"
+        
+        return jsonify(config)
+        
+    except Exception as e:
+        return jsonify({
+            "api_configured": False,
+            "model_name": "unknown",
+            "fallback_available": True,
+            "status": "error",
+            "error": str(e)
+        }), 500
