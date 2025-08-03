@@ -209,13 +209,13 @@
             font-size: 1.5rem;
             margin-left: 10px;
         }
-        
+
         .trend-down {
             color: #4ecdc4;
             font-size: 1.5rem;
             margin-left: 10px;
         }
-        
+
         .trend-equal {
     color: #f0f0f0;
     font-size: 1.5rem;
@@ -429,15 +429,15 @@
                 flex-direction: column;
                 height: auto;
             }
-            
+
             .card-left, .card-right {
                 width: 100%;
             }
-            
+
             .card-left {
                 height: 400px;
             }
-            
+
             .heatmap-grid {
                 grid-template-columns: repeat(3, 1fr);
                 grid-template-rows: repeat(4, 1fr);
@@ -448,20 +448,20 @@
             .theme-title h1 {
                 font-size: 2.5rem;
             }
-            
+
             .heatmap-grid {
                 grid-template-columns: repeat(2, 1fr);
                 grid-template-rows: repeat(6, 1fr);
             }
-            
+
             .city-cell {
                 padding: 15px 5px;
             }
-            
+
             .city-name {
                 font-size: 1rem;
             }
-            
+
             .city-value {
                 font-size: 1.1rem;
             }
@@ -474,32 +474,32 @@
         <h1>粤港澳大湾区NO₂浓度预测</h1>
         <p>实时监测与预测粤港澳大湾区主要城市的二氧化氮浓度，助力环境治理与公众健康</p>
     </div>
-    
+
     <!-- 主卡片容器 -->
     <div class="card">
         <!-- 装饰元素 -->
         <div class="decoration top-right"></div>
         <div class="decoration bottom-left"></div>
-        
+
         <!-- 左侧 -->
         <div class="card-left">
             <div class="city-header">
                 <h2>广州市</h2>
             </div>
-            
+
             <div class="realtime-clock">
                 <div class="date" id="dateDisplay">2025/07/28</div>
                 <div class="weekday" id="weekdayDisplay">星期一</div>
                 <div class="time" id="timeDisplay">14:28:36</div>
             </div>
-            
+
             <div class="air-quality">
                 <div class="aqi-value" id="aqiValue"></div>
-                <div class="aqi-status" id="aqiStatus"></div> 
-                   
+                <div class="aqi-status" id="aqiStatus"></div>
+
             </div>
         </div>
-        
+
         <!-- 右侧：搜索与热力图 -->
         <div class="card-right">
             <div class="search-container">
@@ -509,7 +509,7 @@
                     <div class="city-dropdown" id="cityDropdown"></div>
                 </div>
             </div>
-            
+
             <div class="heatmap-container">
                 <div class="heatmap-title">大湾区各城市实时NO₂浓度 (μg/m³)</div>
                 <div class="heatmap-grid" id="heatmapGrid">
@@ -555,7 +555,7 @@
                     if (!response.ok) throw new Error(`获取${city.name}数据失败`);
                     const data = await response.json();
 
-                     
+
                     // 从映射表取图片
                     const normalizedName = city.name
                        .replace('市', '')           // 去掉“市”（如“广州市”→“广州”）
@@ -660,27 +660,27 @@
     function getCurrentHourValue(city) {
         const hour = new Date().getHours(); // 获取当前小时(0-23)
         // 优先从每小时预测值中取当前小时对应的数据
-        return city.hourlyValues && city.hourlyValues[hour] !== undefined 
-            ? city.hourlyValues[hour] 
+        return city.hourlyValues && city.hourlyValues[hour] !== undefined
+            ? city.hourlyValues[hour]
             : city.hourlyValues[0] || 0; // 兜底逻辑
     }
-    
+
     // 获取下一小时的数值
     function getNextHourValue(city) {
         const now = new Date();
         let nextHour = now.getHours() + 1;
-        
+
         // 如果当前是23点，下一小时就是0点
         if (nextHour === 24) {
             nextHour = 0;
         }
-        
+
         // 优先从每小时预测值中取下一小时对应的数据
-        return city.hourlyValues && city.hourlyValues[nextHour] !== undefined 
-            ? city.hourlyValues[nextHour] 
+        return city.hourlyValues && city.hourlyValues[nextHour] !== undefined
+            ? city.hourlyValues[nextHour]
             : city.hourlyValues[0] || 0; // 兜底逻辑
     }
-    
+
     // 获取趋势符号
     function getTrendSymbol(currentValue, nextValue) {
     if (nextValue > currentValue) {
@@ -702,19 +702,19 @@
         if (guangzhou) {
             updateLeftPanel(guangzhou); // 更新左侧面板显示广州数据
         }
-            
+
     });
-        
+
         // 初始化时钟
         updateClock();
         setInterval(updateClock, 1000);
-        
+
         // 搜索按钮点击事件
         document.getElementById('searchBtn').addEventListener('click', () => {
             const city = document.getElementById('cityInput').value;
             searchCity(city);
         });
-        
+
         // 输入框事件
         const input = document.getElementById('cityInput');
         input.addEventListener('input', (e) => {
@@ -725,7 +725,7 @@
         input.addEventListener('focus', (e) => {
             showCityDropdown(e.target.value);
         });
-        
+
         // 回车搜索
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -733,7 +733,7 @@
                 hideCityDropdown();
             }
         });
-        
+
         // 点击其他区域关闭下拉
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('cityDropdown');
@@ -743,7 +743,7 @@
             }
         });
 
-        
+
     });
 
     // 以下为原有辅助函数（保持不变）
@@ -761,8 +761,8 @@
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
-        
-        document.getElementById('dateDisplay').textContent = `${year}/${month}/${day}`; 
+
+        document.getElementById('dateDisplay').textContent = `${year}/${month}/${day}`;
         document.getElementById('weekdayDisplay').textContent = weekday;
         document.getElementById('timeDisplay').textContent = `${hours}:${minutes}:${seconds}`;
 
@@ -790,7 +790,7 @@
 function generateHeatmap() {
     const grid = document.getElementById('heatmapGrid');
     grid.innerHTML = '';
-    
+
     bayAreaCities.forEach(city => {
         const currentValue = getCurrentHourValue(city);
         const nextValue = getNextHourValue(city);
@@ -802,19 +802,19 @@ function generateHeatmap() {
         const displayName = city.name
             .replace('市', '')
             .replace('特别行政区', '');
-        
+
         const cell = document.createElement('div');
         cell.className = 'city-cell';
         cell.style.background = `url('${city.image || getDefaultImage()}') no-repeat center center`;
         cell.style.backgroundSize = 'cover';
-        
+
         cell.innerHTML = `
             <div class="city-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: ${overlayColor}; z-index: 1;"></div>
             <div class="city-name" style="z-index: 2;">${displayName}</div>
             <div class="city-value" style="z-index: 2;">${currentValue} ${trendSymbol}</div>
             <div class="city-level" style="z-index: 2;">${level}</div>
         `;
-        
+
         // 单击事件：更新左侧面板数据
         cell.addEventListener('click', () => {
             // 防止双击时触发两次单击事件
@@ -823,13 +823,13 @@ function generateHeatmap() {
             }
             cell.classList.remove('double-clicked');
         });
-        
+
         // 双击事件：跳转到子页面
         cell.addEventListener('dblclick', () => {
             cell.classList.add('double-clicked'); // 标记为双击，避免触发单击处理
             window.open(`city.html?city=${encodeURIComponent(city.name)}`, '_blank');
         });
-        
+
         grid.appendChild(cell);
     });
 }
@@ -843,29 +843,29 @@ function generateHeatmap() {
     const nextValue = city.hourlyValues[nextHour] || city.hourlyValues[0];
     const trendSymbol = getTrendSymbol(currentValue, nextValue);
     const level = getLevelByValue(currentValue);
-    
+
     // 简化城市名称（处理市/特别行政区）
     const displayName = city.name
         .replace('市', '')
         .replace('特别行政区', '');
-    
+
     // 更新左侧内容
     document.querySelector('.city-header h2').textContent = displayName;
     document.getElementById('aqiValue').textContent = currentValue;
     document.querySelector('.aqi-status').textContent = `${currentValue} μg/m³ · 空气质量${level}`;
-    
+
     // 新增：更新左侧左侧面板的背景图片
     const cardLeft = document.querySelector('.card-left');
     // 使用城市对应的图片，如果没有则使用默认图片
     const cityImage = city.image || getDefaultImage();
     cardLeft.style.background = `url('${cityImage}') no-repeat center center`;
     cardLeft.style.backgroundSize = 'cover';
-    
+
     // 保持时间更新（复用原有逻辑）
     updateClock();
 }
-    
-    
+
+
 </script>
 </body>
 </html>
