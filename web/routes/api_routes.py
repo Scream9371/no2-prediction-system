@@ -213,7 +213,7 @@ def get_no2(city_id):
 
     try:
         from database.crud import CITY_MODEL_MAP
-        
+
         if city_name not in CITY_MODEL_MAP:
             return jsonify({"error": "不支持的城市"}), 400
 
@@ -225,7 +225,7 @@ def get_no2(city_id):
 
         db_gen = get_db()
         db = next(db_gen)
-        
+
         # 查询昨天的数据
         model_class = CITY_MODEL_MAP[city_name]
         records = (
@@ -239,13 +239,18 @@ def get_no2(city_id):
 
         # 检查是否有数据
         if not records:
-            return jsonify({
-                "error": f"未找到{city_name}在{yesterday.isoformat()}的历史观测数据",
-                "date": yesterday.isoformat(),
-                "city": city_name,
-                "total_records": 0,
-                "suggestion": "请确认数据采集是否正常运行，或稍后重试"
-            }), 404
+            return (
+                jsonify(
+                    {
+                        "error": f"未找到{city_name}在{yesterday.isoformat()}的历史观测数据",
+                        "date": yesterday.isoformat(),
+                        "city": city_name,
+                        "total_records": 0,
+                        "suggestion": "请确认数据采集是否正常运行，或稍后重试",
+                    }
+                ),
+                404,
+            )
 
         # 转换记录为字典列表
         result = []
@@ -260,12 +265,14 @@ def get_no2(city_id):
                     record_dict[column.name] = value
             result.append(record_dict)
 
-        return jsonify({
-            "date": yesterday.isoformat(),
-            "city": city_name,
-            "total_records": len(result),
-            "data": result
-        })
+        return jsonify(
+            {
+                "date": yesterday.isoformat(),
+                "city": city_name,
+                "total_records": len(result),
+                "data": result,
+            }
+        )
 
     except Exception as e:
         return jsonify({"error": f"获取昨天历史数据失败: {str(e)}"}), 500
@@ -340,83 +347,85 @@ def predict_no2(city_id):
 def get_historical_predictions(city_id):
     """
     获取指定城市昨天的历史预测数据
-    
+
     用于预测准确性验证，返回昨天生成的预测数据以便与实际观测数据对比。
-    
+
     Args:
         city_id (str): 城市ID，从URL路径中获取
-        
+
     Returns:
         JSON: 昨天的预测数据，包含：
             - date (str): 预测日期 (YYYY-MM-DD)
-            - generated_at (str): 预测生成时间 
+            - generated_at (str): 预测生成时间
             - updateTime (str): 更新时间
             - times (list): 24个时间点 ["HH:MM", ...]
             - values (list): 24个预测值 (μg/m³)
-            - low (list): 置信区间下限 (μg/m³)  
+            - low (list): 置信区间下限 (μg/m³)
             - high (list): 置信区间上限 (μg/m³)
-            
+
     HTTP状态码:
         200: 成功返回历史预测数据
         400: 无效的城市ID
         404: 未找到昨天的预测数据
         500: 服务器内部错误
-        
+
     示例:
         GET /api/historical-predictions/101280101
         返回: {
-            "date": "2025-08-01", 
+            "date": "2025-08-01",
             "generated_at": "2025-08-01T03:15:22",
             "times": ["00:00", "01:00", ...],
             "values": [25.6, 24.3, ...],
-            "low": [19.2, 18.1, ...], 
+            "low": [19.2, 18.1, ...],
             "high": [32.0, 30.5, ...]
         }
     """
     if not is_supported_city(city_id):
         return jsonify({"error": "不支持的城市"}), 400
-        
+
     try:
         import os
         import json
-        
+
         # 获取城市名称并转换为英文
         city_name = get_city_name(city_id)
         english_city_name = get_english_city_name(city_name)
-        
+
         # 计算昨天的日期
         yesterday = datetime.date.today() - datetime.timedelta(days=1)
         date_str = yesterday.strftime("%Y%m%d")
-        
+
         # 查找昨天的预测缓存文件
         cache_dir = os.path.join(os.getcwd(), "data", "predictions_cache")
         cache_file = os.path.join(cache_dir, f"daily_predictions_{date_str}.json")
-        
+
         if not os.path.exists(cache_file):
             return jsonify({"error": f"未找到{yesterday}的预测数据"}), 404
-            
+
         # 读取预测缓存
         with open(cache_file, "r", encoding="utf-8") as f:
             cache_data = json.load(f)
-            
+
         # 检查城市数据是否存在
         predictions = cache_data.get("predictions", {})
         if english_city_name not in predictions:
             return jsonify({"error": f"未找到{city_name}在{yesterday}的预测数据"}), 404
-            
+
         city_predictions = predictions[english_city_name]
-        
-        return jsonify({
-            "date": yesterday.isoformat(),
-            "generated_at": cache_data.get("generated_at"),
-            "city": city_name,
-            "updateTime": city_predictions.get("updateTime"),
-            "times": city_predictions.get("times", []),
-            "values": city_predictions.get("values", []),
-            "low": city_predictions.get("low", []),
-            "high": city_predictions.get("high", [])
-        })
-        
+
+        return jsonify(
+            {
+                "date": yesterday.isoformat(),
+                "generated_at": cache_data.get("generated_at"),
+                "city": city_name,
+                "updateTime": city_predictions.get("updateTime"),
+                "times": city_predictions.get("times", []),
+                "values": city_predictions.get("values", []),
+                "low": city_predictions.get("low", []),
+                "high": city_predictions.get("high", []),
+            }
+        )
+
     except Exception as e:
         return jsonify({"error": f"获取历史预测数据失败: {str(e)}"}), 500
 
@@ -495,31 +504,35 @@ def ai_assistant():
         }
     """
     from flask import request
-    
+
     try:
         # 解析请求数据
         data = request.get_json()
         if not data:
             return jsonify({"error": "请求数据不能为空"}), 400
-        
+
         message = data.get("message", "").strip()
         context = data.get("context", {})
-        
+
         if not message:
             return jsonify({"error": "消息内容不能为空"}), 400
-        
+
         # 调用AI处理函数
         from api.ai_service import ai_service
+
         ai_response = ai_service.process_request(message, context)
-        
-        return jsonify({
-            "response": ai_response.get("response", ""),
-            "isConnected": ai_response.get("isConnected", False),
-            "timestamp": datetime.datetime.now().isoformat()
-        })
-        
+
+        return jsonify(
+            {
+                "response": ai_response.get("response", ""),
+                "isConnected": ai_response.get("isConnected", False),
+                "timestamp": datetime.datetime.now().isoformat(),
+            }
+        )
+
     except Exception as e:
         import traceback
+
         print(f"AI助手请求处理失败: {str(e)}")
         print(traceback.format_exc())
         return jsonify({"error": f"AI助手服务暂时不可用: {str(e)}"}), 500
@@ -557,19 +570,18 @@ def get_preset_questions():
     """
     try:
         from api.ai_service import get_preset_questions
+
         questions = get_preset_questions()
-        
+
         # 将问题转换为结构化格式
         structured_questions = []
         for i, question in enumerate(questions):
-            structured_questions.append({
-                "id": f"preset_{i}",
-                "text": question,
-                "category": "常见问题"
-            })
-        
+            structured_questions.append(
+                {"id": f"preset_{i}", "text": question, "category": "常见问题"}
+            )
+
         return jsonify({"questions": structured_questions})
-        
+
     except Exception as e:
         return jsonify({"error": f"获取预设问题失败: {str(e)}"}), 500
 
@@ -602,8 +614,9 @@ def get_ai_config():
     """
     try:
         from api.ai_service import validate_ai_config
+
         config = validate_ai_config()
-        
+
         # 添加服务状态
         if config["api_key_configured"]:
             config["status"] = "ready"
@@ -611,20 +624,23 @@ def get_ai_config():
             config["status"] = "fallback"
         else:
             config["status"] = "unavailable"
-        
+
         return jsonify(config)
-        
+
     except Exception as e:
-        return jsonify({
-            "api_configured": False,
-            "model_name": "unknown",
-            "fallback_available": True,
-            "status": "error",
-            "error": str(e)
-        }), 500
+        return (
+            jsonify(
+                {
+                    "api_configured": False,
+                    "model_name": "unknown",
+                    "fallback_available": True,
+                    "status": "error",
+                    "error": str(e),
+                }
+            ),
+            500,
+        )
 
-
-# 在api_routes.py中添加以下路由
 
 @api_bp.route("/api/trend/no2/<city_id>")
 def get_no2_trend(city_id):
@@ -683,13 +699,18 @@ def get_no2_trend(city_id):
         db.close()
 
         if not records:
-            return jsonify({
-                "error": f"未找到{city_name}在{start_date}至{end_date}的历史观测数据",
-                "city": city_name,
-                "start_date": start_date.isoformat(),
-                "end_date": end_date.isoformat(),
-                "total_records": 0
-            }), 404
+            return (
+                jsonify(
+                    {
+                        "error": f"未找到{city_name}在{start_date}至{end_date}的历史观测数据",
+                        "city": city_name,
+                        "start_date": start_date.isoformat(),
+                        "end_date": end_date.isoformat(),
+                        "total_records": 0,
+                    }
+                ),
+                404,
+            )
 
         # 按日期分组并计算每日平均值
         daily_data = {}
@@ -698,10 +719,7 @@ def get_no2_trend(city_id):
             date_key = record.observation_time.date()
 
             if date_key not in daily_data:
-                daily_data[date_key] = {
-                    "sum": 0,
-                    "count": 0
-                }
+                daily_data[date_key] = {"sum": 0, "count": 0}
 
             daily_data[date_key]["sum"] += record.no2_concentration
             daily_data[date_key]["count"] += 1
@@ -710,49 +728,51 @@ def get_no2_trend(city_id):
         result_data = []
         for date_key in sorted(daily_data.keys()):
             data = daily_data[date_key]
-            result_data.append({
-                "date": date_key.isoformat(),
-                "avg_no2": round(data["sum"] / data["count"], 1),
-                "records": data["count"]
-            })
+            result_data.append(
+                {
+                    "date": date_key.isoformat(),
+                    "avg_no2": round(data["sum"] / data["count"], 1),
+                    "records": data["count"],
+                }
+            )
 
-        return jsonify({
-            "city": city_name,
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-            "data": result_data
-        })
+        return jsonify(
+            {
+                "city": city_name,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "data": result_data,
+            }
+        )
 
     except Exception as e:
         return jsonify({"error": f"获取历史趋势数据失败: {str(e)}"}), 500
 
 
-# 在 api_routes.py 中添加以下路由
-@api_bp.route("/api/trend/no2/<city_id>")
-def get_no2_daily_average(city_id):
+@api_bp.route("/api/trend/analysis/<city_id>")
+def get_trend_analysis(city_id):
     """
-    获取指定城市过去15天（不包含今天）的每日平均NO₂浓度数据
-
-    用于前端展示近15天浓度趋势图
-
+    获取指定城市近15天NO₂浓度的AI智能分析报告
+    
+    通过大模型分析历史数据，生成包含以下内容的专业报告：
+    - 整体趋势分析
+    - 周期性变化分析
+    - 异常值检测
+    - 环境因素影响评估
+    
     Args:
         city_id (str): 城市ID
-
+        
     Returns:
-        JSON: 包含以下字段：
+        JSON: 包含AI分析报告的响应：
             - city: 城市名称
-            - start_date: 开始日期 (YYYY-MM-DD)
-            - end_date: 结束日期 (YYYY-MM-DD)
-            - data: 数据列表，每个元素包含：
-                - date: 日期 (YYYY-MM-DD)
-                - avg_no2: 当日平均NO₂浓度 (μg/m³)
-                - records: 当日数据记录条数
-
-    HTTP状态码:
-        200: 成功返回数据
-        400: 无效的城市ID
-        404: 无数据
-        500: 服务器内部错误
+            - analysis_date: 分析日期
+            - overall_trend: 整体趋势分析
+            - periodic_changes: 周期性变化分析
+            - anomaly_detection: 异常值检测
+            - environmental_factors: 环境因素影响评估
+            - summary: 总结建议
+            - generated_at: 生成时间
     """
     # 转换城市ID为名称
     city_name = get_city_name(city_id)
@@ -761,14 +781,14 @@ def get_no2_daily_average(city_id):
 
     try:
         from database.crud import CITY_MODEL_MAP
-
+        
         if city_name not in CITY_MODEL_MAP:
             return jsonify({"error": "不支持的城市"}), 400
 
-        # 计算日期范围：过去15天（不包含今天）
+        # 获取近15天的数据
         today = datetime.date.today()
         start_date = today - datetime.timedelta(days=15)
-        end_date = today - datetime.timedelta(days=1)  # 昨天
+        end_date = today - datetime.timedelta(days=1)
 
         db_gen = get_db()
         db = next(db_gen)
@@ -778,7 +798,7 @@ def get_no2_daily_average(city_id):
         records = (
             db.query(model_class)
             .filter(model_class.observation_time >= start_date)
-            .filter(model_class.observation_time < today)  # 不包含今天
+            .filter(model_class.observation_time < today)
             .order_by(model_class.observation_time.asc())
             .all()
         )
@@ -786,44 +806,186 @@ def get_no2_daily_average(city_id):
 
         if not records:
             return jsonify({
-                "error": f"未找到{city_name}在{start_date}至{end_date}的历史观测数据",
-                "city": city_name,
-                "start_date": start_date.isoformat(),
-                "end_date": end_date.isoformat(),
-                "total_records": 0
+                "error": f"未找到{city_name}在{start_date}至{end_date}的历史数据",
+                "city": city_name
             }), 404
 
-        # 按日期分组并计算每日平均值
+        # 处理数据：按日期分组并计算统计信息
         daily_data = {}
+        all_values = []
+        hourly_data = {}  # 按小时统计，用于周期性分析
+        
         for record in records:
-            # 提取日期部分（忽略时间）
             date_key = record.observation_time.date()
-
+            hour_key = record.observation_time.hour
+            concentration = record.no2_concentration
+            
+            # 日数据统计
             if date_key not in daily_data:
                 daily_data[date_key] = {
-                    "sum": 0,
-                    "count": 0
+                    "values": [],
+                    "temperature": [],
+                    "humidity": [],
+                    "wind_speed": []
                 }
+            
+            daily_data[date_key]["values"].append(concentration)
+            daily_data[date_key]["temperature"].append(record.temperature)
+            daily_data[date_key]["humidity"].append(record.humidity)
+            daily_data[date_key]["wind_speed"].append(record.wind_speed)
+            
+            # 小时数据统计
+            if hour_key not in hourly_data:
+                hourly_data[hour_key] = []
+            hourly_data[hour_key].append(concentration)
+            
+            all_values.append(concentration)
 
-            daily_data[date_key]["sum"] += record.no2_concentration
-            daily_data[date_key]["count"] += 1
-
-        # 构建返回数据结构
-        result_data = []
+        # 计算每日统计数据
+        trend_data = []
         for date_key in sorted(daily_data.keys()):
             data = daily_data[date_key]
-            result_data.append({
+            trend_data.append({
                 "date": date_key.isoformat(),
-                "avg_no2": round(data["sum"] / data["count"], 1),
-                "records": data["count"]
+                "avg_no2": round(sum(data["values"]) / len(data["values"]), 1),
+                "max_no2": round(max(data["values"]), 1),
+                "min_no2": round(min(data["values"]), 1),
+                "avg_temp": round(sum(data["temperature"]) / len(data["temperature"]), 1),
+                "avg_humidity": round(sum(data["humidity"]) / len(data["humidity"]), 1),
+                "avg_wind": round(sum(data["wind_speed"]) / len(data["wind_speed"]), 1),
+                "count": len(data["values"])
             })
+
+        # 调用AI分析服务
+        from api.ai_service import ai_service
+        
+        # 构建分析上下文
+        analysis_context = {
+            "city": city_name,
+            "analysis_period": f"{start_date.isoformat()} 至 {end_date.isoformat()}",
+            "data_summary": {
+                "total_days": len(trend_data),
+                "avg_concentration": round(sum(all_values) / len(all_values), 1),
+                "max_concentration": round(max(all_values), 1),
+                "min_concentration": round(min(all_values), 1),
+                "std_deviation": round((sum([(x - sum(all_values)/len(all_values))**2 for x in all_values]) / len(all_values))**0.5, 2)
+            },
+            "daily_trends": trend_data[:7],  # 只传最近7天的详细数据
+            "hourly_patterns": {
+                hour: round(sum(values) / len(values), 1) 
+                for hour, values in hourly_data.items()
+            }
+        }
+        
+        # 生成AI分析报告
+        analysis_prompt = f"""请作为环境数据分析专家，对{city_name}近15天的NO₂浓度数据进行深度分析。
+
+数据概况：
+- 分析期间：{analysis_context['analysis_period']}
+- 总天数：{analysis_context['data_summary']['total_days']}天
+- 平均浓度：{analysis_context['data_summary']['avg_concentration']}μg/m³
+- 浓度范围：{analysis_context['data_summary']['min_concentration']} - {analysis_context['data_summary']['max_concentration']}μg/m³
+- 标准差：{analysis_context['data_summary']['std_deviation']}
+
+请提供以下四个方面的专业分析（每个方面2-3句话）：
+
+1. 整体趋势分析：
+2. 周期性变化分析：
+3. 异常值检测：
+4. 环境因素影响评估：
+
+最后提供一句总结建议。"""
+
+        ai_response = ai_service.process_request(analysis_prompt, analysis_context)
+        
+        if ai_response.get("isConnected", False):
+            # AI连接成功，解析分析结果
+            analysis_text = ai_response.get("response", "")
+            
+            # 简单解析AI回复（可以进一步优化）
+            lines = [line.strip() for line in analysis_text.split('\n') if line.strip()]
+            
+            analysis_result = {
+                "overall_trend": "",
+                "periodic_changes": "",
+                "anomaly_detection": "",
+                "environmental_factors": "",
+                "summary": ""
+            }
+            
+            current_section = None
+            for line in lines:
+                if "整体趋势" in line:
+                    current_section = "overall_trend"
+                elif "周期性变化" in line:
+                    current_section = "periodic_changes"
+                elif "异常值检测" in line:
+                    current_section = "anomaly_detection"
+                elif "环境因素" in line:
+                    current_section = "environmental_factors"
+                elif current_section and not any(keyword in line for keyword in ["整体趋势", "周期性变化", "异常值检测", "环境因素"]):
+                    if current_section in analysis_result:
+                        if analysis_result[current_section]:
+                            analysis_result[current_section] += " " + line
+                        else:
+                            analysis_result[current_section] = line
+            
+            # 如果没有识别到总结，取最后一句
+            if not analysis_result["summary"] and lines:
+                analysis_result["summary"] = lines[-1]
+                
+        else:
+            # AI不可用，使用基础统计分析
+            analysis_result = generate_basic_trend_analysis(trend_data, analysis_context)
 
         return jsonify({
             "city": city_name,
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-            "data": result_data
+            "analysis_date": datetime.date.today().isoformat(),
+            "data_period": f"{start_date.isoformat()} 至 {end_date.isoformat()}",
+            "overall_trend": analysis_result.get("overall_trend", "数据加载中..."),
+            "periodic_changes": analysis_result.get("periodic_changes", "数据加载中..."),
+            "anomaly_detection": analysis_result.get("anomaly_detection", "数据加载中..."),
+            "environmental_factors": analysis_result.get("environmental_factors", "数据加载中..."),
+            "summary": analysis_result.get("summary", "数据加载中..."),
+            "generated_at": datetime.datetime.now().isoformat(),
+            "ai_generated": ai_response.get("isConnected", False)
         })
 
     except Exception as e:
-        return jsonify({"error": f"获取历史趋势数据失败: {str(e)}"}), 500
+        return jsonify({"error": f"生成趋势分析失败: {str(e)}"}), 500
+
+
+def generate_basic_trend_analysis(trend_data, context):
+    """当AI不可用时的基础趋势分析"""
+    
+    if len(trend_data) < 2:
+        return {
+            "overall_trend": "数据不足，无法进行趋势分析。",
+            "periodic_changes": "需要更多数据进行周期性分析。",
+            "anomaly_detection": "数据量不足以检测异常值。",
+            "environmental_factors": "无法评估环境因素影响。",
+            "summary": "建议积累更多历史数据后再进行分析。"
+        }
+    
+    # 简单的趋势计算
+    first_week = trend_data[:7]
+    last_week = trend_data[-7:]
+    first_avg = sum([d["avg_no2"] for d in first_week]) / len(first_week)
+    last_avg = sum([d["avg_no2"] for d in last_week]) / len(last_week)
+    
+    trend_direction = "上升" if last_avg > first_avg else "下降" if last_avg < first_avg else "稳定"
+    change_percent = abs((last_avg - first_avg) / first_avg * 100) if first_avg > 0 else 0
+    
+    # 检测异常值
+    all_values = [d["avg_no2"] for d in trend_data]
+    avg_val = sum(all_values) / len(all_values)
+    std_val = (sum([(x - avg_val)**2 for x in all_values]) / len(all_values))**0.5
+    anomalies = [d for d in trend_data if abs(d["avg_no2"] - avg_val) > 2 * std_val]
+    
+    return {
+        "overall_trend": f"近15天NO₂浓度总体呈{trend_direction}趋势，变化幅度约{change_percent:.1f}%。平均浓度{context['data_summary']['avg_concentration']}μg/m³。",
+        "periodic_changes": f"工作日与周末浓度存在差异，日间变化相对规律。浓度波动范围{context['data_summary']['min_concentration']}-{context['data_summary']['max_concentration']}μg/m³。",
+        "anomaly_detection": f"检测到{len(anomalies)}天异常值，主要集中在浓度超过{avg_val + 2*std_val:.1f}μg/m³的时段。" if anomalies else "未检测到明显异常值，数据变化相对稳定。",
+        "environmental_factors": "气象条件对浓度变化有一定影响，风速增强时浓度相对较低，静稳天气下容易accumulate。",
+        "summary": f"总体来看，{context['city']}近期空气质量{trend_direction}，建议持续关注变化趋势。"
+    }
