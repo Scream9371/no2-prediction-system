@@ -146,16 +146,22 @@ def train_city_with_version_control(city: str, **train_kwargs) -> bool:
         return False
 
 
-def train_all_cities():
+def train_cities(cities_list=None):
     """
-    批量训练所有城市的模型
+    批量训练指定城市的模型
     
+    Args:
+        cities_list (List[str]): 要训练的城市列表，None时训练所有城市
+        
     Returns:
         dict: 训练结果统计
     """
-    print("=== 开始批量训练所有城市模型 ===")
-    
-    cities = get_supported_cities()
+    if cities_list is None:
+        cities = get_supported_cities()
+        print("=== 开始批量训练所有城市模型 ===")
+    else:
+        cities = cities_list
+        print(f"=== 开始批量训练指定城市模型 ({len(cities)}个) ===")
     results = {
         "total_cities": len(cities),
         "successful": [],
@@ -171,6 +177,9 @@ def train_all_cities():
         print(f"[{i}/{len(cities)}] 正在处理 {city}...")
         
         try:
+            # 先检查是否已经训练过
+            already_trained = is_model_trained_today(city)
+            
             # 使用带版本控制的训练函数
             success = train_city_with_version_control(
                 city=city,
@@ -180,17 +189,17 @@ def train_all_cities():
             )
             
             if success:
-                if is_model_trained_today(city):
-                    if city in results["successful"]:
-                        results["successful"].append(city)
-                    else:
-                        results["skipped"].append(city)
+                if already_trained:
+                    # 今天已经训练过，跳过了训练
+                    results["skipped"].append(city)
+                    print(f"{city} 今日模型已存在，跳过训练")
                 else:
+                    # 实际进行了训练
                     results["successful"].append(city)
-                print(f"{city} 模型处理成功")
+                    print(f"{city} 模型训练成功")
             else:
                 results["failed"].append(city)
-                print(f"{city} 模型处理失败")
+                print(f"{city} 模型训练失败")
                 
         except Exception as e:
             results["failed"].append(city)
@@ -219,6 +228,7 @@ def train_all_cities():
     return results
 
 
+
 def cleanup_old_models(days_to_keep: int = 7):
     """
     清理旧的模型文件，只保留最近N天的模型
@@ -231,7 +241,7 @@ def cleanup_old_models(days_to_keep: int = 7):
     from config.paths import DAILY_MODELS_DIR
     models_dir = DAILY_MODELS_DIR
     if not os.path.exists(models_dir):
-        return
+        return 0
     
     cutoff_date = datetime.now() - timedelta(days=days_to_keep)
     cutoff_str = cutoff_date.strftime("%Y%m%d")
@@ -255,6 +265,8 @@ def cleanup_old_models(days_to_keep: int = 7):
         print(f"已清理 {removed_count} 个旧模型文件")
     else:
         print("没有需要清理的旧模型")
+    
+    return removed_count
 
 
 def show_model_status():
@@ -295,8 +307,8 @@ def main():
         show_model_status()
         print()
         
-        # 执行批量训练
-        results = train_all_cities()
+        # 执行批量训练（所有城市）
+        results = train_cities()
         print()
         
         # 清理旧模型（保留7天）
