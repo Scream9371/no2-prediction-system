@@ -203,7 +203,7 @@
         .air-quality {
             background: rgba(0, 0, 0, 0.25);
             border-radius: 15px;
-            padding: 25px;
+            padding: 25px 25px 10px; 
             border: 1px solid rgba(0, 243, 255, 0.2);
             flex-grow: 1;
             display: flex;
@@ -313,7 +313,7 @@
         .card-right {
             width: 60%;
             height: 100%;
-            padding: 30px;
+            padding: 30px 30px 10px; 
             display: flex;
             flex-direction: column;
             position: relative;
@@ -403,6 +403,15 @@
         }
         
         /* 热力图区域 */
+        /* 热力图提示信息 */
+        .heatmap-tips {
+            font-size: 0.9rem;
+            color: #a7e8ff;
+            margin-top: 0px;
+            margin-bottom: 10px; 
+            text-align: center;
+            opacity: 0.8;
+        }
         .heatmap-container {
             flex-grow: 1;
             background: rgba(0, 0, 0, 0.2);
@@ -417,7 +426,7 @@
 
         .heatmap-title {
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 0px;
             color: #00f3ff;
             font-size: 1.4rem;
             font-weight: 500;
@@ -786,8 +795,8 @@
                 <!-- 实时监测详情板块 -->
                  <div class="pollution-details">
                     <h3>实时监测详情</h3>
-                    <p>NO₂浓度趋势：</p>
-                    <p>健康建议：适宜户外活动，敏感人群无影响</p>
+                    <p class="trend-description">NO₂浓度趋势：</p>
+                    <p id="travelAdvice">出行建议：</p> 
                  </div>
 
 
@@ -806,6 +815,7 @@
             
             <div class="heatmap-container">
                 <div class="heatmap-title">大湾区各城市实时NO₂浓度 (μg/m³)</div>
+                <div class="heatmap-tips">单击查看详情，双击进入深度分析</div>
                 <div class="heatmap-grid" id="heatmapGrid">
                     <!-- 热力图将通过JS动态生成 -->
                 </div>
@@ -1055,59 +1065,40 @@
         return '<span class="trend-equal">—</span>';
     }
 }
-
-    // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', () => {
-        // 初始化城市列表及数据
-        initializeCities().then(() => { // 等待城市数据加载完成
-        // 获取广州的实时数据
-        const guangzhou = bayAreaCities.find(city => city.name.includes('广州'));
-        if (guangzhou) {
-            updateLeftPanel(guangzhou); // 更新左侧面板显示广州数据
+     // 获取趋势描述文本
+     function getTrendDescription(currentValue, nextValue) {
+        const diff = Math.abs(nextValue - currentValue);
+        let trendDesc = "";
+    
+        if (nextValue > currentValue) {
+            if (diff < 15) trendDesc = "小幅上升";
+            else trendDesc = "显著上升";
         }
-            
-    });
-        
-        // 初始化时钟
-        updateClock();
-        setInterval(updateClock, 1000);
-        
-        // 搜索按钮点击事件
-        document.getElementById('searchBtn').addEventListener('click', () => {
-            const city = document.getElementById('cityInput').value;
-            searchCity(city);
-        });
-        
-        // 输入框事件
-        const input = document.getElementById('cityInput');
-        input.addEventListener('input', (e) => {
-            showCityDropdown(e.target.value);
-        });
+        else if (nextValue < currentValue) {
+            if (diff < 15) trendDesc = "小幅下降";
+            else trendDesc = "显著下降";
+        } else {
+            trendDesc = "保持稳定";
+        }
+        return `未来一小时预计${trendDesc} `;
+    }
 
-        // 当输入框获得焦点时显示下拉框
-        input.addEventListener('focus', (e) => {
-            showCityDropdown(e.target.value);
-        });
-        
-        // 回车搜索
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                searchCity(input.value);
-                hideCityDropdown();
-            }
-        });
-        
-        // 点击其他区域关闭下拉
-        document.addEventListener('click', (e) => {
-            const dropdown = document.getElementById('cityDropdown');
-            const input = document.getElementById('cityInput');
-            if (!dropdown.contains(e.target) && !input.contains(e.target)) {
-                dropdown.classList.remove('active');
-            }
-        });
+    // 根据NO₂浓度获取出行建议
+    function getTravelAdvice(currentValue) {
+    if (currentValue <= 40) {
+        return "适宜户外活动，放心出行";
+    } else if (currentValue<= 80) {
+        return "空气质量良好，正常活动";
+    } else if (currentValue<= 120) {
+        return "敏感人群减少外出";
+    } else if (concentration <= 300) {
+        return "建议减少户外活动";
+    } else {
+        return "污染严重，避免外出";
+    }
+}  
 
-        
-    });
+    
 
     // 以下为原有辅助函数（保持不变）
     function getDefaultImage() {
@@ -1218,6 +1209,17 @@ function generateHeatmap() {
     const cityImage = city.image || getDefaultImage();
     cardLeft.style.background = `url('${cityImage}') no-repeat center center`;
     cardLeft.style.backgroundSize = 'cover';
+
+    // 新增：获取趋势描述
+    const nextValue = getNextHourValue(city);
+    const trendDesc = getTrendDescription(currentValue, nextValue);
+    
+    // 更新趋势描述
+    document.querySelector('.trend-description').textContent =`NO₂浓度趋势：${trendDesc}`;
+
+    //更新出行建议
+    const adviceElement = document.getElementById('travelAdvice');
+    adviceElement.textContent = `出行建议：${getTravelAdvice(currentValue)}`;
     
      
         // 保持时间更新（复用原有逻辑）
@@ -1348,6 +1350,58 @@ function generateHeatmap() {
             chartInstance.resize();
         });
     }
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        // 初始化城市列表及数据
+        initializeCities().then(() => { // 等待城市数据加载完成
+        // 获取广州的实时数据
+        const guangzhou = bayAreaCities.find(city => city.name.includes('广州'));
+        if (guangzhou) {
+            updateLeftPanel(guangzhou); // 更新左侧面板显示广州数据
+        }
+            
+    });
+        
+        // 初始化时钟
+        updateClock();
+        setInterval(updateClock, 1000);
+        
+        // 搜索按钮点击事件
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const city = document.getElementById('cityInput').value;
+            searchCity(city);
+        });
+        
+        // 输入框事件
+        const input = document.getElementById('cityInput');
+        input.addEventListener('input', (e) => {
+            showCityDropdown(e.target.value);
+        });
+
+        // 当输入框获得焦点时显示下拉框
+        input.addEventListener('focus', (e) => {
+            showCityDropdown(e.target.value);
+        });
+        
+        // 回车搜索
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchCity(input.value);
+                hideCityDropdown();
+            }
+        });
+        
+        // 点击其他区域关闭下拉
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('cityDropdown');
+            const input = document.getElementById('cityInput');
+            if (!dropdown.contains(e.target) && !input.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+
+        
+    });
 
     
 </script>
