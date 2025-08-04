@@ -330,6 +330,9 @@
             text-align: center;
             padding-top: 1rem;
             border-top: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .analysis-footer small {
@@ -337,10 +340,82 @@
             font-size: 0.85rem;
         }
 
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .refresh-btn:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+
+        .refresh-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* 加载状态样式 */
         .analysis-loading {
             opacity: 0.7;
             background: rgba(108, 117, 125, 0.1);
+        }
+
+        /* 降级分析状态样式 */
+        .analysis-section.fallback, .analysis-summary.fallback {
+            background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+            border-left: 4px solid #f59e0b;
+            position: relative;
+        }
+
+        .analysis-section.fallback::before, .analysis-summary.fallback::before {
+            content: "📊";
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        .analysis-section.fallback p, .analysis-summary.fallback p {
+            color: #92400e;
+        }
+
+        .analysis-section.fallback h5, .analysis-summary.fallback h5 {
+            color: #78350f;
+        }
+
+        /* AI失败提示样式 */
+        .ai-fallback-hint {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 10px 0;
+            font-size: 0.85rem;
+            color: #0c4a6e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-fallback-hint .icon {
+            font-size: 1rem;
         }
 
         .analysis-error {
@@ -1057,7 +1132,7 @@
 
             <div class="content-panel" id="analysis-panel">
                 <div class="trend-analysis">
-                    <h4>AI智能趋势分析报告 <span id="aiAnalysisStatus" class="ai-status-indicator">🤖</span></h4>
+                    <h4>AI智能趋势分析报告 <span id="aiAnalysisStatus" class="ai-status-indicator"></span></h4>
                     <div class="analysis-sections">
                         <div class="analysis-section">
                             <h5>📈 整体趋势分析</h5>
@@ -1082,6 +1157,9 @@
                     </div>
                     <div class="analysis-footer">
                         <small id="analysisTimestamp">分析时间：加载中...</small>
+                        <button id="refreshAnalysisBtn" class="refresh-btn" onclick="refreshTrendAnalysis()" title="重新生成AI分析报告">
+                            刷新分析
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1996,7 +2074,7 @@
     }
 
     // 获取AI趋势分析报告
-    async function fetchTrendAnalysis(cityName) {
+    async function fetchTrendAnalysis(cityName, forceRefresh = false) {
         try {
             // 获取城市ID映射
             const citiesResponse = await fetch('/api/cities');
@@ -2017,8 +2095,13 @@
             // 设置加载状态
             setAnalysisLoadingState();
 
+            // 构建API URL，如果需要强制刷新则添加refresh参数
+            const apiUrl = forceRefresh 
+                ? `/api/trend/analysis/${cityInfo.id}?refresh=true`
+                : `/api/trend/analysis/${cityInfo.id}`;
+
             // 获取AI分析报告
-            const response = await fetch(`/api/trend/analysis/${cityInfo.id}`);
+            const response = await fetch(apiUrl);
             if (!response.ok) {
                 throw new Error('分析报告获取失败');
             }
@@ -2029,6 +2112,51 @@
         } catch (error) {
             console.error('AI趋势分析获取失败:', error);
             displayAnalysisError(error.message);
+        }
+    }
+
+    // 强制刷新AI趋势分析
+    async function refreshTrendAnalysis() {
+        const refreshBtn = document.getElementById('refreshAnalysisBtn');
+        const originalText = refreshBtn.innerHTML;
+        
+        try {
+            // 禁用按钮并显示加载状态
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '刷新中...';
+            
+            // 获取当前城市信息 - 优先从URL参数，其次从页面标题，最后从存储的数据
+            let currentCity = getUrlParameter('city');
+            if (!currentCity) {
+                // 从页面标题中提取城市名
+                const titleElement = document.getElementById('cityName');
+                if (titleElement) {
+                    const titleText = titleElement.textContent;
+                    const match = titleText.match(/^([^N]+(?:市|特别行政区)?)\s*NO₂/);
+                    if (match) {
+                        currentCity = match[1].trim();
+                    }
+                }
+            }
+            if (!currentCity && window.currentCityData) {
+                currentCity = window.currentCityData.city;
+            }
+            if (!currentCity) {
+                currentCity = '广州'; // 最后的兜底
+            }
+            
+            console.log('强制刷新分析，当前城市:', currentCity); // 调试日志
+            
+            // 强制刷新分析报告
+            await fetchTrendAnalysis(currentCity, true);
+            
+        } catch (error) {
+            console.error('强制刷新失败:', error);
+            displayAnalysisError('刷新失败，请重试');
+        } finally {
+            // 恢复按钮状态
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = originalText;
         }
     }
 
@@ -2044,18 +2172,41 @@
 
     // 显示AI趋势分析结果
     function displayTrendAnalysis(data) {
-        // 移除加载状态
+        // 移除所有状态类
         const sections = document.querySelectorAll('.analysis-section, .analysis-summary');
         sections.forEach(section => {
-            section.classList.remove('analysis-loading', 'analysis-error');
+            section.classList.remove('analysis-loading', 'analysis-error', 'fallback');
         });
 
+        // 分析字段映射
+        const fieldMapping = [
+            { id: 'overallTrend', data: data.overall_trend, sectionIndex: 0 },
+            { id: 'periodicChanges', data: data.periodic_changes, sectionIndex: 1 },
+            { id: 'anomalyDetection', data: data.anomaly_detection, sectionIndex: 2 },
+            { id: 'environmentalFactors', data: data.environmental_factors, sectionIndex: 3 },
+            { id: 'analysisSummary', data: data.summary, sectionIndex: 4 }
+        ];
+
         // 更新各部分内容
-        document.getElementById('overallTrend').textContent = data.overall_trend || '暂无分析结果';
-        document.getElementById('periodicChanges').textContent = data.periodic_changes || '暂无分析结果';
-        document.getElementById('anomalyDetection').textContent = data.anomaly_detection || '暂无分析结果';
-        document.getElementById('environmentalFactors').textContent = data.environmental_factors || '暂无分析结果';
-        document.getElementById('analysisSummary').textContent = data.summary || '暂无总结建议';
+        fieldMapping.forEach(field => {
+            const content = field.data || '暂无分析结果';
+            const element = document.getElementById(field.id);
+            const section = sections[field.sectionIndex];
+            
+            element.textContent = content;
+            
+            // 如果不是AI生成，添加降级样式
+            if (!data.ai_generated) {
+                section.classList.add('fallback');
+            }
+        });
+
+        // 显示相应提示
+        if (!data.ai_generated) {
+            showFallbackHint();
+        } else {
+            hideFallbackHint();
+        }
 
         // 更新时间戳和状态
         const timestamp = new Date(data.generated_at).toLocaleString('zh-CN');
@@ -2064,11 +2215,43 @@
         // 更新AI状态指示器
         const statusIndicator = document.getElementById('aiAnalysisStatus');
         if (data.ai_generated) {
-            statusIndicator.textContent = '✅';
+            statusIndicator.textContent = 'AI';
             statusIndicator.title = '由AI智能分析生成';
+            statusIndicator.style.color = '#059669';
+            statusIndicator.style.fontWeight = 'bold';
         } else {
-            statusIndicator.textContent = '📊';
-            statusIndicator.title = '基于统计分析生成';
+            statusIndicator.textContent = '统计';
+            statusIndicator.title = 'AI服务异常，当前采用统计分析';
+            statusIndicator.style.color = '#d97706';
+            statusIndicator.style.fontWeight = 'bold';
+        }
+    }
+
+    // 显示降级分析提示
+    function showFallbackHint() {
+        let fallbackHint = document.getElementById('fallbackHint');
+        if (!fallbackHint) {
+            fallbackHint = document.createElement('div');
+            fallbackHint.id = 'fallbackHint';
+            fallbackHint.className = 'ai-fallback-hint';
+            fallbackHint.innerHTML = `
+                <span class="icon">ℹ️</span>
+                <span>AI服务暂时不可用，当前显示基于统计算法的降级分析结果。点击"刷新分析"尝试重新获取AI分析。</span>
+            `;
+            
+            // 插入到分析区域顶部
+            const analysisPanel = document.getElementById('analysis-panel');
+            const trendAnalysis = analysisPanel.querySelector('.trend-analysis');
+            trendAnalysis.insertBefore(fallbackHint, trendAnalysis.children[1]);
+        }
+        fallbackHint.style.display = 'flex';
+    }
+
+    // 隐藏降级分析提示
+    function hideFallbackHint() {
+        const fallbackHint = document.getElementById('fallbackHint');
+        if (fallbackHint) {
+            fallbackHint.style.display = 'none';
         }
     }
 
