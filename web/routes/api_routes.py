@@ -1,6 +1,6 @@
 import datetime
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from config.cities import get_city_name, is_supported_city, get_all_cities
 from database.crud import get_no2_records
@@ -760,6 +760,10 @@ def get_trend_analysis(city_id):
     - 异常值检测
     - 环境因素影响评估
     
+    缓存策略：
+    - 每个城市每天只生成一次分析报告
+    - 缓存有效期到当天午夜自动失效
+    
     Args:
         city_id (str): 城市ID
         
@@ -773,11 +777,46 @@ def get_trend_analysis(city_id):
             - environmental_factors: 环境因素影响评估
             - summary: 总结建议
             - generated_at: 生成时间
+            - cached: 是否来自缓存
     """
     # 转换城市ID为名称
     city_name = get_city_name(city_id)
     if not city_name:
         return jsonify({"error": "无效的城市ID"}), 400
+
+    # 检查是否强制刷新
+    force_refresh = request.args.get('refresh', '').lower() == 'true'
+    
+    # 检查缓存
+    today = datetime.date.today().isoformat()
+    cache_key = f"trend_analysis_{city_name}_{today}"
+    
+    # 简单的内存缓存检查
+    import os
+    cache_dir = "data/cache/trend_analysis"
+    cache_file = os.path.join(cache_dir, f"{cache_key}.json")
+    
+    # 确保缓存目录存在
+    os.makedirs(cache_dir, exist_ok=True)
+    
+    # 检查今日缓存是否存在且有效（除非强制刷新）
+    if not force_refresh and os.path.exists(cache_file):
+        try:
+            import json
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cached_result = json.load(f)
+            
+            # 检查缓存是否是今天生成的
+            if cached_result.get("analysis_date") == today:
+                cached_result["cached"] = True
+                return jsonify(cached_result)
+        except Exception as e:
+            print(f"读取缓存失败: {str(e)}")
+            # 缓存损坏，删除文件
+            try:
+                os.remove(cache_file)
+            except:
+                pass
 
     try:
         from database.crud import CITY_MODEL_MAP
@@ -901,44 +940,17 @@ def get_trend_analysis(city_id):
         if ai_response.get("isConnected", False):
             # AI连接成功，解析分析结果
             analysis_text = ai_response.get("response", "")
+            print(f"AI原始回复: {analysis_text}")  # 调试日志
             
-            # 简单解析AI回复（可以进一步优化）
-            lines = [line.strip() for line in analysis_text.split('\n') if line.strip()]
-            
-            analysis_result = {
-                "overall_trend": "",
-                "periodic_changes": "",
-                "anomaly_detection": "",
-                "environmental_factors": "",
-                "summary": ""
-            }
-            
-            current_section = None
-            for line in lines:
-                if "整体趋势" in line:
-                    current_section = "overall_trend"
-                elif "周期性变化" in line:
-                    current_section = "periodic_changes"
-                elif "异常值检测" in line:
-                    current_section = "anomaly_detection"
-                elif "环境因素" in line:
-                    current_section = "environmental_factors"
-                elif current_section and not any(keyword in line for keyword in ["整体趋势", "周期性变化", "异常值检测", "环境因素"]):
-                    if current_section in analysis_result:
-                        if analysis_result[current_section]:
-                            analysis_result[current_section] += " " + line
-                        else:
-                            analysis_result[current_section] = line
-            
-            # 如果没有识别到总结，取最后一句
-            if not analysis_result["summary"] and lines:
-                analysis_result["summary"] = lines[-1]
+            # 优化的解析逻辑
+            analysis_result = parse_ai_analysis_response(analysis_text)
                 
         else:
             # AI不可用，使用基础统计分析
             analysis_result = generate_basic_trend_analysis(trend_data, analysis_context)
 
-        return jsonify({
+        # 构建返回结果
+        result = {
             "city": city_name,
             "analysis_date": datetime.date.today().isoformat(),
             "data_period": f"{start_date.isoformat()} 至 {end_date.isoformat()}",
@@ -948,11 +960,139 @@ def get_trend_analysis(city_id):
             "environmental_factors": analysis_result.get("environmental_factors", "数据加载中..."),
             "summary": analysis_result.get("summary", "数据加载中..."),
             "generated_at": datetime.datetime.now().isoformat(),
-            "ai_generated": ai_response.get("isConnected", False)
-        })
+            "ai_generated": ai_response.get("isConnected", False),
+            "cached": False
+        }
+        
+        # 保存到缓存
+        try:
+            import json
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(result, f, ensure_ascii=False, indent=2)
+            print(f"分析结果已缓存到: {cache_file}")
+        except Exception as e:
+            print(f"保存缓存失败: {str(e)}")
+        
+        return jsonify(result)
 
     except Exception as e:
         return jsonify({"error": f"生成趋势分析失败: {str(e)}"}), 500
+
+
+def parse_ai_analysis_response(ai_text):
+    """解析AI分析回复，提取四个分析部分"""
+    
+    # 初始化结果字典
+    result = {
+        "overall_trend": "",
+        "periodic_changes": "",
+        "anomaly_detection": "",
+        "environmental_factors": "",
+        "summary": ""
+    }
+    
+    try:
+        # 按行分割文本
+        lines = ai_text.strip().split('\n')
+        current_section = None
+        current_content = []
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # 检测各个分析部分的开始
+            if "整体趋势分析" in line or "1." in line and "整体趋势" in line:
+                if current_section and current_content:
+                    result[current_section] = ' '.join(current_content)
+                current_section = "overall_trend"
+                current_content = []
+                # 提取冒号后的内容
+                if "：" in line:
+                    content = line.split("：", 1)[1].strip()
+                    if content:
+                        current_content.append(content)
+                        
+            elif "周期性变化分析" in line or "2." in line and "周期性" in line:
+                if current_section and current_content:
+                    result[current_section] = ' '.join(current_content)
+                current_section = "periodic_changes"
+                current_content = []
+                if "：" in line:
+                    content = line.split("：", 1)[1].strip()
+                    if content:
+                        current_content.append(content)
+                        
+            elif "异常值检测" in line or "3." in line and "异常" in line:
+                if current_section and current_content:
+                    result[current_section] = ' '.join(current_content)
+                current_section = "anomaly_detection"
+                current_content = []
+                if "：" in line:
+                    content = line.split("：", 1)[1].strip()
+                    if content:
+                        current_content.append(content)
+                        
+            elif "环境因素" in line or "4." in line and "环境" in line:
+                if current_section and current_content:
+                    result[current_section] = ' '.join(current_content)
+                current_section = "environmental_factors"
+                current_content = []
+                if "：" in line:
+                    content = line.split("：", 1)[1].strip()
+                    if content:
+                        current_content.append(content)
+                        
+            elif "总结" in line or "建议" in line:
+                if current_section and current_content:
+                    result[current_section] = ' '.join(current_content)
+                current_section = "summary"
+                current_content = []
+                if "：" in line:
+                    content = line.split("：", 1)[1].strip()
+                    if content:
+                        current_content.append(content)
+                        
+            elif current_section and line:
+                # 继续添加到当前部分
+                current_content.append(line)
+        
+        # 处理最后一个部分
+        if current_section and current_content:
+            result[current_section] = ' '.join(current_content)
+        
+        # 如果某些部分为空，尝试从整体文本中提取
+        if not any(result.values()):
+            # 简单处理：将整个回复分配给整体趋势分析
+            sentences = ai_text.split('。')
+            if len(sentences) >= 4:
+                result["overall_trend"] = sentences[0] + '。'
+                result["periodic_changes"] = sentences[1] + '。' if len(sentences) > 1 else ""
+                result["anomaly_detection"] = sentences[2] + '。' if len(sentences) > 2 else ""
+                result["environmental_factors"] = sentences[3] + '。' if len(sentences) > 3 else ""
+                result["summary"] = sentences[-1] if sentences[-1] else "数据分析完成。"
+            else:
+                result["overall_trend"] = ai_text[:100] + "..." if len(ai_text) > 100 else ai_text
+                result["summary"] = "AI分析完成，请参考具体内容。"
+        
+        # 确保所有字段都不为空
+        for key in result:
+            if not result[key]:
+                result[key] = "数据分析中，请稍后查看。"
+                
+    except Exception as e:
+        print(f"解析AI回复失败: {str(e)}")
+        # 返回默认值
+        return {
+            "overall_trend": "AI分析解析失败，请查看原始回复。",
+            "periodic_changes": "数据处理中...",
+            "anomaly_detection": "数据处理中...", 
+            "environmental_factors": "数据处理中...",
+            "summary": "分析完成，建议查看详细数据。"
+        }
+    
+    return result
 
 
 def generate_basic_trend_analysis(trend_data, context):
