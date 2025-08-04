@@ -124,10 +124,10 @@ no2-prediction-system/
 
 ### Flask Web 应用
 
-- [`web/app.py`](web/app.py)为 Flask 主程序。
-- [`web/routes/main_routes.py`](web/routes/main_routes.py)定义路由，前端使用 Chart.js 生成预测折线图，支持城市背景图片和健康建议。
-- [`web/routes/api_routes.py`](web/routes/api_routes.py): API 端点，主要提供 NO₂ 浓度预测相关的 HTTP 接口，包括历史数据查询、预测接口、城市列表查询功能。
-- [`web/templates/`](web/templates/)存储背景图片等静态资源。
+- [`web/app.py`](web/app.py)为 Flask 入口程序。
+- [`web/routes/main_routes.py`](web/routes/main_routes.py)定义主路由，负责构建起主要 Web 页面。
+- [`web/routes/api_routes.py`](web/routes/api_routes.py): API 端点，主要提供 NO₂ 浓度预测相关的 HTTP 接口，包括历史数据查询、预测接口、城市列表查询等功能。
+- [`web/templates/`](web/templates/)存储 HTML 模板、背景图片等静态资源。
 
 ## 4. 使用方法
 
@@ -160,7 +160,7 @@ no2-prediction-system/
 
 6. **训练模型**
 	```bash
-	python -m scripts.run_pipeline
+	python -m scripts.auto_training run
 	```
 
 7. **启动Web系统**
@@ -242,4 +242,7 @@ no2-prediction-system/
 	> 上述目录会在执行脚本后自动创建，不会被版本追踪。
 - **可扩展性**：支持添加新城市、切换模型、调整预测区间等。
 
-## 6. 后续计划
+## 6. 额外计划
+- 云端部署
+- 前端 AI 小助手
+- 近 15 天浓度变化趋势
