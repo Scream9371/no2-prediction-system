@@ -1,5 +1,10 @@
 import datetime
+import json
+import os
+import random
+import traceback
 
+import pandas as pd
 from flask import Blueprint, jsonify, request
 
 from config.cities import get_city_name, is_supported_city, get_all_cities
@@ -52,8 +57,6 @@ def load_daily_predictions_cache():
     Returns:
         Dict: 缓存数据，如果不存在返回None
     """
-    import os
-    import json
 
     try:
         cache_dir = os.path.join(os.getcwd(), "data", "predictions_cache")
@@ -84,7 +87,6 @@ def fallback_realtime_prediction(city: str):
     """
     try:
         # 检查模型是否存在
-        import os
         from config.paths import get_latest_model_path, get_control_model_path
 
         # 先尝试训练管道的最新模型
@@ -95,7 +97,6 @@ def fallback_realtime_prediction(city: str):
 
         if not os.path.exists(model_path):
             # 如果模型不存在，返回示例数据并提示用户
-            import datetime
 
             current_time = datetime.datetime.now()
             times = [
@@ -104,7 +105,6 @@ def fallback_realtime_prediction(city: str):
             ]
 
             # 生成示例预测数据
-            import random
 
             base_value = random.uniform(30, 80)
             values = [round(base_value + random.uniform(-5, 5), 1) for _ in range(24)]
@@ -135,7 +135,6 @@ def fallback_realtime_prediction(city: str):
             and not predictions_df.empty
         ):
             # 从预测数据中提取实际的时间标签
-            import pandas as pd
 
             times = [
                 pd.to_datetime(t).strftime("%H:%M")
@@ -151,7 +150,6 @@ def fallback_realtime_prediction(city: str):
             avg_value = sum(values) / len(values) if values else 0
 
             # 获取当前时间作为更新时间
-            import datetime
 
             current_time = datetime.datetime.now()
 
@@ -384,9 +382,7 @@ def get_historical_predictions(city_id):
         return jsonify({"error": "不支持的城市"}), 400
 
     try:
-        import os
-        import json
-
+        
         # 获取城市名称并转换为英文
         city_name = get_city_name(city_id)
         english_city_name = get_english_city_name(city_name)
@@ -531,7 +527,6 @@ def ai_assistant():
         )
 
     except Exception as e:
-        import traceback
 
         print(f"AI助手请求处理失败: {str(e)}")
         print(traceback.format_exc())
@@ -792,7 +787,6 @@ def get_trend_analysis(city_id):
     cache_key = f"trend_analysis_{city_name}_{today}"
     
     # 简单的内存缓存检查
-    import os
     cache_dir = "data/cache/trend_analysis"
     cache_file = os.path.join(cache_dir, f"{cache_key}.json")
     
@@ -802,7 +796,6 @@ def get_trend_analysis(city_id):
     # 检查今日缓存是否存在且有效（除非强制刷新）
     if not force_refresh and os.path.exists(cache_file):
         try:
-            import json
             with open(cache_file, 'r', encoding='utf-8') as f:
                 cached_result = json.load(f)
             
@@ -937,36 +930,54 @@ def get_trend_analysis(city_id):
 
         ai_response = ai_service.process_request(analysis_prompt, analysis_context)
         
+        # 生成基础统计分析作为降级回答
+        basic_analysis = generate_basic_trend_analysis(trend_data, analysis_context)
+        
         if ai_response.get("isConnected", False):
             # AI连接成功，解析分析结果
             analysis_text = ai_response.get("response", "")
             print(f"AI原始回复: {analysis_text}")  # 调试日志
             
-            # 优化的解析逻辑
-            analysis_result = parse_ai_analysis_response(analysis_text)
+            # 尝试解析AI回复
+            try:
+                analysis_result = parse_ai_analysis_response(analysis_text)
+                
+                # 检查解析结果，如果有空字段则用降级回答补充
+                for key in analysis_result:
+                    if not analysis_result[key]:
+                        analysis_result[key] = basic_analysis.get(key, "暂无该项分析")
+                        
+                # 标记为AI生成（即使部分使用了降级）
+                ai_generated = True
+                
+            except Exception as e:
+                print(f"AI回复解析失败，使用降级分析: {str(e)}")
+                analysis_result = basic_analysis
+                ai_generated = False
                 
         else:
             # AI不可用，使用基础统计分析
-            analysis_result = generate_basic_trend_analysis(trend_data, analysis_context)
+            print("AI服务不可用，使用降级分析")
+            analysis_result = basic_analysis
+            ai_generated = False
 
         # 构建返回结果
         result = {
             "city": city_name,
             "analysis_date": datetime.date.today().isoformat(),
             "data_period": f"{start_date.isoformat()} 至 {end_date.isoformat()}",
-            "overall_trend": analysis_result.get("overall_trend", "数据加载中..."),
-            "periodic_changes": analysis_result.get("periodic_changes", "数据加载中..."),
-            "anomaly_detection": analysis_result.get("anomaly_detection", "数据加载中..."),
-            "environmental_factors": analysis_result.get("environmental_factors", "数据加载中..."),
-            "summary": analysis_result.get("summary", "数据加载中..."),
+            "overall_trend": analysis_result.get("overall_trend", "暂无分析结果"),
+            "periodic_changes": analysis_result.get("periodic_changes", "暂无分析结果"),
+            "anomaly_detection": analysis_result.get("anomaly_detection", "暂无分析结果"),
+            "environmental_factors": analysis_result.get("environmental_factors", "暂无分析结果"),
+            "summary": analysis_result.get("summary", "暂无分析结果"),
             "generated_at": datetime.datetime.now().isoformat(),
-            "ai_generated": ai_response.get("isConnected", False),
+            "ai_generated": ai_generated,
             "cached": False
         }
         
         # 保存到缓存
         try:
-            import json
             with open(cache_file, 'w', encoding='utf-8') as f:
                 json.dump(result, f, ensure_ascii=False, indent=2)
             print(f"分析结果已缓存到: {cache_file}")
@@ -1076,21 +1087,12 @@ def parse_ai_analysis_response(ai_text):
                 result["overall_trend"] = ai_text[:100] + "..." if len(ai_text) > 100 else ai_text
                 result["summary"] = "AI分析完成，请参考具体内容。"
         
-        # 确保所有字段都不为空
-        for key in result:
-            if not result[key]:
-                result[key] = "数据分析中，请稍后查看。"
+        # 不再使用无意义占位符，保持字段为空由上层处理
                 
     except Exception as e:
         print(f"解析AI回复失败: {str(e)}")
-        # 返回默认值
-        return {
-            "overall_trend": "AI分析解析失败，请查看原始回复。",
-            "periodic_changes": "数据处理中...",
-            "anomaly_detection": "数据处理中...", 
-            "environmental_factors": "数据处理中...",
-            "summary": "分析完成，建议查看详细数据。"
-        }
+        # 返回空结果，由上层使用降级分析
+        raise e
     
     return result
 
