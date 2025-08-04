@@ -284,8 +284,68 @@
 
         .trend-analysis h4 {
             color: #2c3e50;
-            margin-bottom: 1rem;
-            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .ai-status-indicator {
+            font-size: 1rem;
+            margin-left: 0.5rem;
+        }
+
+        .analysis-sections {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .analysis-section, .analysis-summary {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .analysis-summary {
+            border-left-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .analysis-section h5, .analysis-summary h5 {
+            color: #2c3e50;
+            margin: 0 0 0.75rem 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .analysis-section p, .analysis-summary p {
+            color: #4a5568;
+            margin: 0;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .analysis-footer {
+            margin-top: 1.5rem;
+            text-align: center;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .analysis-footer small {
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+
+        /* 加载状态样式 */
+        .analysis-loading {
+            opacity: 0.7;
+            background: rgba(108, 117, 125, 0.1);
+        }
+
+        .analysis-error {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
         }
 
         .analysis-list {
@@ -997,13 +1057,32 @@
 
             <div class="content-panel" id="analysis-panel">
                 <div class="trend-analysis">
-                    <h4>趋势分析报告</h4>
-                    <ul class="analysis-list">
-                        <li>整体趋势分析加载中...</li>
-                        <li>最高/最低浓度分析加载中...</li>
-                        <li>平均浓度计算中...</li>
-                        <li>波动范围分析中...</li>
-                    </ul>
+                    <h4>AI智能趋势分析报告 <span id="aiAnalysisStatus" class="ai-status-indicator">🤖</span></h4>
+                    <div class="analysis-sections">
+                        <div class="analysis-section">
+                            <h5>📈 整体趋势分析</h5>
+                            <p id="overallTrend">正在生成AI分析报告...</p>
+                        </div>
+                        <div class="analysis-section">
+                            <h5>🔄 周期性变化分析</h5>
+                            <p id="periodicChanges">正在分析周期性变化...</p>
+                        </div>
+                        <div class="analysis-section">
+                            <h5>⚠️ 异常值检测</h5>
+                            <p id="anomalyDetection">正在检测异常值...</p>
+                        </div>
+                        <div class="analysis-section">
+                            <h5>🌍 环境因素影响评估</h5>
+                            <p id="environmentalFactors">正在评估环境因素影响...</p>
+                        </div>
+                        <div class="analysis-summary">
+                            <h5>💡 总结建议</h5>
+                            <p id="analysisSummary">正在生成总结建议...</p>
+                        </div>
+                    </div>
+                    <div class="analysis-footer">
+                        <small id="analysisTimestamp">分析时间：加载中...</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1909,29 +1988,107 @@
             statCards[3].querySelector('.stat-value').textContent = changeRange.toFixed(1);
         }
 
-        // 更新趋势分析报告
-        const analysisContainer = document.querySelector('.analysis-list');
-        if (analysisContainer) {
-            analysisContainer.innerHTML = '';
-
-            // 创建分析报告项目
-            const analysisItems = [
-                `整体趋势：${getTrendDescription(trendData.data)}`,
-                `最高值出现在 ${getMaxDate(trendData.data)}，最低值出现在 ${getMinDate(trendData.data)}`,
-                `平均浓度：${(trendData.data.reduce((sum, item) => sum + item.avg_no2, 0) / trendData.data.length).toFixed(1)} μg/m³`,
-                `波动范围：${(Math.max(...trendData.data.map(item => item.avg_no2)) - Math.min(...trendData.data.map(item => item.avg_no2))).toFixed(1)} μg/m³`
-            ];
-
-            // 添加到列表
-            analysisItems.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = item;
-                analysisContainer.appendChild(li);
-            });
-        }
-
         // 渲染趋势图表
         renderTrendChart(trendData);
+        
+        // 获取AI趋势分析报告
+        fetchTrendAnalysis(trendData.city);
+    }
+
+    // 获取AI趋势分析报告
+    async function fetchTrendAnalysis(cityName) {
+        try {
+            // 获取城市ID映射
+            const citiesResponse = await fetch('/api/cities');
+            const cities = await citiesResponse.json();
+
+            const cityInfo = cities.find(item => {
+                if (item.name === cityName) return true;
+                if (cityName.endsWith('市') && item.name === cityName.slice(0, -1)) return true;
+                if (cityName.endsWith('特别行政区') && item.name === cityName.slice(0, -5)) return true;
+                if (item.name.endsWith('市') && item.name.slice(0, -1) === cityName) return true;
+                return item.name.endsWith('特别行政区') && item.name.slice(0, -5) === cityName;
+            });
+
+            if (!cityInfo) {
+                throw new Error(`未找到城市${cityName}的ID`);
+            }
+
+            // 设置加载状态
+            setAnalysisLoadingState();
+
+            // 获取AI分析报告
+            const response = await fetch(`/api/trend/analysis/${cityInfo.id}`);
+            if (!response.ok) {
+                throw new Error('分析报告获取失败');
+            }
+
+            const analysisData = await response.json();
+            displayTrendAnalysis(analysisData);
+
+        } catch (error) {
+            console.error('AI趋势分析获取失败:', error);
+            displayAnalysisError(error.message);
+        }
+    }
+
+    // 设置分析加载状态
+    function setAnalysisLoadingState() {
+        const sections = document.querySelectorAll('.analysis-section, .analysis-summary');
+        sections.forEach(section => {
+            section.classList.add('analysis-loading');
+        });
+        
+        document.getElementById('aiAnalysisStatus').textContent = '🔄';
+    }
+
+    // 显示AI趋势分析结果
+    function displayTrendAnalysis(data) {
+        // 移除加载状态
+        const sections = document.querySelectorAll('.analysis-section, .analysis-summary');
+        sections.forEach(section => {
+            section.classList.remove('analysis-loading', 'analysis-error');
+        });
+
+        // 更新各部分内容
+        document.getElementById('overallTrend').textContent = data.overall_trend || '暂无分析结果';
+        document.getElementById('periodicChanges').textContent = data.periodic_changes || '暂无分析结果';
+        document.getElementById('anomalyDetection').textContent = data.anomaly_detection || '暂无分析结果';
+        document.getElementById('environmentalFactors').textContent = data.environmental_factors || '暂无分析结果';
+        document.getElementById('analysisSummary').textContent = data.summary || '暂无总结建议';
+
+        // 更新时间戳和状态
+        const timestamp = new Date(data.generated_at).toLocaleString('zh-CN');
+        document.getElementById('analysisTimestamp').textContent = `分析时间：${timestamp}`;
+        
+        // 更新AI状态指示器
+        const statusIndicator = document.getElementById('aiAnalysisStatus');
+        if (data.ai_generated) {
+            statusIndicator.textContent = '✅';
+            statusIndicator.title = '由AI智能分析生成';
+        } else {
+            statusIndicator.textContent = '📊';
+            statusIndicator.title = '基于统计分析生成';
+        }
+    }
+
+    // 显示分析错误
+    function displayAnalysisError(errorMessage) {
+        const sections = document.querySelectorAll('.analysis-section, .analysis-summary');
+        sections.forEach(section => {
+            section.classList.remove('analysis-loading');
+            section.classList.add('analysis-error');
+        });
+
+        // 显示错误信息
+        document.getElementById('overallTrend').textContent = `分析失败：${errorMessage}`;
+        document.getElementById('periodicChanges').textContent = '数据获取失败，请稍后重试';
+        document.getElementById('anomalyDetection').textContent = '数据获取失败，请稍后重试';
+        document.getElementById('environmentalFactors').textContent = '数据获取失败，请稍后重试';
+        document.getElementById('analysisSummary').textContent = '请检查网络连接或联系技术支持';
+        
+        document.getElementById('aiAnalysisStatus').textContent = '❌';
+        document.getElementById('analysisTimestamp').textContent = '分析时间：获取失败';
     }
 
     // 辅助函数：获取趋势描述
