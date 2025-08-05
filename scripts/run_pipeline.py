@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 
 from ml.src.control import get_supported_cities
 from ml.src.train import train_full_pipeline, save_model
+from ml.src.reproducibility import ensure_reproducibility_context
 
 
 def get_daily_model_path(city: str, date_str: str = None) -> str:
@@ -124,8 +125,9 @@ def train_city_with_version_control(city: str, **train_kwargs) -> bool:
     daily_model_path = get_daily_model_path(city, today_str)
     
     try:
-        # 直接调用训练流程，不预先保存模型
-        model, Q, scalers, eval_results = train_full_pipeline(city=city, **train_kwargs)
+        # 使用可重现性上下文管理器确保训练的一致性
+        with ensure_reproducibility_context(city, base_seed=42, ensure_deterministic=True):
+            model, Q, scalers, eval_results = train_full_pipeline(city=city, **train_kwargs)
         
         # 确保目录存在
         os.makedirs(os.path.dirname(daily_model_path), exist_ok=True)
