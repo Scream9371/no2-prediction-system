@@ -48,7 +48,7 @@ class QuantileNet(nn.Module):
 
 def quantile_loss(output: torch.Tensor, target: torch.Tensor, tau: float) -> torch.Tensor:
     """
-    分位数损失函数
+    分位数损失函数（Pinball Loss）
     
     Args:
         output (torch.Tensor): 模型输出
@@ -60,6 +60,46 @@ def quantile_loss(output: torch.Tensor, target: torch.Tensor, tau: float) -> tor
     """
     error = target.unsqueeze(1) - output
     return torch.mean(torch.max((tau - 1) * error, tau * error))
+
+
+def non_crossing_quantile_loss(lower_pred: torch.Tensor, upper_pred: torch.Tensor, 
+                               target: torch.Tensor, tau_low: float = 0.05, 
+                               tau_high: float = 0.95, lambda_penalty: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    带非交叉约束的NC-CQR损失函数
+    
+    基于论文《Nonparametric Quantile Regression: Non-Crossing Constraints and Conformal Prediction》
+    对应论文中的公式(6)：R_n(f1, f2) = 分位数损失 + λ*非交叉惩罚项
+    
+    损失函数组成：
+    1. 下分位数的Pinball Loss：ρ_τ_low(Y - f1(X))
+    2. 上分位数的Pinball Loss：ρ_τ_high(Y - f2(X))  
+    3. ReLU惩罚项：λ * max{f1(X) - f2(X), 0} 防止下分位数超过上分位数
+    
+    Args:
+        lower_pred (torch.Tensor): 下分位数预测 f1(X)
+        upper_pred (torch.Tensor): 上分位数预测 f2(X)
+        target (torch.Tensor): 真实目标值 Y
+        tau_low (float): 下分位数水平，默认0.05
+        tau_high (float): 上分位数水平，默认0.95
+        lambda_penalty (float): 非交叉惩罚权重，默认1.0
+        
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: 
+            (总损失, 下分位数损失, 上分位数损失, 交叉惩罚项)
+    """
+    # 1. 计算两个分位数的Pinball Loss
+    loss_lower = quantile_loss(lower_pred, target, tau_low)
+    loss_upper = quantile_loss(upper_pred, target, tau_high)
+    
+    # 2. 计算非交叉惩罚项：V(f1, f2; x) = max{f1(x) - f2(x), 0}
+    # 只有当lower_pred > upper_pred时才施加惩罚，确保 Q_low ≤ Q_high
+    crossing_penalty = torch.mean(torch.relu(lower_pred - upper_pred))
+    
+    # 3. 组合成总损失：R_n(f1, f2) = L_low + L_high + λ * V
+    total_loss = loss_lower + loss_upper + lambda_penalty * crossing_penalty
+    
+    return total_loss, loss_lower, loss_upper, crossing_penalty
 
 
 def train_nc_cqr_model(
@@ -116,10 +156,16 @@ def train_nc_cqr_model(
     model = QuantileNet(input_dim=X_train.shape[1], hidden_dims=hidden_dims).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     
-    # 训练循环
+    # 训练循环 - 使用标准NC-CQR损失函数
+    lambda_penalty = 1.0  # 非交叉惩罚权重，可调参数
+    
     for epoch in range(epochs):
         model.train()
-        total_loss = 0
+        epoch_total_loss = 0
+        epoch_lower_loss = 0
+        epoch_upper_loss = 0
+        epoch_crossing_penalty = 0
+        num_batches = 0
         
         for X_batch, y_batch in train_loader:
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
@@ -127,26 +173,45 @@ def train_nc_cqr_model(
             # 前向传播
             lower_pred, upper_pred = model(X_batch)
             
-            # 计算分位数损失 - 修改为95%区间对应的分位数
-            loss_lower = quantile_loss(lower_pred, y_batch, tau=0.05)
-            loss_upper = quantile_loss(upper_pred, y_batch, tau=0.95)
-            
-            # 非交叉约束惩罚项
-            penalty = torch.mean(torch.relu(lower_pred - upper_pred))
-            
-            # 总损失
-            total_loss = loss_lower + loss_upper + 0.1 * penalty
+            # 使用标准NC-CQR损失函数
+            total_loss, loss_lower, loss_upper, crossing_penalty = non_crossing_quantile_loss(
+                lower_pred, upper_pred, y_batch, 
+                tau_low=0.05, tau_high=0.95, lambda_penalty=lambda_penalty
+            )
             
             # 反向传播
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()
+            
+            # 累积损失统计
+            epoch_total_loss += total_loss.item()
+            epoch_lower_loss += loss_lower.item()
+            epoch_upper_loss += loss_upper.item()
+            epoch_crossing_penalty += crossing_penalty.item()
+            num_batches += 1
         
-        # 打印训练进度
+        # 打印训练进度（每50轮显示详细统计）
         if (epoch + 1) % 50 == 0:
-            print(f"Epoch {epoch + 1}/{epochs}, Loss: {total_loss.item():.4f}")
+            avg_total = epoch_total_loss / num_batches
+            avg_lower = epoch_lower_loss / num_batches
+            avg_upper = epoch_upper_loss / num_batches
+            avg_crossing = epoch_crossing_penalty / num_batches
+            
+            print(f"Epoch {epoch + 1}/{epochs}")
+            print(f"  总损失: {avg_total:.6f}")
+            print(f"  下分位数损失: {avg_lower:.6f}")
+            print(f"  上分位数损失: {avg_upper:.6f}")
+            print(f"  交叉惩罚: {avg_crossing:.6f} {'⚠️' if avg_crossing > 0.01 else '✅'}")
+            
+            # 检查是否存在严重的交叉问题
+            if avg_crossing > 0.1:
+                print(f"  ⚠️ 警告：交叉惩罚过高，考虑增加lambda_penalty参数")
     
-    # 保形校准
+    # 标准Conformal Prediction校准
+    print("\n=== 开始Conformal预测校准 ===")
+    alpha = 0.1  # 误覆盖率，对应90%置信度
+    
     with torch.no_grad():
         model.eval()
         X_calib_tensor = torch.FloatTensor(X_calib).to(device)
@@ -154,14 +219,38 @@ def train_nc_cqr_model(
         
         lower_pred, upper_pred = model(X_calib_tensor)
         
-        # 计算校准分数
-        scores = torch.maximum(
-            y_calib_tensor - upper_pred.squeeze(),
-            lower_pred.squeeze() - y_calib_tensor
+        # 计算符合度分数：E_i = max{f1(X_i) - Y_i, Y_i - f2(X_i)}
+        # 对应论文公式(13)
+        conformity_scores = torch.maximum(
+            lower_pred.squeeze() - y_calib_tensor,  # f1(X_i) - Y_i
+            y_calib_tensor - upper_pred.squeeze()   # Y_i - f2(X_i)
         )
-        Q = torch.quantile(scores, 0.9).cpu().item()
+        
+        # 使用标准分位数公式：ceil((1-α)(n+1))/n
+        # 对应论文第9页的精确有限样本保证
+        n_calib = len(X_calib)
+        quantile_level = np.ceil((1 - alpha) * (n_calib + 1)) / n_calib
+        quantile_level = min(1.0, quantile_level)  # 确保不超过1.0
+        
+        Q_hat = torch.quantile(conformity_scores, quantile_level).cpu().item()
+        
+        # 统计信息
+        num_violations = torch.sum(conformity_scores > Q_hat).item()
+        violation_rate = num_violations / n_calib
+        
+        print(f"校准集大小: {n_calib}")
+        print(f"目标置信度: {1-alpha:.1%}")
+        print(f"计算分位数级别: {quantile_level:.4f}")
+        print(f"校准量化值Q_hat: {Q_hat:.4f}")
+        print(f"校准集违约率: {violation_rate:.1%}")
+        
+        # 验证校准效果
+        if violation_rate <= alpha + 0.05:  # 允许5%的容差
+            print("✅ Conformal校准成功")
+        else:
+            print("⚠️ Conformal校准可能存在问题")
     
-    return model, Q
+    return model, Q_hat
 
 
 def evaluate_model(model: nn.Module, X_test: np.ndarray, y_test: np.ndarray, Q: float) -> Dict:
