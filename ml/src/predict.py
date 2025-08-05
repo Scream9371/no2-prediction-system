@@ -34,13 +34,19 @@ def predict_future_nc_cqr(
         steps: int = 24
 ) -> pd.DataFrame:
     """
-    使用NC-CQR模型预测未来步长的NO2浓度
+    使用NC-CQR模型进行数值稳定的递归预测
+    
+    基于标准NC-CQR算法，添加了数值稳定性保证：
+    1. 非交叉约束后处理
+    2. 数值边界检查和修正
+    3. 异常值检测和修正
+    4. NO2 lag特征的一致性处理
     
     Args:
         model (nn.Module): 训练好的NC-CQR模型
         last_data (pd.DataFrame): 历史数据
         scalers (Dict): 标准化器字典
-        Q (float): 校准量化值
+        Q (float): 校准量化值Q_hat
         steps (int): 预测步数，默认24小时
         
     Returns:
@@ -52,26 +58,51 @@ def predict_future_nc_cqr(
     # 获取最近的历史数据用于特征构建
     history = last_data[['no2', 'temperature', 'humidity',
                          'wind_speed', 'pressure', 'wind_direction']].tail(2).copy()
+    
+    # 数值稳定性参数
+    NO2_MIN, NO2_MAX = 0.0, 200.0  # NO2浓度合理范围
+    MAX_STEP_CHANGE = 50.0  # 单步最大变化阈值
+    
+    print(f"开始{steps}小时递归预测，初始NO2: {history.iloc[-1]['no2']:.2f}")
 
     for i in range(steps):
         latest = history.iloc[-1]
         prev = history.iloc[-2]
         pred_time = last_data['observation_time'].iloc[-1] + timedelta(hours=i + 1)
 
-        # 构建特征
-        features = {
-            'temperature': scalers['temperature'].transform([[latest['temperature']]])[0][0],
-            'humidity': scalers['humidity'].transform([[latest['humidity']]])[0][0],
-            'wind_speed': scalers['wind_speed'].transform([[latest['wind_speed']]])[0][0],
-            'pressure': scalers['pressure'].transform([[latest['pressure']]])[0][0],
-            'wind_sin': np.sin(np.radians(latest['wind_direction'])),
-            'wind_cos': np.cos(np.radians(latest['wind_direction'])),
-            'no2_lag1': latest['no2'],
-            'no2_lag2': prev['no2'],
-            'hour': pred_time.hour,
-            'day_of_week': pred_time.dayofweek,
-            'is_weekend': int(pred_time.dayofweek in [5, 6])
-        }
+        # 1. 构建标准化特征
+        try:
+            features = {
+                'temperature': scalers['temperature'].transform([[latest['temperature']]])[0][0],
+                'humidity': scalers['humidity'].transform([[latest['humidity']]])[0][0],
+                'wind_speed': scalers['wind_speed'].transform([[latest['wind_speed']]])[0][0],
+                'pressure': scalers['pressure'].transform([[latest['pressure']]])[0][0],
+                'wind_sin': np.sin(np.radians(latest['wind_direction'])),
+                'wind_cos': np.cos(np.radians(latest['wind_direction'])),
+                'no2_lag1': latest['no2'],  # 将在下面进行边界检查
+                'no2_lag2': prev['no2'],    # 将在下面进行边界检查
+                'hour': pred_time.hour,
+                'day_of_week': pred_time.dayofweek,
+                'is_weekend': int(pred_time.dayofweek in [5, 6])
+            }
+        except Exception as e:
+            print(f"⚠️ 第{i+1}步特征构建失败: {e}")
+            # 使用前一步的结果作为备份
+            if predictions:
+                last_pred = predictions[-1]
+                predictions.append({
+                    'observation_time': pred_time,
+                    'prediction': last_pred['prediction'],
+                    'lower_bound': last_pred['lower_bound'],
+                    'upper_bound': last_pred['upper_bound']
+                })
+                continue
+            else:
+                break
+
+        # 2. NO2 lag特征边界检查和修正
+        features['no2_lag1'] = np.clip(features['no2_lag1'], NO2_MIN, NO2_MAX)
+        features['no2_lag2'] = np.clip(features['no2_lag2'], NO2_MIN, NO2_MAX)
 
         # 按训练时的特征顺序排列
         feature_order = [
@@ -82,35 +113,95 @@ def predict_future_nc_cqr(
         ]
         X = np.array([features[col] for col in feature_order]).reshape(1, -1)
 
-        # 模型预测
+        # 3. 模型预测
         with torch.no_grad():
             model.eval()
             X_tensor = torch.FloatTensor(X).to(device)
             lower_pred, upper_pred = model(X_tensor)
 
-        # 应用保形预测校准
-        lower_bound = lower_pred.item() - Q
-        upper_bound = upper_pred.item() + Q
+            # 提取标量值
+            lower_val = lower_pred.item()
+            upper_val = upper_pred.item()
+
+        # 4. 非交叉约束后处理
+        if lower_val > upper_val:
+            print(f"⚠️ 第{i+1}步检测到分位数交叉: lower={lower_val:.3f}, upper={upper_val:.3f}")
+            # 使用中点作为两个分位数
+            mid = (lower_val + upper_val) / 2
+            lower_val = upper_val = mid
+
+        # 5. 应用Conformal预测校准
+        lower_bound = lower_val - Q
+        upper_bound = upper_val + Q
         mid_point = (lower_bound + upper_bound) / 2
+
+        # 6. 数值边界检查
+        lower_bound = np.clip(lower_bound, NO2_MIN, NO2_MAX)
+        upper_bound = np.clip(upper_bound, NO2_MIN, NO2_MAX)
+        mid_point = np.clip(mid_point, NO2_MIN, NO2_MAX)
+
+        # 7. 异常值检测和单步变化修正
+        if i > 0:
+            prev_prediction = predictions[-1]['prediction']
+            step_change = abs(mid_point - prev_prediction)
+            
+            if step_change > MAX_STEP_CHANGE:
+                print(f"⚠️ 第{i+1}步检测到异常变化: {step_change:.2f}, 限制为{MAX_STEP_CHANGE}")
+                # 限制单步变化幅度
+                direction = np.sign(mid_point - prev_prediction)
+                mid_point = prev_prediction + direction * MAX_STEP_CHANGE
+                
+                # 相应调整区间
+                interval_width = upper_bound - lower_bound
+                lower_bound = mid_point - interval_width / 2
+                upper_bound = mid_point + interval_width / 2
+                
+                # 再次边界检查
+                lower_bound = np.clip(lower_bound, NO2_MIN, NO2_MAX)
+                upper_bound = np.clip(upper_bound, NO2_MIN, NO2_MAX)
+
+        # 8. 检查数值有效性
+        if not (np.isfinite(mid_point) and np.isfinite(lower_bound) and np.isfinite(upper_bound)):
+            print(f"⚠️ 第{i+1}步数值无效，使用前一步结果")
+            if predictions:
+                last_pred = predictions[-1]
+                mid_point = last_pred['prediction']
+                lower_bound = last_pred['lower_bound']
+                upper_bound = last_pred['upper_bound']
+            else:
+                mid_point = history.iloc[-1]['no2']
+                lower_bound = mid_point - 5
+                upper_bound = mid_point + 5
 
         predictions.append({
             'observation_time': pred_time,
-            'prediction': mid_point,
-            'lower_bound': lower_bound,
-            'upper_bound': upper_bound
+            'prediction': float(mid_point),
+            'lower_bound': float(lower_bound),
+            'upper_bound': float(upper_bound)
         })
 
-        # 更新历史数据，用于下一步预测
+        # 9. 更新历史数据（添加气象特征的渐变模拟）
+        # 简单的线性趋势模拟，而非固定值
+        temp_trend = np.random.normal(0, 0.5)  # 小幅度温度变化
+        humid_trend = np.random.normal(0, 2.0)  # 小幅度湿度变化
+        
         new_row = {
-            'no2': mid_point,
-            'temperature': latest['temperature'],
-            'humidity': latest['humidity'],
-            'wind_speed': latest['wind_speed'],
-            'pressure': latest['pressure'],
-            'wind_direction': latest['wind_direction']
+            'no2': float(mid_point),
+            'temperature': latest['temperature'] + temp_trend,
+            'humidity': np.clip(latest['humidity'] + humid_trend, 0, 100),
+            'wind_speed': latest['wind_speed'] + np.random.normal(0, 0.3),
+            'pressure': latest['pressure'] + np.random.normal(0, 0.5),
+            'wind_direction': latest['wind_direction']  # 风向保持相对稳定
         }
+        
+        # 添加边界检查
+        new_row['temperature'] = np.clip(new_row['temperature'], -20, 50)
+        new_row['wind_speed'] = np.clip(new_row['wind_speed'], 0, 50)
+        new_row['pressure'] = np.clip(new_row['pressure'], 900, 1100)
+        
         history = pd.concat([history.iloc[1:], pd.DataFrame([new_row])], ignore_index=True)
 
+    print(f"✅ 完成{len(predictions)}小时预测，最终NO2: {predictions[-1]['prediction']:.2f}")
     return pd.DataFrame(predictions)
 
 
