@@ -83,12 +83,13 @@ class SimpleAutoTrainingScheduler:
         
         return logger
     
-    def check_data_freshness(self, days_threshold: int = 3) -> Tuple[List[str], List[str]]:
+    def check_data_freshness(self, days_threshold: int = 3, force_override: bool = False) -> Tuple[List[str], List[str]]:
         """
         检查数据可用性和训练需求，确定哪些城市需要训练
         
         Args:
             days_threshold (int): 数据可用性阈值（天数），默认3天内有数据即可
+            force_override (bool): 是否强制覆盖模式，跳过已训练检查
             
         Returns:
             Tuple[List[str], List[str]]: (需要训练的城市, 跳过的城市)
@@ -103,12 +104,15 @@ class SimpleAutoTrainingScheduler:
         
         for city in cities:
             try:
-                # 1. 检查今天是否已经训练过模型
-                from scripts.run_pipeline import is_model_trained_today
-                if is_model_trained_today(city):
-                    cities_to_skip.append(city)
-                    self.logger.info(f"{city}: 今日模型已存在，跳过训练")
-                    continue
+                # 1. 检查今天是否已经训练过模型（强制覆盖时跳过此检查）
+                if not force_override:
+                    from scripts.run_pipeline import is_model_trained_today
+                    if is_model_trained_today(city):
+                        cities_to_skip.append(city)
+                        self.logger.info(f"{city}: 今日模型已存在，跳过训练")
+                        continue
+                else:
+                    self.logger.info(f"{city}: 强制覆盖模式，忽略已训练检查")
                 
                 # 2. 检查数据可用性
                 df = load_data_from_mysql(city)
@@ -142,24 +146,29 @@ class SimpleAutoTrainingScheduler:
         self.logger.info(f"数据检查完成: 需训练{len(cities_to_train)}个城市, 跳过{len(cities_to_skip)}个城市")
         return cities_to_train, cities_to_skip
     
-    def run_daily_training(self) -> SimpleTrainingResult:
+    def run_daily_training(self, force_override: bool = False) -> SimpleTrainingResult:
         """
         执行每日自动训练
+        
+        Args:
+            force_override (bool): 是否强制覆盖模式，删除现有模型和缓存重新训练
         
         Returns:
             SimpleTrainingResult: 训练结果
         """
         start_time = datetime.now()
         self.logger.info("=" * 60)
-        self.logger.info(f"开始每日自动模型训练 - {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        if force_override:
+            self.logger.info(f"开始强制覆盖训练 - {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            self.logger.info(f"开始每日自动模型训练 - {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         self.logger.info("=" * 60)
         
         try:
-            # 1. 开始训练流程
             
             # 2. 检查数据新鲜度
             self.logger.info("\n🔍 检查数据新鲜度...")
-            cities_to_train, cities_to_skip = self.check_data_freshness()
+            cities_to_train, cities_to_skip = self.check_data_freshness(force_override=force_override)
             
             if not cities_to_train:
                 self.logger.info("所有城市都已跳过，无需训练")
@@ -178,7 +187,7 @@ class SimpleAutoTrainingScheduler:
             
             # 3. 执行训练（只训练需要训练的城市）
             self.logger.info(f"\n🚀 开始训练 {len(cities_to_train)} 个城市...")
-            training_results = train_cities(cities_to_train)
+            training_results = train_cities(cities_to_train, force_override=force_override)
             
             # 4. 解析训练结果（合并预检查的跳过城市）
             successful_cities = training_results.get('successful', [])
@@ -192,11 +201,17 @@ class SimpleAutoTrainingScheduler:
             self.logger.info("\n🧹 清理旧模型文件...")
             cleanup_old_models(days_to_keep=7)
             
-            # 6. 预计算今日预测数据（新模型训练完成后）
+            # 6. 预计算今日预测数据
             if successful_cities:
                 self.logger.info("\n🔮 开始预计算今日预测数据...")
                 precompute_result = self._precompute_daily_predictions(successful_cities)
                 self.logger.info(f"预计算完成: 成功{precompute_result['successful']}个城市, 失败{precompute_result['failed']}个城市")
+            elif force_override:
+                # 强制覆盖模式：即使没有新训练模型，也要重新预计算所有城市
+                self.logger.info("\n🔮 强制覆盖模式：重新预计算所有城市...")
+                all_cities = get_supported_cities()
+                precompute_result = self._precompute_daily_predictions(all_cities)
+                self.logger.info(f"强制预计算完成: 成功{precompute_result['successful']}个城市, 失败{precompute_result['failed']}个城市")
             else:
                 self.logger.info("\n⏭️ 跳过预计算（无新训练模型）")
             
