@@ -102,19 +102,20 @@ def create_model_symlink(city: str, date_str: str = None):
             print(f"    创建 {city} 模型链接失败: {e}")
 
 
-def train_city_with_version_control(city: str, **train_kwargs) -> bool:
+def train_city_with_version_control(city: str, force_override: bool = False, **train_kwargs) -> bool:
     """
     带版本控制的城市模型训练
     
     Args:
         city (str): 城市名称
+        force_override (bool): 是否强制覆盖，跳过已训练检查
         **train_kwargs: 训练参数
         
     Returns:
         bool: 训练是否成功
     """
-    # 检查今天是否已经训练过
-    if is_model_trained_today(city):
+    # 检查今天是否已经训练过（强制覆盖时跳过）
+    if not force_override and is_model_trained_today(city):
         print(f"    {city} 今日模型已存在，跳过训练")
         # 确保符号链接存在
         create_model_symlink(city)
@@ -148,12 +149,13 @@ def train_city_with_version_control(city: str, **train_kwargs) -> bool:
         return False
 
 
-def train_cities(cities_list=None):
+def train_cities(cities_list=None, force_override=False):
     """
     批量训练指定城市的模型
     
     Args:
         cities_list (List[str]): 要训练的城市列表，None时训练所有城市
+        force_override (bool): 是否强制覆盖，跳过已训练检查
         
     Returns:
         dict: 训练结果统计
@@ -185,6 +187,7 @@ def train_cities(cities_list=None):
             # 使用带版本控制的训练函数
             success = train_city_with_version_control(
                 city=city,
+                force_override=force_override,
                 epochs=150,
                 batch_size=32,
                 learning_rate=1e-3
