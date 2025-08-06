@@ -60,8 +60,8 @@ def predict_future_nc_cqr(
                          'wind_speed', 'pressure', 'wind_direction']].tail(2).copy()
     
     # 数值稳定性参数
-    NO2_MIN, NO2_MAX = 0.0, 200.0  # NO2浓度合理范围
-    MAX_STEP_CHANGE = 50.0  # 单步最大变化阈值
+    NO2_MIN, NO2_MAX = 5.0, 150.0  # NO2浓度合理范围（避免极值）
+    MAX_STEP_CHANGE = 20.0  # 单步最大变化阈值（更合理）
     
     print(f"开始{steps}小时递归预测，初始NO2: {history.iloc[-1]['no2']:.2f}")
 
@@ -86,7 +86,7 @@ def predict_future_nc_cqr(
                 'is_weekend': int(pred_time.dayofweek in [5, 6])
             }
         except Exception as e:
-            print(f"⚠️ 第{i+1}步特征构建失败: {e}")
+            print(f"[WARNING] 第{i+1}步特征构建失败: {e}")
             # 使用前一步的结果作为备份
             if predictions:
                 last_pred = predictions[-1]
@@ -125,7 +125,7 @@ def predict_future_nc_cqr(
 
         # 4. 非交叉约束后处理
         if lower_val > upper_val:
-            print(f"⚠️ 第{i+1}步检测到分位数交叉: lower={lower_val:.3f}, upper={upper_val:.3f}")
+            print(f"[WARNING] 第{i+1}步检测到分位数交叉: lower={lower_val:.3f}, upper={upper_val:.3f}")
             # 使用中点作为两个分位数
             mid = (lower_val + upper_val) / 2
             lower_val = upper_val = mid
@@ -146,7 +146,7 @@ def predict_future_nc_cqr(
             step_change = abs(mid_point - prev_prediction)
             
             if step_change > MAX_STEP_CHANGE:
-                print(f"⚠️ 第{i+1}步检测到异常变化: {step_change:.2f}, 限制为{MAX_STEP_CHANGE}")
+                print(f"[WARNING] Step {i+1} large change detected: {step_change:.2f}, limited to {MAX_STEP_CHANGE}")
                 # 限制单步变化幅度
                 direction = np.sign(mid_point - prev_prediction)
                 mid_point = prev_prediction + direction * MAX_STEP_CHANGE
@@ -162,7 +162,7 @@ def predict_future_nc_cqr(
 
         # 8. 检查数值有效性
         if not (np.isfinite(mid_point) and np.isfinite(lower_bound) and np.isfinite(upper_bound)):
-            print(f"⚠️ 第{i+1}步数值无效，使用前一步结果")
+            print(f"[WARNING] Step {i+1} invalid values, using previous result")
             if predictions:
                 last_pred = predictions[-1]
                 mid_point = last_pred['prediction']
@@ -181,9 +181,9 @@ def predict_future_nc_cqr(
         })
 
         # 9. 更新历史数据（添加气象特征的渐变模拟）
-        # 简单的线性趋势模拟，而非固定值
-        temp_trend = np.random.normal(0, 0.5)  # 小幅度温度变化
-        humid_trend = np.random.normal(0, 2.0)  # 小幅度湿度变化
+        # 更现实的气象变化模拟
+        temp_trend = np.random.normal(0, 0.3)  # 减少温度变化幅度
+        humid_trend = np.random.normal(0, 1.5)  # 减少湿度变化幅度
         
         new_row = {
             'no2': float(mid_point),
@@ -201,7 +201,7 @@ def predict_future_nc_cqr(
         
         history = pd.concat([history.iloc[1:], pd.DataFrame([new_row])], ignore_index=True)
 
-    print(f"✅ 完成{len(predictions)}小时预测，最终NO2: {predictions[-1]['prediction']:.2f}")
+    print(f"[SUCCESS] Completed {len(predictions)} hour prediction, final NO2: {predictions[-1]['prediction']:.2f}")
     return pd.DataFrame(predictions)
 
 
