@@ -194,14 +194,17 @@ def train_cities(cities_list=None, force_override=False):
             )
             
             if success:
-                if already_trained:
-                    # 今天已经训练过，跳过了训练
+                if already_trained and not force_override:
+                    # 今天已经训练过，且非强制模式，跳过了训练
                     results["skipped"].append(city)
                     print(f"{city} 今日模型已存在，跳过训练")
                 else:
-                    # 实际进行了训练
+                    # 实际进行了训练（新训练或强制覆盖）
                     results["successful"].append(city)
-                    print(f"{city} 模型训练成功")
+                    if force_override and already_trained:
+                        print(f"{city} 强制覆盖训练成功")
+                    else:
+                        print(f"{city} 模型训练成功")
             else:
                 results["failed"].append(city)
                 print(f"{city} 模型训练失败")
