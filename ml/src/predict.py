@@ -31,7 +31,8 @@ def predict_future_nc_cqr(
         last_data: pd.DataFrame,
         scalers: Dict,
         Q: float,
-        steps: int = 24
+        steps: int = 24,
+        random_seed: int = None
 ) -> pd.DataFrame:
     """
     使用NC-CQR模型进行数值稳定的递归预测
@@ -41,6 +42,7 @@ def predict_future_nc_cqr(
     2. 数值边界检查和修正
     3. 异常值检测和修正
     4. NO2 lag特征的一致性处理
+    5. 可重现的气象特征模拟（固定随机种子）
     
     Args:
         model (nn.Module): 训练好的NC-CQR模型
@@ -48,12 +50,22 @@ def predict_future_nc_cqr(
         scalers (Dict): 标准化器字典
         Q (float): 校准量化值Q_hat
         steps (int): 预测步数，默认24小时
+        random_seed (int): 随机种子，用于可重现的气象特征模拟，默认None使用时间戳生成
         
     Returns:
         pd.DataFrame: 预测结果，包含时间、预测值、置信区间
     """
     device = next(model.parameters()).device
     predictions = []
+
+    # 设置随机种子以确保可重现性
+    if random_seed is None:
+        # 基于最后数据的时间戳生成固定种子
+        last_timestamp = last_data['observation_time'].iloc[-1].timestamp()
+        random_seed = int(last_timestamp) % 100000
+    
+    np.random.seed(random_seed)
+    print(f"使用随机种子: {random_seed} 确保预测结果可重现")
 
     # 获取最近的历史数据用于特征构建
     history = last_data[['no2', 'temperature', 'humidity',
