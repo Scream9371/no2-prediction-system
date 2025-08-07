@@ -15,8 +15,6 @@ __pycache__/
 
 # 虚拟环境
 .venv/
-venv/
-ENV/
 
 # IDE文件目录
 .idea/
@@ -29,6 +27,9 @@ data/predictions_cache/
 ml/models/
 data/predictions/
 data/cache/
+
+# 测试目录
+tests/
 
 # 日志文件
 logs/
