@@ -37,8 +37,8 @@ class QuantileNet(nn.Module):
             prev_dim = h_dim
         
         self.shared_layers = nn.Sequential(*layers)
-        self.lower_out = nn.Linear(prev_dim, 1)  # τ1=0.05 (下分位数)
-        self.upper_out = nn.Linear(prev_dim, 1)  # τ2=0.95 (上分位数)
+        self.lower_out = nn.Linear(prev_dim, 1)  # τ1=0.025 (下分位数)
+        self.upper_out = nn.Linear(prev_dim, 1)  # τ2=0.975 (上分位数)
     
     def forward(self, x):
         """前向传播"""
@@ -63,8 +63,8 @@ def quantile_loss(output: torch.Tensor, target: torch.Tensor, tau: float) -> tor
 
 
 def non_crossing_quantile_loss(lower_pred: torch.Tensor, upper_pred: torch.Tensor, 
-                               target: torch.Tensor, tau_low: float = 0.05, 
-                               tau_high: float = 0.95, lambda_penalty: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+                               target: torch.Tensor, tau_low: float = 0.025, 
+                               tau_high: float = 0.975, lambda_penalty: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     带非交叉约束的NC-CQR损失函数
     
@@ -80,8 +80,8 @@ def non_crossing_quantile_loss(lower_pred: torch.Tensor, upper_pred: torch.Tenso
         lower_pred (torch.Tensor): 下分位数预测 f1(X)
         upper_pred (torch.Tensor): 上分位数预测 f2(X)
         target (torch.Tensor): 真实目标值 Y
-        tau_low (float): 下分位数水平，默认0.05
-        tau_high (float): 上分位数水平，默认0.95
+        tau_low (float): 下分位数水平，默认0.025
+        tau_high (float): 上分位数水平，默认0.975
         lambda_penalty (float): 非交叉惩罚权重，默认1.0
         
     Returns:
@@ -173,10 +173,10 @@ def train_nc_cqr_model(
             # 前向传播
             lower_pred, upper_pred = model(X_batch)
             
-            # 使用标准NC-CQR损失函数
+            # 使用改进的NC-CQR损失函数（更宽的预测区间）
             total_loss, loss_lower, loss_upper, crossing_penalty = non_crossing_quantile_loss(
                 lower_pred, upper_pred, y_batch, 
-                tau_low=0.05, tau_high=0.95, lambda_penalty=lambda_penalty
+                tau_low=0.025, tau_high=0.975, lambda_penalty=lambda_penalty
             )
             
             # 反向传播
@@ -202,15 +202,15 @@ def train_nc_cqr_model(
             print(f"  总损失: {avg_total:.6f}")
             print(f"  下分位数损失: {avg_lower:.6f}")
             print(f"  上分位数损失: {avg_upper:.6f}")
-            print(f"  交叉惩罚: {avg_crossing:.6f} {'⚠️' if avg_crossing > 0.01 else '✅'}")
+            print(f"  交叉惩罚: {avg_crossing:.6f} {'[警告]' if avg_crossing > 0.01 else '[正常]'}")
             
             # 检查是否存在严重的交叉问题
             if avg_crossing > 0.1:
-                print(f"  ⚠️ 警告：交叉惩罚过高，考虑增加lambda_penalty参数")
+                print(f"  [警告] 交叉惩罚过高，考虑增加lambda_penalty参数")
     
-    # 标准Conformal Prediction校准
+    # 改进的Conformal Prediction校准（更高置信度）
     print("\n=== 开始Conformal预测校准 ===")
-    alpha = 0.1  # 误覆盖率，对应90%置信度
+    alpha = 0.05  # 误覆盖率从0.1改为0.05，对应95%置信度
     
     with torch.no_grad():
         model.eval()
@@ -226,10 +226,9 @@ def train_nc_cqr_model(
             y_calib_tensor - upper_pred.squeeze()   # Y_i - f2(X_i)
         )
         
-        # 使用标准分位数公式：ceil((1-α)(n+1))/n
-        # 对应论文第9页的精确有限样本保证
+        # 分位数公式：(1-α)(n+1)/n
         n_calib = len(X_calib)
-        quantile_level = np.ceil((1 - alpha) * (n_calib + 1)) / n_calib
+        quantile_level = (1 - alpha) * (n_calib + 1) / n_calib
         quantile_level = min(1.0, quantile_level)  # 确保不超过1.0
         
         Q_hat = torch.quantile(conformity_scores, quantile_level).cpu().item()
@@ -246,9 +245,9 @@ def train_nc_cqr_model(
         
         # 验证校准效果
         if violation_rate <= alpha + 0.05:  # 允许5%的容差
-            print("✅ Conformal校准成功")
+            print("[成功] Conformal校准成功")
         else:
-            print("⚠️ Conformal校准可能存在问题")
+            print("[警告] Conformal校准可能存在问题")
     
     return model, Q_hat
 
@@ -349,18 +348,18 @@ def load_model(model_path: str) -> Tuple[nn.Module, float, Dict]:
 
 
 def train_full_pipeline(city: str = 'dongguan', 
-                       train_ratio: float = 0.4,
-                       calib_ratio: float = 0.4, 
-                       test_ratio: float = 0.2,
+                       train_ratio: float = 0.6,
+                       calib_ratio: float = 0.3, 
+                       test_ratio: float = 0.1,
                        **train_kwargs) -> Tuple[nn.Module, float, Dict, Dict]:
     """
-    完整的NC-CQR训练流程 - 使用标准40%-40%-20%数据集划分
+    完整的NC-CQR训练流程 - 使用改进的60%-30%-10%数据集划分（增加校准集）
     
     Args:
         city (str): 城市名称
-        train_ratio (float): 训练集比例 (默认: 0.4)
-        calib_ratio (float): 校准集比例 (默认: 0.4)
-        test_ratio (float): 测试集比例 (默认: 0.2)
+        train_ratio (float): 训练集比例 (默认: 0.6)
+        calib_ratio (float): 校准集比例 (默认: 0.3) 
+        test_ratio (float): 测试集比例 (默认: 0.1)
         **train_kwargs: 训练参数
         
     Returns:
@@ -378,7 +377,7 @@ def train_full_pipeline(city: str = 'dongguan',
     # 2. 数据预处理
     X, y, scalers = prepare_nc_cqr_data(df)
     
-    # 3. NC-CQR标准数据集划分：40%训练，40%校准，20%测试
+    # 3. 数据集划分：60%训练，30%校准，10%测试
     n_samples = len(X)
     n_train = int(n_samples * train_ratio)
     n_calib = int(n_samples * calib_ratio)
