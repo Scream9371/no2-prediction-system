@@ -81,9 +81,9 @@ no2-prediction-system/
 │       └── index.html          # 主页模板
 │
 ├── scripts/                    # 执行脚本
+│   ├── auto_training.py        # 调用模型训练管道
 │   ├── run_data_collector.py   # 数据采集脚本
 │   ├── run_databackup.py       # 数据备份脚本
-│   ├── run_pipeline.py         # 模型训练管道
 │   └── setup_database.py       # 数据库初始化
 │
 ├── tests/                      # 测试文件
@@ -212,7 +212,6 @@ no2-prediction-system/
 	```bash
 	python -m scripts.run_databackup         # 备份数据库数据到CSV文件
 	```
-- **测试**：运行`pytest tests/`进行单元和集成测试。
 - **模型手动训练**：进入项目根目录运行 NC-CQR 算法控制脚本，可对模型进行精细化调整。
 	```bash
 	python -m ml.src.control -h            # 查看脚本使用帮助
@@ -244,5 +243,5 @@ no2-prediction-system/
 
 ## 6. 额外计划
 - 云端部署
-- 前端 AI 小助手
-- 近 15 天浓度变化趋势
+- 接入大语言模型打造 NO₂ 预测智能体
+- 近 15 天浓度变化趋势分析
