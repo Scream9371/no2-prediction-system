@@ -86,8 +86,6 @@ no2-prediction-system/
 │   ├── run_databackup.py       # 数据备份脚本
 │   └── setup_database.py       # 数据库初始化
 │
-├── tests/                      # 测试文件
-│
 ├── utils/                      # 工具函数
 │   ├── __init__.py
 │   └── auth.py                 # 认证相关工具
