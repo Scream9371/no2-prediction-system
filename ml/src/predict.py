@@ -199,11 +199,11 @@ def predict_future_nc_cqr(
         
         new_row = {
             'no2': float(mid_point),
-            'temperature': latest['temperature'] + temp_trend,
-            'humidity': np.clip(latest['humidity'] + humid_trend, 0, 100),
-            'wind_speed': latest['wind_speed'] + np.random.normal(0, 0.3),
-            'pressure': latest['pressure'] + np.random.normal(0, 0.5),
-            'wind_direction': latest['wind_direction']  # 风向保持相对稳定
+            'temperature': latest['temperature'],
+            'humidity': np.clip(latest['humidity'], 0, 100),
+            'wind_speed': latest['wind_speed'],
+            'pressure': latest['pressure'],
+            'wind_direction': latest['wind_direction']
         }
         
         # 添加边界检查
