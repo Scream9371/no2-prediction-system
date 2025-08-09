@@ -119,7 +119,10 @@ no2-prediction-system/
 - **模型训练**：包括训练管道和控制脚本两种训练方式。
     - **训练管道**：[`scripts/run_pipeline.py`](scripts/run_pipeline.py)提供批量训练和版本控制，用于部署至 NO₂ 预测系统的生产环境。
     - **控制脚本**：[`ml/src/control.py`](ml/src/control.py)提供独立的训练、预测、评估功能，用于功能调试。
-    > 控制脚本的详细使用方法见[其他说明](#5-其他说明)。
+
+> [!NOTE]
+> 控制脚本的详细使用方法见[其他说明](#5-其他说明)。
+
 - **模型存储方式**：上述两种方式训练的模型会以`.pth`格式分开存储。
     - **训练管道模型**：存储在`ml/models/daily/`（按日期版本）和`ml/models/latest/`（最新版本链接）。
     - **控制脚本模型**：存储在`outputs/models/`。
@@ -141,8 +144,9 @@ no2-prediction-system/
 2. **配置环境变量**
 	- 复制`.env.example`文件为`.env`，存至项目根目录。
 	- 在`.env`中填写您的和风天气 API 密钥、数据库连接、硅基流动 API（可选，用于启用大模型问答功能）。
-   > [!NOTE] 提示
-   > ed25519 密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
+
+> [!NOTE]
+> ed25519 密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
 
 3. 启动 MySQL 服务
 	```bash
@@ -153,8 +157,9 @@ no2-prediction-system/
 	```bash
 	python  -m scripts.setup_database
 	```
-	> [!WARNING] 注意
-	> 此操作会清除数据库中所有数据表以重新创建，你的数据库中的所有数据会被清除，若你的数据库中已经存有历史的 NO₂ 数据，建议在执行此操作前先对原数据进行备份。备份操作参见[其他说明](#5-其他说明)。
+
+> [!WARNING]
+> 此操作会清除数据库中所有数据表以重新创建，你的数据库中的所有数据会被清除，若你的数据库中已经存有历史的 NO₂ 数据，建议在执行此操作前先对原数据进行备份。备份操作参见[其他说明](#5-其他说明)。
 
 5. **采集历史数据**
 	```bash
@@ -241,8 +246,10 @@ no2-prediction-system/
 	- **训练管道**：模型存储在`ml/models/daily/`（按日期版本）和`ml/models/latest/`（最新版本），标准化器缓存于`data/ml_cache/scalers/`
 	- **控制脚本**：模型存储在`outputs/models/`，专用缓存在`outputs/ml_cache/`，预测结果保存在`outputs/predictions/`
 	- **数据备份**：数据库备份自动保存在[`data/backup`](data/backup)目录，按城市分离
-	> [!NOTE] 提示
-	> 上述目录会在执行脚本后自动创建，不会被版本追踪。
+
+> [!NOTE]
+> 上述目录会在执行脚本后自动创建，不会被版本追踪。
+
 - **可扩展性**：支持添加新城市、切换模型、调整预测区间等。
 
 ## 6. 额外计划
