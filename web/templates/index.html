@@ -1234,20 +1234,30 @@ function generateHeatmap() {
     }
 
     // 切换项目信息展开收起
-    function toggleProjectInfo() {
-        const content = document.getElementById('projectContent');
-        const arrow = document.getElementById('toggleArrow');
+    // 切换项目信息展开收起，并添加自动滚动功能
+function toggleProjectInfo() {
+    const content = document.getElementById('projectContent');
+    const arrow = document.getElementById('toggleArrow');
+    
+    if (content.classList.contains('expanded')) {
+        // 收起
+        content.classList.remove('expanded');
+        arrow.classList.remove('expanded');
+    } else {
+        // 展开
+        content.classList.add('expanded');
+        arrow.classList.add('expanded');
         
-        if (content.classList.contains('expanded')) {
-            // 收起
-            content.classList.remove('expanded');
-            arrow.classList.remove('expanded');
-        } else {
-            // 展开
-            content.classList.add('expanded');
-            arrow.classList.add('expanded');
-        }
+        // 等待内容展开后再滚动（给CSS过渡留时间）
+        setTimeout(() => {
+            // 滚动到项目信息区域
+            content.scrollIntoView({ 
+                behavior: 'smooth', // 平滑滚动
+                block: 'start'     // 对齐到视图顶部
+            });
+        }, 100); // 与CSS过渡时间匹配
     }
+}
 
     // 创建仪表盘图表
     function createGaugeChart(value) {
