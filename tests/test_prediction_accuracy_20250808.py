@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-8月7日预测准确性测试脚本
+预测准确性测试脚本
 
 测试改进后的NC-CQR算法（固定随机种子）对预测结果一致性和准确性的影响。
-模拟8月7日的预测流程：
-1. 使用截止至8月6日的历史数据训练模型
-2. 基于训练好的模型预测8月7日全天24小时的NO2浓度
-3. 与8月7日真实观测数据进行对比分析
+模拟预测流程：
+1. 使用固定的历史数据训练模型
+2. 基于训练好的模型预测全天24小时的NO2浓度
+3. 与真实观测数据进行对比分析
 4. 计算预测区间覆盖率，评估模型准确性
 """
 import os
@@ -15,7 +15,7 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -47,7 +47,7 @@ class PredictionAccuracyTest:
         }
         
         print(f"=" * 60)
-        print(f"8月8日预测准确性测试")
+        print(f"预测准确性测试")
         print(f"测试目标：验证修复随机种子后的预测一致性和准确性")
         print(f"数据截止时间：{self.cutoff_date}")
         print(f"预测目标日期：{self.test_date.strftime('%Y-%m-%d')}")
@@ -147,8 +147,11 @@ class PredictionAccuracyTest:
         """
         print(f"  使用历史数据训练{city}的NC-CQR模型...")
         
-        # 设置可重现性种子
-        set_deterministic_seeds(42, ensure_deterministic=True)
+        # 使用城市特定的确定性种子（关键修复）
+        from ml.src.reproducibility import get_city_seed
+        city_seed = get_city_seed(city)
+        set_deterministic_seeds(city_seed, ensure_deterministic=True)
+        print(f"  - 使用城市{city}专用种子: {city_seed}")
         
         try:
             # 创建临时的数据加载器函数，只返回历史数据
@@ -216,8 +219,9 @@ class PredictionAccuracyTest:
         """
         print(f"  使用固定随机种子预测{city}的24小时NO2浓度...")
         
-        # 使用基于城市名称和日期的固定种子
-        seed_base = hash(f"{city}_{self.test_date.strftime('%Y%m%d')}") % 100000
+        # 使用基于城市名称和日期的固定种子（确定性修复）
+        from ml.src.reproducibility import get_city_seed
+        seed_base = get_city_seed(city) + int(self.test_date.strftime('%Y%m%d')) % 1000
         
         try:
             predictions = predict_future_nc_cqr(
@@ -395,6 +399,7 @@ class PredictionAccuracyTest:
             Dict: 所有城市的测试结果汇总
         """
         print(f"开始运行所有城市的预测准确性测试...")
+        print(f"[一致性检查] 使用固定时间戳种子确保可重现性")
         
         all_results = {
             'test_info': {
