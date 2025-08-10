@@ -35,11 +35,15 @@ def load_data_from_mysql(city: str = 'dongguan') -> pd.DataFrame:
     """
     从MySQL数据库加载指定城市的NO2数据
     
+    使用固定720小时（30天×24小时）滑窗逻辑：
+    1. 查询所有可用数据并按时间排序
+    2. 取最新的720条记录
+    
     Args:
         city (str): 城市名称，默认为'dongguan'
         
     Returns:
-        pd.DataFrame: 包含NO2数据的DataFrame
+        pd.DataFrame: 包含NO2数据的DataFrame，最多720条记录
         
     Raises:
         ValueError: 当城市不在支持列表中或数据库连接失败时
@@ -65,13 +69,10 @@ def load_data_from_mysql(city: str = 'dongguan') -> pd.DataFrame:
         # 获取对应城市的模型类
         model_class = CITY_MODEL_MAP[city]
 
-        # 计算30天前的时间点
-        cutoff_time = datetime.now() - timedelta(days=30)
-
-        # 查询最近30天(720小时)的数据
-        query = session.query(model_class).filter(
-            model_class.observation_time >= cutoff_time
-        ).order_by(model_class.observation_time)
+        # 查询所有数据并按时间倒序排列，取最新的720条
+        query = session.query(model_class).order_by(
+            model_class.observation_time.desc()
+        ).limit(720)
         records = query.all()
 
         if not records:
@@ -91,7 +92,12 @@ def load_data_from_mysql(city: str = 'dongguan') -> pd.DataFrame:
             })
 
         df = pd.DataFrame(data)
-        print(f"成功从数据库加载 {len(df)} 条{city}NO2记录 (30天滑窗)")
+        
+        # 重新按时间正序排列（因为查询时是倒序的）
+        df = df.sort_values('observation_time').reset_index(drop=True)
+        
+        print(f"成功从数据库加载 {len(df)} 条{city}NO2记录 (固定30天滑窗)")
+            
         return df
 
     except Exception as e:

@@ -26,7 +26,7 @@
             overflow-x: hidden;
         }
 
-        /* 主题标题样式 - 整合index(4).html的设计 */
+        /* 主题标题样式 */
         .theme-title {
             text-align: center;
             margin-bottom: 30px;
@@ -74,7 +74,7 @@
             border: 1px solid rgba(0, 243, 255, 0.3);
         }
 
-        /* 左侧区域样式 - 整合index(4).html的设计 */
+        /* 左侧区域样式 */
         .card-left {
             width: 45%;
             height: 100%;
@@ -229,23 +229,23 @@
         }
 /* 实时监测详情板块样式 */
 .pollution-details {
-    margin-top: 1px; /* 与上方表盘保持间距 */
+    margin-top: 1px; 
     padding: 15px;
-    background: rgba(0, 10, 30, 0.6); /* 深色半透明背景，与页面其他信息框一致 */
-    border-radius: 12px; /* 圆角与其他容器统一 */
-    border: 1px solid rgba(0, 243, 255, 0.2); /* 青色边框，匹配主题 */
+    background: rgba(0, 10, 30, 0.6); 
+    border-radius: 12px;
+    border: 1px solid rgba(0, 243, 255, 0.2); 
 }
 
 .pollution-details h3 {
     font-size: 1.2rem;
-    color: #00f3ff; /* 青色标题，与页面其他标题一致 */
+    color: #00f3ff; 
     margin-bottom: 10px;
-    text-shadow: 0 0 5px rgba(0, 243, 255, 0.3); /* 轻微发光效果 */
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.3); 
 }
 
 .pollution-details p {
     font-size: 1rem;
-    color: #c7f2ff; /* 浅青色文字，保证可读性 */
+    color: #c7f2ff; 
     line-height: 1.6;
     margin-bottom: 8px;
 }
@@ -808,7 +808,7 @@
             <div class="search-container">
                 <div class="search-bar">
                     <input type="text" id="cityInput" placeholder="输入大湾区城市名称（如：广州、深圳）">
-                    <button id="searchBtn">查询浓度数据</button>
+                    <button id="searchBtn">获取详细数据</button>
                     <div class="city-dropdown" id="cityDropdown"></div>
                 </div>
             </div>
@@ -938,7 +938,7 @@
                      
                     // 从映射表取图片
                     const normalizedName = city.name
-                       .replace('市', '')           // 去掉“市”（如“广州市”→“广州”）
+                       .replace('市', '')           // 去掉“市”
                        .replace('特别行政区', '');
 
                     // 转换为前端所需格式
@@ -1107,9 +1107,9 @@
 
     
 
-    // 以下为原有辅助函数（保持不变）
+    
     function getDefaultImage() {
-        return 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&w=1920';
+        return 'https://images.pexels.com/photos/33127971/pexels-photo-33127971.jpeg';
     }
 
     function updateClock() {
@@ -1133,7 +1133,7 @@
         }
     }
 
-    // 热力图相关函数（保持不变）
+    // 热力图相关函数
     function getLevelByValue(value) {
         if (value < 30) return '优良';
         if (value < 40) return '良好';
@@ -1200,7 +1200,7 @@ function generateHeatmap() {
     const currentValue = city.hourlyValues[currentHour] || city.hourlyValues[0]|| 0;
     const level = getLevelByValue(currentValue);
     
-    // 简化城市名称（处理市/特别行政区）
+    // 简化城市名称
     const displayName = city.name
         .replace('市', '')
         .replace('特别行政区', '');
@@ -1234,20 +1234,30 @@ function generateHeatmap() {
     }
 
     // 切换项目信息展开收起
-    function toggleProjectInfo() {
-        const content = document.getElementById('projectContent');
-        const arrow = document.getElementById('toggleArrow');
+    // 切换项目信息展开收起，并添加自动滚动功能
+function toggleProjectInfo() {
+    const content = document.getElementById('projectContent');
+    const arrow = document.getElementById('toggleArrow');
+    
+    if (content.classList.contains('expanded')) {
+        // 收起
+        content.classList.remove('expanded');
+        arrow.classList.remove('expanded');
+    } else {
+        // 展开
+        content.classList.add('expanded');
+        arrow.classList.add('expanded');
         
-        if (content.classList.contains('expanded')) {
-            // 收起
-            content.classList.remove('expanded');
-            arrow.classList.remove('expanded');
-        } else {
-            // 展开
-            content.classList.add('expanded');
-            arrow.classList.add('expanded');
-        }
+        // 等待内容展开后再滚动
+        setTimeout(() => {
+            // 滚动到项目信息区域
+            content.scrollIntoView({ 
+                behavior: 'smooth', // 平滑滚动
+                block: 'start'     // 对齐到视图顶部
+            });
+        }, 100); // 与CSS过渡时间匹配
     }
+}
 
     // 创建仪表盘图表
     function createGaugeChart(value) {
@@ -1259,7 +1269,7 @@ function generateHeatmap() {
         // 初始化ECharts实例
         chartInstance = echarts.init(chartDom);
 
-        // 二氧化氮浓度等级配置（您的颜色体系）
+        // 二氧化氮浓度等级配置
         const levelConfig = [
             { name: '优', max: 40, color: 'rgba(50, 200, 100, 0.8)' },       // 0-40μg/m³
             { name: '良', max: 80, color: 'rgba(255, 255, 100, 0.8)' },     // 40-80μg/m³
@@ -1267,7 +1277,7 @@ function generateHeatmap() {
             { name: '中度污染', max: 240, color: 'rgba(255, 100, 100, 0.8)' } // 120-240μg/m³
         ];
 
-        // 仪表盘配置（基于您提供的示例修改）
+        // 仪表盘配置
         const option = {
             series: [
                 {
@@ -1278,7 +1288,7 @@ function generateHeatmap() {
                     radius: '90%',   // 表盘半径
                     min: 0,          // 最小值（0μg/m³）
                     max: 240,        // 最大值（240μg/m³）
-                    splitNumber: 8,  // 分割段数（保持示例样式）
+                    splitNumber: 8,  // 分割段数
                     axisLine: {
                         lineStyle: {
                             width: 6,
@@ -1292,11 +1302,11 @@ function generateHeatmap() {
                         }
                     },
                     pointer: {
-                        // 指针样式（复用示例的自定义图标）
+                        // 指针样式
                         icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
                         length: '12%',
                         width: 20,
-                        offsetCenter: [0, '-60%'], // 指针偏移（向上）
+                        offsetCenter: [0, '-60%'], 
                         itemStyle: {
                             color: 'auto'
                         }
@@ -1316,8 +1326,8 @@ function generateHeatmap() {
                         }
                     },
                     axisLabel: {
-                        // 刻度标签（显示等级名称）
-                        color: '#fff', // 适配深色背景
+                        // 刻度标签
+                        color: '#fff', 
                         fontSize: 16,
                         distance: -40, // 标签距离表盘中心的距离
                         rotate: 'tangential',
@@ -1327,21 +1337,21 @@ function generateHeatmap() {
                         name: 'NO₂浓度 (μg/m³)',
                         offsetCenter: [0, '-10%'],
                         fontSize: 20,
-                        color: '#00f3ff' // 匹配页面青色风格
+                        color: '#00f3ff' 
                     },
                     detail: {
                         // 实时浓度值显示
-                        fontSize: 17,// 数值字体大小
+                        fontSize: 17,
                         offsetCenter: [0, '-35%'],
                         valueAnimation: true, // 数值动画
                         formatter: function (val) {
-                            return `${val.toFixed(1)} μg/m³`; // 带单位显示
+                            return `${val.toFixed(1)} μg/m³`; 
                         },
                         color: '#00f3ff'
                     },
                     data: [
                         {
-                            value: value, // 当前浓度值
+                            value: value, 
                             name: '当前浓度'
                         }
                     ]
