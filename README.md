@@ -17,6 +17,17 @@
 
 ```bash
 no2-prediction-system/
+├── api/                        # API相关
+│   ├── __init__.py
+│   ├── heweather/              # 和风天气API集成
+│   │   ├── __init__.py
+│   │   ├── client.py           # API客户端（JWT认证）
+│   │   └── data_parser.py      # 数据解析器
+│   └── schedules/              # 定时任务
+│       ├── __init__.py
+│       ├── daily_updater.py    # 每日数据更新
+│       └── data_collector.py   # 数据采集模块
+│
 ├── config/                     # 配置（环境变量、数据库、路径等）
 │   ├── __init__.py
 │   ├── cities.py               # 城市配置和映射
@@ -35,11 +46,15 @@ no2-prediction-system/
 │   ├── ml_cache/               # 机器学习缓存文件
 │   │   ├── features/           # 特征工程缓存
 │   │   └── scalers/            # 数据标准化器（按城市分离）
-│   └── backup/                 # 数据库备份文件
+│   ├── backup/                 # 数据库备份文件
+│   └── predictions_cache/      # 预测数据缓存
 │
 ├── ml/                         # 机器学习模块
 │   ├── __init__.py
-│   ├── models/                 # 模型存储（版本控制）
+│   ├── automation
+│   │   ├── __init__.py
+│   │   └── training_scheduler  # 自动化训练调度器
+│   ├── models/                 # 模型存储
 │   │   ├── __init__.py
 │   │   ├── daily/              # 按日期版本的模型
 │   │   └── latest/             # 最新模型链接
@@ -48,8 +63,8 @@ no2-prediction-system/
 │       ├── control.py          # NC-CQR控制脚本
 │       ├── data_loader.py      # 数据加载器
 │       ├── data_processing.py  # 数据预处理
-│       ├── evaluate.py         # 模型评估
 │       ├── predict.py          # 预测模块
+│       ├── reproducibility.py  # 可重现性保证
 │       └── train.py            # 模型训练
 │
 ├── outputs/                    # 输出文件目录
@@ -60,16 +75,6 @@ no2-prediction-system/
 │   │   └── __init__.py
 │   └── predictions/            # 预测结果输出（包含csv表格预测数据和png折线图）
 │
-├── api/                        # API相关
-│   ├── __init__.py
-│   ├── heweather/              # 和风天气API集成
-│   │   ├── __init__.py
-│   │   ├── client.py           # API客户端（JWT认证）
-│   │   └── data_parser.py      # 数据解析器
-│   └── schedules/              # 定时任务
-│       ├── __init__.py
-│       └── data_collector.py   # 定时数据采集
-│
 ├── web/                        # Web应用
 │   ├── __init__.py
 │   ├── app.py                  # Flask应用入口
@@ -77,17 +82,17 @@ no2-prediction-system/
 │   │   ├── __init__.py
 │   │   ├── api_routes.py       # API接口路由
 │   │   └── main_routes.py      # 主页面路由
-│   ├── static/                 # 静态资源
-│   │   ├── images/             # 城市背景图片
-│   │   └── js/                 # JavaScript相关类型定义
+│   ├── static/                 # 城市背景图、js类型定义等静态资源
 │   └── templates/              # HTML模板
 │       ├── city.html           # 城市详情页
 │       └── index.html          # 主页模板
 │
 ├── scripts/                    # 执行脚本
 │   ├── auto_training.py        # 调用模型训练管道
+│   ├── manage_predictions_cache.py  # 预测缓存管理脚本
 │   ├── run_data_collector.py   # 数据采集脚本
 │   ├── run_databackup.py       # 数据备份脚本
+│   ├── run_pipline.py          # 训练管道
 │   └── setup_database.py       # 数据库初始化
 │
 ├── utils/                      # 工具函数
@@ -95,8 +100,8 @@ no2-prediction-system/
 │   └── auth.py                 # 认证相关工具
 │
 ├── .env.example                # 环境变量模板（API密钥、数据库等）
-├── ed25519-private.pem         # 和风天气API私钥
-├── ed25519-public.pem          # 和风天气API公钥
+├── ed25519-private.pem         # Ed25519私钥
+├── ed25519-public.pem          # Ed25519公钥
 ├── requirements.txt            # Python依赖
 └── README.md                   # 项目说明文档
 ```
@@ -142,11 +147,11 @@ no2-prediction-system/
    ```
 
 2. **配置环境变量**
-	- 复制`.env.example`文件为`.env`，存至项目根目录。
+	- 复制[`.env.example`](.env.example)文件为`.env`，存至项目根目录。
 	- 在`.env`中填写您的和风天气 API 密钥、数据库连接、硅基流动 API（可选，用于启用大模型问答功能）。
 
 > [!NOTE]
-> ed25519 密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
+> Ed25519 密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
 
 3. 启动 MySQL 服务
 	```bash
