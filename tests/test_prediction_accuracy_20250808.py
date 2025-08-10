@@ -32,12 +32,12 @@ from ml.src.reproducibility import set_deterministic_seeds
 
 
 class PredictionAccuracyTest:
-    """8月8日预测准确性测试类"""
+    """预测准确性测试类"""
     
     def __init__(self):
         """初始化测试环境"""
-        self.test_date = datetime(2025, 8, 9)
-        self.cutoff_date = datetime(2025, 8, 10, 23, 59, 59)  # 数据截止时间
+        self.test_date = datetime(2025, 8, 9)  # 预测当天
+        self.cutoff_date = datetime(2025, 8, 8, 23, 59, 59)  # 数据截止时间
         self.test_results = {}
         self.city_names_cn = {
             'guangzhou': '广州', 'shenzhen': '深圳', 'zhuhai': '珠海',
@@ -346,7 +346,7 @@ class PredictionAccuracyTest:
         print(f"\n{'='*20} 测试城市: {city.upper()} ({'='*20}")
         
         try:
-            # 1. 加载截止至8月7日的历史数据
+            # 1. 加载历史数据
             historical_data = self.load_historical_data_until_date(city, self.cutoff_date)
             
             # 2. 训练模型
@@ -355,7 +355,7 @@ class PredictionAccuracyTest:
             # 3. 使用固定种子进行预测
             predictions = self.predict_with_fixed_seed(model, historical_data, scalers, Q, city)
             
-            # 4. 加载8月8日真实观测数据
+            # 4. 加载真实观测数据
             ground_truth = self.load_ground_truth_data(city, self.test_date)
             
             # 5. 计算预测准确性指标
