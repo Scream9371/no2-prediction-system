@@ -129,81 +129,82 @@ def predict_future_nc_cqr(
         with torch.no_grad():
             model.eval()
             X_tensor = torch.FloatTensor(X).to(device)
-            lower_pred, upper_pred = model(X_tensor)
+            lower_pred, median_pred, upper_pred = model(X_tensor)
 
             # 提取标量值
             lower_val = lower_pred.item()
+            median_val = median_pred.item()
             upper_val = upper_pred.item()
 
         # 4. 非交叉约束后处理
-        if lower_val > upper_val:
-            print(f"[WARNING] 第{i+1}步检测到分位数交叉: lower={lower_val:.3f}, upper={upper_val:.3f}")
-            # 使用中点作为两个分位数
-            mid = (lower_val + upper_val) / 2
-            lower_val = upper_val = mid
+        # 检查并修正交叉问题：确保 lower_val ≤ median_val ≤ upper_val
+        if lower_val > median_val or median_val > upper_val or lower_val > upper_val:
+            print(f"[WARNING] 第{i+1}步检测到分位数交叉: lower={lower_val:.3f}, median={median_val:.3f}, upper={upper_val:.3f}")
+            # 使用排序修正交叉
+            sorted_vals = sorted([lower_val, median_val, upper_val])
+            lower_val, median_val, upper_val = sorted_vals[0], sorted_vals[1], sorted_vals[2]
 
         # 5. 应用Conformal预测校准
         lower_bound = lower_val - Q
         upper_bound = upper_val + Q
-        mid_point = (lower_bound + upper_bound) / 2
+        # 使用50分位数作为预测值（不需要Conformal校准）
+        prediction_value = median_val
 
         # 6. 数值边界检查
         lower_bound = np.clip(lower_bound, NO2_MIN, NO2_MAX)
         upper_bound = np.clip(upper_bound, NO2_MIN, NO2_MAX)
-        mid_point = np.clip(mid_point, NO2_MIN, NO2_MAX)
+        prediction_value = np.clip(prediction_value, NO2_MIN, NO2_MAX)
 
         # 7. 异常值检测和单步变化修正
         if i > 0:
             prev_prediction = predictions[-1]['prediction']
-            step_change = abs(mid_point - prev_prediction)
+            step_change = abs(prediction_value - prev_prediction)
             
             if step_change > MAX_STEP_CHANGE:
                 print(f"[WARNING] Step {i+1} large change detected: {step_change:.2f}, limited to {MAX_STEP_CHANGE}")
                 # 限制单步变化幅度
-                direction = np.sign(mid_point - prev_prediction)
-                mid_point = prev_prediction + direction * MAX_STEP_CHANGE
+                direction = np.sign(prediction_value - prev_prediction)
+                prediction_value = prev_prediction + direction * MAX_STEP_CHANGE
                 
-                # 相应调整区间
+                # 相应调整区间（保持原有宽度）
                 interval_width = upper_bound - lower_bound
-                lower_bound = mid_point - interval_width / 2
-                upper_bound = mid_point + interval_width / 2
+                half_width = interval_width / 2
+                lower_bound = prediction_value - half_width
+                upper_bound = prediction_value + half_width
                 
                 # 再次边界检查
                 lower_bound = np.clip(lower_bound, NO2_MIN, NO2_MAX)
                 upper_bound = np.clip(upper_bound, NO2_MIN, NO2_MAX)
 
         # 8. 检查数值有效性
-        if not (np.isfinite(mid_point) and np.isfinite(lower_bound) and np.isfinite(upper_bound)):
+        if not (np.isfinite(prediction_value) and np.isfinite(lower_bound) and np.isfinite(upper_bound)):
             print(f"[WARNING] Step {i+1} invalid values, using previous result")
             if predictions:
                 last_pred = predictions[-1]
-                mid_point = last_pred['prediction']
+                prediction_value = last_pred['prediction']
                 lower_bound = last_pred['lower_bound']
                 upper_bound = last_pred['upper_bound']
             else:
-                mid_point = history.iloc[-1]['no2']
-                lower_bound = mid_point - 5
-                upper_bound = mid_point + 5
+                prediction_value = history.iloc[-1]['no2']
+                lower_bound = prediction_value - 5
+                upper_bound = prediction_value + 5
 
         predictions.append({
             'observation_time': pred_time,
-            'prediction': float(mid_point),
+            'prediction': float(prediction_value),
             'lower_bound': float(lower_bound),
             'upper_bound': float(upper_bound)
         })
 
-        # 9. 更新历史数据（添加气象特征的渐变模拟）
-        # 更现实的气象变化模拟
-        temp_trend = np.random.normal(0, 0.3)  # 减少温度变化幅度
-        humid_trend = np.random.normal(0, 1.5)  # 减少湿度变化幅度
-        
+        # 9. 更新历史数据（使用确定性气象特征延续）
+        # 移除随机变化，使用最后观测值保持一致性
         new_row = {
-            'no2': float(mid_point),
-            'temperature': latest['temperature'],
-            'humidity': np.clip(latest['humidity'], 0, 100),
-            'wind_speed': latest['wind_speed'],
-            'pressure': latest['pressure'],
-            'wind_direction': latest['wind_direction']
+            'no2': float(prediction_value),
+            'temperature': latest['temperature'],  # 保持最后观测值
+            'humidity': np.clip(latest['humidity'], 0, 100),  # 保持最后观测值
+            'wind_speed': latest['wind_speed'],  # 保持最后观测值
+            'pressure': latest['pressure'],  # 保持最后观测值
+            'wind_direction': latest['wind_direction']  # 保持最后观测值
         }
         
         # 添加边界检查
