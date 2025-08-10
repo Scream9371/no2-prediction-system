@@ -72,7 +72,7 @@ def predict_future_nc_cqr(
                          'wind_speed', 'pressure', 'wind_direction']].tail(2).copy()
     
     # 数值稳定性参数
-    NO2_MIN, NO2_MAX = 5.0, 150.0  # NO2浓度合理范围（避免极值）
+    NO2_MIN, NO2_MAX = 0.0, 150.0  # NO2浓度合理范围（避免极值）
     MAX_STEP_CHANGE = 20.0  # 单步最大变化阈值（更合理）
     
     print(f"开始{steps}小时递归预测，初始NO2: {history.iloc[-1]['no2']:.2f}")

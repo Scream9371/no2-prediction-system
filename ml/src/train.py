@@ -1,6 +1,7 @@
 """
 NC-CQR模型训练模块
 """
+
 import os
 from typing import Tuple, Dict
 
@@ -14,26 +15,64 @@ from .data_processing import prepare_nc_cqr_data, save_scalers_for_pipeline
 from .reproducibility import create_deterministic_dataloader, get_city_seed
 
 
-class QuantileNet(nn.Module):
-    """非交叉分位数回归神经网络（NC-CQR）"""
+class ResidualBlock(nn.Module):
+    """残差块实现（修复属性问题）"""
+    def __init__(self, in_features: int, out_features: int):
+        super().__init__()
+        # 显式保存输入输出特征维度（关键修复）
+        self.in_features = in_features
+        self.out_features = out_features
+        
+        self.layers = nn.Sequential(
+            nn.Linear(in_features, out_features),
+            nn.ReLU(),
+            nn.BatchNorm1d(out_features),
+            nn.Linear(out_features, out_features),
+            nn.ReLU(),
+            nn.BatchNorm1d(out_features)
+        )
+        
+        # 残差连接（维度调整）
+        if in_features != out_features:
+            self.shortcut = nn.Linear(in_features, out_features)
+        else:
+            self.shortcut = nn.Identity()
     
-    def __init__(self, input_dim: int, hidden_dims: list = [64, 64]):
+    def forward(self, x):
+        residual = self.shortcut(x)
+        x = self.layers(x)
+        x += residual
+        return x
+
+
+class QuantileNet(nn.Module):
+    def __init__(self, input_dim: int, hidden_dims: list = [32, 32], use_residual: bool = False):
+        super().__init__()
         """
         初始化NC-CQR网络
         
         Args:
             input_dim (int): 输入特征维度
             hidden_dims (list): 隐藏层维度列表
+            use_residual (bool): 是否使用残差块
         """
-        super().__init__()
+
+        # 显式存储关键结构参数（修复核心问题）
+        self.input_dim = input_dim
+        self.hidden_dims = hidden_dims
+        self.use_residual = use_residual
+        
         layers = []
         prev_dim = input_dim
         for h_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(prev_dim, h_dim),
-                nn.ReLU(),
-                nn.BatchNorm1d(h_dim)
-            ])
+            if use_residual:
+                layers.append(ResidualBlock(prev_dim, h_dim))
+            else:
+                layers.extend([
+                    nn.Linear(prev_dim, h_dim),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(h_dim)
+                ])
             prev_dim = h_dim
         
         self.shared_layers = nn.Sequential(*layers)
@@ -47,17 +86,7 @@ class QuantileNet(nn.Module):
 
 
 def quantile_loss(output: torch.Tensor, target: torch.Tensor, tau: float) -> torch.Tensor:
-    """
-    分位数损失函数（Pinball Loss）
-    
-    Args:
-        output (torch.Tensor): 模型输出
-        target (torch.Tensor): 真实目标
-        tau (float): 分位数水平
-        
-    Returns:
-        torch.Tensor: 分位数损失
-    """
+    """分位数损失函数（Pinball Loss）"""
     error = target.unsqueeze(1) - output
     return torch.mean(torch.max((tau - 1) * error, tau * error))
 
@@ -65,40 +94,11 @@ def quantile_loss(output: torch.Tensor, target: torch.Tensor, tau: float) -> tor
 def non_crossing_quantile_loss(lower_pred: torch.Tensor, upper_pred: torch.Tensor, 
                                target: torch.Tensor, tau_low: float = 0.025, 
                                tau_high: float = 0.975, lambda_penalty: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    带非交叉约束的NC-CQR损失函数
-    
-    基于论文《Nonparametric Quantile Regression: Non-Crossing Constraints and Conformal Prediction》
-    对应论文中的公式(6)：R_n(f1, f2) = 分位数损失 + λ*非交叉惩罚项
-    
-    损失函数组成：
-    1. 下分位数的Pinball Loss：ρ_τ_low(Y - f1(X))
-    2. 上分位数的Pinball Loss：ρ_τ_high(Y - f2(X))  
-    3. ReLU惩罚项：λ * max{f1(X) - f2(X), 0} 防止下分位数超过上分位数
-    
-    Args:
-        lower_pred (torch.Tensor): 下分位数预测 f1(X)
-        upper_pred (torch.Tensor): 上分位数预测 f2(X)
-        target (torch.Tensor): 真实目标值 Y
-        tau_low (float): 下分位数水平，默认0.025
-        tau_high (float): 上分位数水平，默认0.975
-        lambda_penalty (float): 非交叉惩罚权重，默认1.0
-        
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: 
-            (总损失, 下分位数损失, 上分位数损失, 交叉惩罚项)
-    """
-    # 1. 计算两个分位数的Pinball Loss
+    """带非交叉约束的NC-CQR损失函数"""
     loss_lower = quantile_loss(lower_pred, target, tau_low)
     loss_upper = quantile_loss(upper_pred, target, tau_high)
-    
-    # 2. 计算非交叉惩罚项：V(f1, f2; x) = max{f1(x) - f2(x), 0}
-    # 只有当lower_pred > upper_pred时才施加惩罚，确保 Q_low ≤ Q_high
     crossing_penalty = torch.mean(torch.relu(lower_pred - upper_pred))
-    
-    # 3. 组合成总损失：R_n(f1, f2) = L_low + L_high + λ * V
     total_loss = loss_lower + loss_upper + lambda_penalty * crossing_penalty
-    
     return total_loss, loss_lower, loss_upper, crossing_penalty
 
 
@@ -109,31 +109,20 @@ def train_nc_cqr_model(
     y_calib: np.ndarray,
     epochs: int = 150, 
     batch_size: int = 32,
-    learning_rate: float = 1e-3,
-    hidden_dims: list = [64, 64],
+    learning_rate: float = 4e-3,
+    hidden_dims: list = [32, 32],
+    use_residual: bool = False,
     city: str = None,
     deterministic: bool = True
 ) -> Tuple[nn.Module, float]:
-    """
-    训练NC-CQR模型
-    
-    Args:
-        X_train (np.ndarray): 训练特征
-        y_train (np.ndarray): 训练目标
-        X_calib (np.ndarray): 校准特征
-        y_calib (np.ndarray): 校准目标
-        epochs (int): 训练轮数
-        batch_size (int): 批次大小
-        learning_rate (float): 学习率
-        hidden_dims (list): 隐藏层维度
-        city (str): 城市名称，用于确定性训练
-        deterministic (bool): 是否启用确定性训练模式
-        
-    Returns:
-        Tuple[nn.Module, float]: 训练好的模型和校准量化值Q
-    """
+    """训练NC-CQR模型（修复确定性数据加载器问题）"""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"使用设备: {device}")
+    
+    # 数据量检查（确保有足够数据）
+    if len(X_train) < batch_size:
+        print(f"警告：训练数据量({len(X_train)})少于批次大小({batch_size})，自动调整批次大小为{len(X_train)}")
+        batch_size = min(batch_size, len(X_train))
     
     # 创建数据集
     train_dataset = TensorDataset(
@@ -141,24 +130,40 @@ def train_nc_cqr_model(
         torch.FloatTensor(y_train)
     )
     
-    # 根据是否需要确定性选择数据加载器
+    # 修复：创建支持 drop_last 的确定性数据加载器
     if deterministic and city:
-        # 使用城市特定的种子创建确定性数据加载器
         city_seed = get_city_seed(city)
-        train_loader = create_deterministic_dataloader(train_dataset, batch_size, city_seed)
-        print(f"使用确定性数据加载器 - 城市种子: {city_seed}")
+        
+        # 创建自定义的确定性数据加载器
+        generator = torch.Generator()
+        generator.manual_seed(city_seed)
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            generator=generator,
+            drop_last=True  # 添加 drop_last 支持
+        )
+        print(f"使用确定性数据加载器 - 城市种子: {city_seed} (带drop_last支持)")
     else:
-        # 使用传统的随机数据加载器
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        train_loader = DataLoader(
+            train_dataset, 
+            batch_size=batch_size, 
+            shuffle=True,
+            drop_last=True
+        )
         print("使用标准数据加载器")
     
-    # 初始化模型
-    model = QuantileNet(input_dim=X_train.shape[1], hidden_dims=hidden_dims).to(device)
+    # 初始化模型（支持残差块）
+    model = QuantileNet(
+        input_dim=X_train.shape[1], 
+        hidden_dims=hidden_dims,
+        use_residual=use_residual
+    ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     
-    # 训练循环 - 使用标准NC-CQR损失函数
-    lambda_penalty = 1.0  # 非交叉惩罚权重，可调参数
-    
+    # 训练循环
+    lambda_penalty = 1.0
     for epoch in range(epochs):
         model.train()
         epoch_total_loss = 0
@@ -168,31 +173,35 @@ def train_nc_cqr_model(
         num_batches = 0
         
         for X_batch, y_batch in train_loader:
+            # 跳过可能的小批次（双重保险）
+            if X_batch.size(0) < 2:
+                print(f"警告：跳过大小为{X_batch.size(0)}的小批次")
+                continue
+                
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-            
-            # 前向传播
             lower_pred, upper_pred = model(X_batch)
             
-            # 使用改进的NC-CQR损失函数（更宽的预测区间）
             total_loss, loss_lower, loss_upper, crossing_penalty = non_crossing_quantile_loss(
                 lower_pred, upper_pred, y_batch, 
                 tau_low=0.025, tau_high=0.975, lambda_penalty=lambda_penalty
             )
             
-            # 反向传播
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()
             
-            # 累积损失统计
             epoch_total_loss += total_loss.item()
             epoch_lower_loss += loss_lower.item()
             epoch_upper_loss += loss_upper.item()
             epoch_crossing_penalty += crossing_penalty.item()
             num_batches += 1
         
-        # 打印训练进度（每50轮显示详细统计）
-        if (epoch + 1) % 50 == 0:
+        # 打印训练进度
+        if (epoch + 1) % 50 == 0 or epoch == 0 or (epoch + 1) == epochs:
+            if num_batches == 0:
+                print(f"Epoch {epoch + 1}/{epochs} 没有有效批次可训练")
+                continue
+                
             avg_total = epoch_total_loss / num_batches
             avg_lower = epoch_lower_loss / num_batches
             avg_upper = epoch_upper_loss / num_batches
@@ -204,13 +213,16 @@ def train_nc_cqr_model(
             print(f"  上分位数损失: {avg_upper:.6f}")
             print(f"  交叉惩罚: {avg_crossing:.6f} {'[警告]' if avg_crossing > 0.01 else '[正常]'}")
             
-            # 检查是否存在严重的交叉问题
-            if avg_crossing > 0.1:
-                print(f"  [警告] 交叉惩罚过高，考虑增加lambda_penalty参数")
+            # 动态调整交叉惩罚系数
+            if avg_crossing > 0.2:
+                lambda_penalty *= 1.5
+                print(f"  [警告] 交叉惩罚过高，增加lambda_penalty到{lambda_penalty:.1f}")
+            elif avg_crossing < 0.01:
+                lambda_penalty = max(0.1, lambda_penalty * 0.9)
     
-    # 改进的Conformal Prediction校准（更高置信度）
+    # Conformal Prediction校准
     print("\n=== 开始Conformal预测校准 ===")
-    alpha = 0.05  # 误覆盖率从0.1改为0.05，对应95%置信度
+    alpha = 0.05  # 95%置信度
     
     with torch.no_grad():
         model.eval()
@@ -218,22 +230,16 @@ def train_nc_cqr_model(
         y_calib_tensor = torch.FloatTensor(y_calib).to(device)
         
         lower_pred, upper_pred = model(X_calib_tensor)
-        
-        # 计算符合度分数：E_i = max{f1(X_i) - Y_i, Y_i - f2(X_i)}
-        # 对应论文公式(13)
         conformity_scores = torch.maximum(
-            lower_pred.squeeze() - y_calib_tensor,  # f1(X_i) - Y_i
-            y_calib_tensor - upper_pred.squeeze()   # Y_i - f2(X_i)
+            lower_pred.squeeze() - y_calib_tensor,
+            y_calib_tensor - upper_pred.squeeze()
         )
         
-        # 分位数公式：(1-α)(n+1)/n
         n_calib = len(X_calib)
         quantile_level = (1 - alpha) * (n_calib + 1) / n_calib
-        quantile_level = min(1.0, quantile_level)  # 确保不超过1.0
-        
+        quantile_level = min(1.0, quantile_level)
         Q_hat = torch.quantile(conformity_scores, quantile_level).cpu().item()
         
-        # 统计信息
         num_violations = torch.sum(conformity_scores > Q_hat).item()
         violation_rate = num_violations / n_calib
         
@@ -243,42 +249,25 @@ def train_nc_cqr_model(
         print(f"校准量化值Q_hat: {Q_hat:.4f}")
         print(f"校准集违约率: {violation_rate:.1%}")
         
-        # 验证校准效果
-        if violation_rate <= alpha + 0.05:  # 允许5%的容差
+        if violation_rate <= alpha + 0.05:
             print("[成功] Conformal校准成功")
         else:
-            print("[警告] Conformal校准可能存在问题")
+            print(f"[警告] Conformal校准可能有问题，目标违约率{alpha:.1%}，实际违约率{violation_rate:.1%}")
     
     return model, Q_hat
 
-
 def evaluate_model(model: nn.Module, X_test: np.ndarray, y_test: np.ndarray, Q: float) -> Dict:
-    """
-    评估NC-CQR模型
-    
-    Args:
-        model (nn.Module): 训练好的模型
-        X_test (np.ndarray): 测试特征
-        y_test (np.ndarray): 测试目标
-        Q (float): 校准量化值
-        
-    Returns:
-        Dict: 评估结果
-    """
+    """评估NC-CQR模型"""
     device = next(model.parameters()).device
     
     with torch.no_grad():
         model.eval()
         X_test_tensor = torch.FloatTensor(X_test).to(device)
-        
         lower_pred, upper_pred = model(X_test_tensor)
+        
         lower_bound = lower_pred.cpu().numpy().flatten() - Q
         upper_bound = upper_pred.cpu().numpy().flatten() + Q
-        
-        # 计算覆盖率
         coverage = np.mean((y_test >= lower_bound) & (y_test <= upper_bound))
-        
-        # 计算平均区间宽度
         avg_interval_width = np.mean(upper_bound - lower_bound)
         
         return {
@@ -290,57 +279,37 @@ def evaluate_model(model: nn.Module, X_test: np.ndarray, y_test: np.ndarray, Q: 
         }
 
 
-def save_model(model: nn.Module, Q: float, scalers: Dict, 
-               model_path: str) -> str:
-    """
-    保存NC-CQR模型
-    
-    Args:
-        model (nn.Module): 训练好的模型
-        Q (float): 校准量化值
-        scalers (Dict): 标准化器
-        model_path (str): 模型保存路径
-        
-    Returns:
-        str: 保存路径
-    """
+def save_model(model: nn.Module, Q: float, scalers: Dict, model_path: str) -> str:
+    """保存NC-CQR模型（修复核心问题）"""
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     
-    # 保存模型状态和相关参数
+    # 使用模型显式存储的结构参数（关键修复）
     checkpoint = {
         'model_state_dict': model.state_dict(),
         'Q': Q,
         'scalers': scalers,
-        'input_dim': model.shared_layers[0].in_features,
-        'hidden_dims': [layer.out_features for layer in model.shared_layers if isinstance(layer, nn.Linear)]
+        'input_dim': model.input_dim,       # 直接使用存储的输入维度
+        'hidden_dims': model.hidden_dims,   # 直接使用存储的隐藏层维度
+        'use_residual': model.use_residual   # 直接使用残差块标志
     }
     
     torch.save(checkpoint, model_path)
     print(f"模型已保存到: {model_path}")
-    
     return model_path
 
 
 def load_model(model_path: str) -> Tuple[nn.Module, float, Dict]:
-    """
-    加载NC-CQR模型
-    
-    Args:
-        model_path (str): 模型路径
-        
-    Returns:
-        Tuple[nn.Module, float, Dict]: 模型, Q值, 标准化器
-    """
+    """加载NC-CQR模型（修复核心问题）"""
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"模型文件未找到: {model_path}")
     
-    # 使用weights_only=False来处理包含sklearn对象的checkpoint
     checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
     
-    # 重新创建模型
+    # 使用保存的结构参数重建模型（关键修复）
     model = QuantileNet(
         input_dim=checkpoint['input_dim'],
-        hidden_dims=checkpoint['hidden_dims']
+        hidden_dims=checkpoint['hidden_dims'],
+        use_residual=checkpoint.get('use_residual', False)  # 支持残差块加载
     )
     model.load_state_dict(checkpoint['model_state_dict'])
     
@@ -352,22 +321,9 @@ def train_full_pipeline(city: str = 'dongguan',
                        calib_ratio: float = 0.3, 
                        test_ratio: float = 0.1,
                        **train_kwargs) -> Tuple[nn.Module, float, Dict, Dict]:
-    """
-    完整的NC-CQR训练流程 - 使用改进的60%-30%-10%数据集划分（增加校准集）
-    
-    Args:
-        city (str): 城市名称
-        train_ratio (float): 训练集比例 (默认: 0.6)
-        calib_ratio (float): 校准集比例 (默认: 0.3) 
-        test_ratio (float): 测试集比例 (默认: 0.1)
-        **train_kwargs: 训练参数
-        
-    Returns:
-        Tuple[nn.Module, float, Dict, Dict]: 模型, Q值, 标准化器, 评估结果
-    """
+    """完整的NC-CQR训练流程"""
     print(f"=== 开始{city}市NC-CQR模型训练 ===")
     
-    # 验证比例参数
     if abs(train_ratio + calib_ratio + test_ratio - 1.0) > 1e-6:
         raise ValueError(f"数据集比例之和必须为1.0，当前为{train_ratio + calib_ratio + test_ratio}")
     
@@ -377,19 +333,16 @@ def train_full_pipeline(city: str = 'dongguan',
     # 2. 数据预处理
     X, y, scalers = prepare_nc_cqr_data(df)
     
-    # 3. 数据集划分：60%训练，30%校准，10%测试
+    # 3. 数据集划分
     n_samples = len(X)
     n_train = int(n_samples * train_ratio)
     n_calib = int(n_samples * calib_ratio)
-    n_test = n_samples - n_train - n_calib  # 剩余部分作为测试集
+    n_test = n_samples - n_train - n_calib
     
-    # 按时间顺序划分
     X_train = X[:n_train]
     y_train = y[:n_train]
-    
     X_calib = X[n_train:n_train + n_calib]
     y_calib = y[n_train:n_train + n_calib]
-    
     X_test = X[n_train + n_calib:]
     y_test = y[n_train + n_calib:]
     
@@ -400,8 +353,7 @@ def train_full_pipeline(city: str = 'dongguan',
     
     # 4. 训练模型
     print("\n=== 开始模型训练 ===")
-    # 确保城市参数传递给训练函数
-    train_kwargs_with_city = {**train_kwargs, 'city': city}
+    train_kwargs_with_city = {** train_kwargs, 'city': city}
     model, Q = train_nc_cqr_model(X_train, y_train, X_calib, y_calib, **train_kwargs_with_city)
     print(f"训练完成，Q值：{Q:.2f}")
     
@@ -411,7 +363,7 @@ def train_full_pipeline(city: str = 'dongguan',
     print(f"测试集覆盖率：{eval_results['coverage']:.1%}")
     print(f"平均预测区间宽度：{eval_results['avg_interval_width']:.2f}")
     
-    # 6. 保存标准化器（按城市分离存储）
+    # 6. 保存标准化器
     save_scalers_for_pipeline(scalers, city)
     
     return model, Q, scalers, eval_results

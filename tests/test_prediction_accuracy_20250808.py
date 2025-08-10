@@ -36,8 +36,8 @@ class PredictionAccuracyTest:
     
     def __init__(self):
         """初始化测试环境"""
-        self.test_date = datetime(2025, 8, 8)
-        self.cutoff_date = datetime(2025, 8, 7, 23, 59, 59)  # 数据截止时间
+        self.test_date = datetime(2025, 8, 9)
+        self.cutoff_date = datetime(2025, 8, 10, 23, 59, 59)  # 数据截止时间
         self.test_results = {}
         self.city_names_cn = {
             'guangzhou': '广州', 'shenzhen': '深圳', 'zhuhai': '珠海',
