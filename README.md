@@ -155,7 +155,7 @@ no2-prediction-system/
 
 4. **初始化数据库**
 	```bash
-	python  -m scripts.setup_database
+	python -m scripts.setup_database
 	```
 
 > [!WARNING]
