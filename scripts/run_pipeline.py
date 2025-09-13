@@ -187,10 +187,7 @@ def train_cities(cities_list=None, force_override=False):
             # 使用带版本控制的训练函数
             success = train_city_with_version_control(
                 city=city,
-                force_override=force_override,
-                epochs=150,
-                batch_size=32,
-                learning_rate=1e-3
+                force_override=force_override
             )
             
             if success:

@@ -170,7 +170,7 @@ class PredictionAccuracyTest:
                     train_ratio=0.6,   # 训练集比例
                     calib_ratio=0.3,   # 校准集比例  
                     test_ratio=0.1,    # 测试集比例
-                    epochs=150         # 减少训练轮数加快测试
+                    epochs=200         # 200轮训练
                 )
                 
                 train_loss = eval_results.get('train_loss', 'N/A')
