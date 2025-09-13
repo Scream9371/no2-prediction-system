@@ -1,4 +1,4 @@
-# 基于机器学习大湾区的 NO₂ 浓度预测与可视化系统
+# 基于机器学习的大湾区 NO₂ 浓度预测与可视化系统
 
 ## 1. 项目概述
 
@@ -17,6 +17,17 @@
 
 ```bash
 no2-prediction-system/
+├── api/                        # API相关
+│   ├── __init__.py
+│   ├── heweather/              # 和风天气API集成
+│   │   ├── __init__.py
+│   │   ├── client.py           # API客户端（JWT认证）
+│   │   └── data_parser.py      # 数据解析器
+│   └── schedules/              # 定时任务
+│       ├── __init__.py
+│       ├── daily_updater.py    # 每日数据更新
+│       └── data_collector.py   # 数据采集模块
+│
 ├── config/                     # 配置（环境变量、数据库、路径等）
 │   ├── __init__.py
 │   ├── cities.py               # 城市配置和映射
@@ -35,11 +46,15 @@ no2-prediction-system/
 │   ├── ml_cache/               # 机器学习缓存文件
 │   │   ├── features/           # 特征工程缓存
 │   │   └── scalers/            # 数据标准化器（按城市分离）
-│   └── backup/                 # 数据库备份文件
+│   ├── backup/                 # 数据库备份文件
+│   └── predictions_cache/      # 预测数据缓存
 │
 ├── ml/                         # 机器学习模块
 │   ├── __init__.py
-│   ├── models/                 # 模型存储（版本控制）
+│   ├── automation
+│   │   ├── __init__.py
+│   │   └── training_scheduler  # 自动化训练调度器
+│   ├── models/                 # 模型存储
 │   │   ├── __init__.py
 │   │   ├── daily/              # 按日期版本的模型
 │   │   └── latest/             # 最新模型链接
@@ -48,8 +63,8 @@ no2-prediction-system/
 │       ├── control.py          # NC-CQR控制脚本
 │       ├── data_loader.py      # 数据加载器
 │       ├── data_processing.py  # 数据预处理
-│       ├── evaluate.py         # 模型评估
 │       ├── predict.py          # 预测模块
+│       ├── reproducibility.py  # 可重现性保证
 │       └── train.py            # 模型训练
 │
 ├── outputs/                    # 输出文件目录
@@ -60,16 +75,6 @@ no2-prediction-system/
 │   │   └── __init__.py
 │   └── predictions/            # 预测结果输出（包含csv表格预测数据和png折线图）
 │
-├── api/                        # API相关
-│   ├── __init__.py
-│   ├── heweather/              # 和风天气API集成
-│   │   ├── __init__.py
-│   │   ├── client.py           # API客户端（JWT认证）
-│   │   └── data_parser.py      # 数据解析器
-│   └── schedules/              # 定时任务
-│       ├── __init__.py
-│       └── data_collector.py   # 定时数据采集
-│
 ├── web/                        # Web应用
 │   ├── __init__.py
 │   ├── app.py                  # Flask应用入口
@@ -77,17 +82,17 @@ no2-prediction-system/
 │   │   ├── __init__.py
 │   │   ├── api_routes.py       # API接口路由
 │   │   └── main_routes.py      # 主页面路由
-│   ├── static/                 # 静态资源
-│   │   ├── images/             # 城市背景图片
-│   │   └── js/                 # JavaScript相关类型定义
+│   ├── static/                 # 城市背景图、js类型定义等静态资源
 │   └── templates/              # HTML模板
 │       ├── city.html           # 城市详情页
 │       └── index.html          # 主页模板
 │
 ├── scripts/                    # 执行脚本
 │   ├── auto_training.py        # 调用模型训练管道
+│   ├── manage_predictions_cache.py  # 预测缓存管理脚本
 │   ├── run_data_collector.py   # 数据采集脚本
 │   ├── run_databackup.py       # 数据备份脚本
+│   ├── run_pipline.py          # 训练管道
 │   └── setup_database.py       # 数据库初始化
 │
 ├── utils/                      # 工具函数
@@ -95,8 +100,8 @@ no2-prediction-system/
 │   └── auth.py                 # 认证相关工具
 │
 ├── .env.example                # 环境变量模板（API密钥、数据库等）
-├── ed25519-private.pem         # 和风天气API私钥
-├── ed25519-public.pem          # 和风天气API公钥
+├── ed25519-private.pem         # Ed25519私钥
+├── ed25519-public.pem          # Ed25519公钥
 ├── requirements.txt            # Python依赖
 └── README.md                   # 项目说明文档
 ```
@@ -118,7 +123,7 @@ no2-prediction-system/
 - **可重现保证**：[`ml\src\reproducibility.py`](ml\src\reproducibility.py)通过生成多个城市的随机种子、创建可重现性上下文管理器等方式，控制算法的随机性。
 - **模型训练**：包括训练管道和控制脚本两种训练方式。
     - **训练管道**：[`scripts/run_pipeline.py`](scripts/run_pipeline.py)提供批量训练和版本控制，用于部署至 NO₂ 预测系统的生产环境。
-    - **控制脚本**：[`ml/src/control.py`](ml/src/control.py)提供独立的训练、预测、评估功能，用于功能调试。
+    - **控制脚本**：[`ml/src/control.py`](ml/src/control.py)提供独立于生产环境的训练、预测、评估功能，用于模型性能调试。
 
 > [!NOTE]
 > 控制脚本的详细使用方法见[其他说明](#5-其他说明)。
@@ -142,11 +147,11 @@ no2-prediction-system/
    ```
 
 2. **配置环境变量**
-	- 复制`.env.example`文件为`.env`，存至项目根目录。
+	- 复制[`.env.example`](.env.example)文件为`.env`，存至项目根目录。
 	- 在`.env`中填写您的和风天气 API 密钥、数据库连接、硅基流动 API（可选，用于启用大模型问答功能）。
 
 > [!NOTE]
-> ed25519 密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
+> Ed25519 密钥生成以及使用方式详情见和风天气官方文档[身份认证](https://dev.qweather.com/docs/configuration/authentication/)。
 
 3. 启动 MySQL 服务
 	```bash
@@ -171,7 +176,7 @@ no2-prediction-system/
 	python -m scripts.auto_training run
 	```
 
-7. **启动Web系统**
+7. **启动 Web 系统**
 
 	- **后端服务启动**
 	
@@ -190,30 +195,21 @@ no2-prediction-system/
 	  * Debugger PIN: 274-107-827
 	  ```
 	  上述输出表明：Flask 应用已在本地 5000 端口成功启动，处于开发模式。
-	  可通过访问 [http://127.0.0.1:5000](http://127.0.0.1:5000) 查看预测结果和可视化图表。
-
-	- **Web系统构成**
-
-		- 前端页面：基于 HTML、CSS 和 JavaScript 实现，使用 Chart.js 进行数据可视化
-		- 后端服务：基于 Flask 框架开发，提供数据接口和页面路由
-		- 核心接口[`api_routes.py`](web/routes/api_routes.py)：
-			- 城市列表接口：`/api/cities` - 获取所有支持的城市信息
-			- 预测接口：`/api/predict/no2/<city_id>` - 获取指定城市的 NO₂ 预测数据
-			- 历史数据接口：`/api/no2/<city_id>` - 获取指定城市的历史 NO₂ 数据
+	  可通过访问 http://127.0.0.1:5000 查看预测结果和可视化图表。
 
 	- **访问方式**
 
-	  打开浏览器访问[http://127.0.0.1:5000](http://127.0.0.1:5000)即可使用系统，操作流程如下：
-		- 在搜索框输入城市名（如"广州"、"深圳"），从下拉列表选择目标城市
-		- 系统将自动加载并展示该城市未来 24 小时的 NO₂ 浓度预测结果
-		- 图表中包含预测值曲线和 95% 置信区间
+	  打开浏览器访问 http://127.0.0.1:5000 即可使用系统，操作流程如下：
+		- 在搜索框输入城市名（如"广州"、"深圳"），从下拉列表选择目标城市；
+		- 系统将自动加载并展示该城市未来 24 小时的 NO₂ 浓度预测结果；
+		- 图表中包含预测值曲线和 95% 置信区间。
 
-	- **Web系统功能说明**
+	- **Web 系统功能说明**
 
-		- 城市搜索：支持模糊查询，快速定位大湾区城市
-		- 数据可视化：通过折线图直观展示 NO₂ 浓度预测趋势
-		- 预测详情：显示未来 24 小时每小时的预测值及置信区间
-		- 城市切换：可通过搜索框快速切换不同城市查看预测结果
+		- 城市搜索：支持模糊查询，快速定位大湾区城市；
+		- 数据可视化：通过折线图直观展示 NO₂ 浓度预测趋势；
+		- 预测详情：显示未来 24 小时每小时的预测值及置信区间；
+		- 城市切换：可通过搜索框快速切换不同城市查看预测结果。
 
 ## 5. 其他说明
 
@@ -221,11 +217,11 @@ no2-prediction-system/
 	```bash
 	python -m scripts.run_databackup         # 备份数据库数据到CSV文件
 	```
-- **模型手动训练**：进入项目根目录运行 NC-CQR 算法控制脚本，可对模型进行精细化调整。
+- **模型手动训练**：进入项目根目录运行 NC-CQR 算法控制脚本，可调整训练轮次、批次大小、学习率等参数，对模型训练过程进行精细化调整。
 	```bash
 	python -m ml.src.control -h            # 查看脚本使用帮助
 	```
-  运行模式: train(训练), predict(预测), evaluate(评估)
+  运行模式: train（训练）, predict（预测）, evaluate（评估）
 
   | 选项                            | 说明                              |
   |-------------------------------|---------------------------------|
@@ -243,16 +239,14 @@ no2-prediction-system/
 	python -m ml.src.control train --city dongguan          # 用东莞城市的历史NO₂浓度训练模型
 	```
 - **模型与数据缓存**：
-	- **训练管道**：模型存储在`ml/models/daily/`（按日期版本）和`ml/models/latest/`（最新版本），标准化器缓存于`data/ml_cache/scalers/`
-	- **控制脚本**：模型存储在`outputs/models/`，专用缓存在`outputs/ml_cache/`，预测结果保存在`outputs/predictions/`
-	- **数据备份**：数据库备份自动保存在[`data/backup`](data/backup)目录，按城市分离
+	- **训练管道**：模型存储在`ml/models/daily/`（按日期版本）和`ml/models/latest/`（最新版本），标准化器缓存于`data/ml_cache/scalers/`。
+	- **控制脚本**：模型存储在`outputs/models/`，专用缓存在`outputs/ml_cache/`，预测结果保存在`outputs/predictions/`。
+	- **数据备份**：数据库备份自动保存在[`data/backup`](data/backup)目录，按城市分离。
 
 > [!NOTE]
 > 上述目录会在执行脚本后自动创建，不会被版本追踪。
 
-- **可扩展性**：支持添加新城市、切换模型、调整预测区间等。
-
 ## 6. 额外计划
-- 云端部署
-- 接入大语言模型打造 NO₂ 预测智能体
-- 近 15 天浓度变化趋势分析
+- 云端部署；
+- 接入大语言模型打造 NO₂ 预测智能体；
+- 附加近 15 天浓度变化趋势分析。
